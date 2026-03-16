@@ -10,6 +10,7 @@ import RecognizePage from './components/pages/Recognize'
 import HomePage from './components/pages/Home'
 import AiCoachPage from './components/pages/AiCoach'
 import DownloadPage from './components/pages/DownloadPage'
+import Announcement from './components/Announcement'
 
 export default function App() {
   const { user, loading, activeTab } = useApp()
@@ -47,6 +48,7 @@ export default function App() {
 
   return (
     <>
+      <Announcement />
       <Header />
       {pages[activeTab] ?? <TodayPage />}
       <Toast />
