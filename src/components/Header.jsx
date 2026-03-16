@@ -14,7 +14,7 @@ function stringToColor(str) {
 }
 
 export default function Header() {
-  const { user, exercises, exArchive, viewingDate, setViewingDate } = useApp()
+  const { user, exercises, exArchive, viewingDate, setViewingDate, setActiveTab } = useApp()
   const [username, setUsername] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -72,7 +72,8 @@ export default function Header() {
           </button>
 
           {/* Logo */}
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div onClick={() => setActiveTab('home')}
+            style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
             <img src="/logo-sm.png" alt="KeroGym" style={{ height:30, width:'auto' }} />
             <div style={{
               fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3,
