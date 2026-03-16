@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KeroGym – Uygulamayı İndir</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111;
+      --surface2: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #e8ff47;
+      --text: #f0f0f0;
+      --text-muted: #666;
+      --green: #47ff8a;
+      --blue: #47c8ff;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .35;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* Glow blob */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(232,255,71,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Logo */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 48px;
+      animation: fadeDown .6s ease both;
+    }
+
+    .logo-icon {
+      width: 52px;
+      height: 52px;
+      background: var(--accent);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .logo-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 5px;
+      color: var(--text);
+    }
+    .logo-text span { color: var(--text-muted); }
+
+    /* Hero */
+    .hero-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      animation: fadeDown .6s .1s ease both;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(42px, 10vw, 72px);
+      letter-spacing: 3px;
+      line-height: 1;
+      margin-bottom: 16px;
+      animation: fadeDown .6s .15s ease both;
+    }
+
+    h1 .accent { color: var(--accent); }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 48px;
+      animation: fadeDown .6s .2s ease both;
+    }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+      animation: fadeDown .6s .25s ease both;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .card.android::before {
+      background: radial-gradient(circle at 50% 0%, rgba(71,255,138,0.08), transparent 70%);
+    }
+    .card.ios::before {
+      background: radial-gradient(circle at 50% 0%, rgba(71,200,255,0.08), transparent 70%);
+    }
+
+    .card:hover {
+      border-color: #444;
+      transform: translateY(-2px);
+    }
+    .card:hover::before { opacity: 1; }
+
+    .card-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card-os {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .card.android .card-os { color: var(--green); }
+    .card.ios .card-os { color: var(--blue); }
+
+    .card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Main CTA */
+    .btn-download {
+      width: 100%;
+      padding: 18px;
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 4px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      animation: fadeDown .6s .3s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-download::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    }
+
+    .btn-download:hover {
+      background: #d4eb30;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(232,255,71,0.25);
+    }
+
+    .btn-download:active { transform: translateY(0); }
+
+    /* Steps modal */
+    .steps-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .steps-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .steps-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: min(420px, 100%);
+      transform: translateY(20px);
+      transition: transform .3s;
+    }
+
+    .steps-overlay.open .steps-box { transform: translateY(0); }
+
+    .steps-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .steps-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+    }
+
+    .steps-title.android { color: var(--green); }
+    .steps-title.ios { color: var(--blue); }
+
+    .close-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+    }
+    .close-btn:hover { color: var(--text); border-color: #444; }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .android .step-num { background: rgba(71,255,138,0.15); color: var(--green); }
+    .ios .step-num { background: rgba(71,200,255,0.15); color: var(--blue); }
+
+    .step-text {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    .step-text strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* URL chip */
+    .url-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      animation: fadeDown .6s .35s ease both;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .url-chip:hover { border-color: #444; }
+
+    .copy-icon { color: var(--text-muted); font-size: 14px; transition: color .2s; }
+    .url-chip:hover .copy-icon { color: var(--accent); }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+      animation: fadeDown .6s .4s ease both;
+    }
+
+    /* Copied toast */
+    .copied-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--surface2);
+      border: 1px solid rgba(71,255,138,0.3);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--green);
+      opacity: 0;
+      transition: all .3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .copied-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 400px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+
+    <div class="logo-row">
+      <div class="logo-icon">💪</div>
+      <div class="logo-text">KERO<span>GYM</span></div>
+    </div>
+
+    <div class="hero-tag">Mobil Uygulama</div>
+    <h1>TELEFONA<br><span class="accent">İNDİR</span></h1>
+    <p class="subtitle">Spor & beslenme takibini cebinde tut.<br>Kurulum gerektirmez, anında çalışır.</p>
+
+    <div class="cards">
+      <div class="card android" onclick="openSteps('android')">
+        <span class="card-icon">🤖</span>
+        <div class="card-os">Android</div>
+        <div class="card-desc">Chrome ile aç, ana ekrana ekle</div>
+      </div>
+      <div class="card ios" onclick="openSteps('ios')">
+        <span class="card-icon">🍎</span>
+        <div class="card-os">iPhone</div>
+        <div class="card-desc">Safari ile aç, ana ekrana ekle</div>
+      </div>
+    </div>
+
+    <button class="btn-download" onclick="openSteps(detectOS())">
+      ⬇ UYGULAMAYI İNDİR
+    </button>
+
+    <div class="url-chip" onclick="copyURL()">
+      <span id="site-url">kerogym.com</span>
+      <span class="copy-icon">⎘</span>
+    </div>
+
+    <div class="hint">↑ linki kopyala ve tarayıcında aç</div>
+
+  </div>
+
+  <!-- Android Steps -->
+  <div class="steps-overlay" id="android-modal">
+    <div class="steps-box">
+      <div class="steps-header">
+        <div class="steps-title android">🤖 Android Kurulum</div>
+        <button class="close-btn" onclick="closeSteps('android')">✕</button>
+      </div>
+      <div class="android">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Chrome</strong> tarayıcısını aç</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-text">Adres çubuğuna <strong>kerogym-spor.vercel.app</strong> yaz ve gir</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-text">Sağ üstteki <strong>⋮ üç nokta</strong> menüsüne dokun</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong> seçeneğine bas</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-text"><strong>"Ekle"</strong> de — ikon ana ekranda belirir! ✅</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS Steps -->
+  <div class="steps-overlay" id="ios-modal">
+    <div class="steps-box">
+      <div class="steps-header">
+        <div class="steps-title ios">🍎 iPhone Kurulum</div>
+        <button class="close-btn" onclick="closeSteps('ios')">✕</button>
+      </div>
+      <div class="ios">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Safari</strong> tarayıcısını aç (Chrome çalışmaz!)</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-text">Adres çubuğuna <strong>kerogym-spor.vercel.app</strong> yaz ve gir</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-text">Alttaki <strong>□↑ paylaş butonuna</strong> dokun</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>"Ana Ekrana Ekle"</strong> seçeneğine bas</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-text">Sağ üstten <strong>"Ekle"</strong> de — ikon ana ekranda! ✅</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="copied-toast" id="copied-toast">✓ Link kopyalandı</div>
+
+  <script>
+    // Sitenin gerçek URL'sini otomatik yaz
+    const urlEl = document.getElementById('site-url');
+    urlEl.textContent = 'https://kerogym-spor.vercel.app';
+
+    function detectOS() {
+      const ua = navigator.userAgent;
+      if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+      return 'android';
+    }
+
+    function openSteps(os) {
+      document.getElementById(os + '-modal').classList.add('open');
+    }
+
+    function closeSteps(os) {
+      document.getElementById(os + '-modal').classList.remove('open');
+    }
+
+    // Overlay'e tıklayınca kapat
+    document.querySelectorAll('.steps-overlay').forEach(el => {
+      el.addEventListener('click', function(e) {
+        if (e.target === el) el.classList.remove('open');
+      });
+    });
+
+    function copyURL() {
+      const url = 'https://kerogym-spor.vercel.app';
+      navigator.clipboard.writeText(url).catch(() => {});
+      const toast = document.getElementById('copied-toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // "İndir" butonu cihaza göre otomatik doğru adımları açar
+  </script>
+
+</body>
+</html>
