@@ -1,23 +1,16 @@
 import { useApp } from '../context/AppContext'
 
 const TABS = [
-  { id:'home',     label:'ANA MENÜ',        icon:'🏠', desc:'Uygulama hakkında' },
-  { id:'today',    label:'BUGÜN',           icon:'🏋️', desc:'Günlük antrenman' },
-  { id:'aicoach',  label:'AI KOÇU',         icon:'🤖', desc:'Kalori & aktivite analizi' },
-  { id:'history',  label:'GEÇMİŞ',          icon:'📅', desc:'Geçmiş antrenmanlar' },
-  { id:'calorie',  label:'KALORİ',          icon:'🍎', desc:'Besin takibi' },
-  { id:'goals',    label:'HEDEFLER',        icon:'🎯', desc:'Makro hedefler' },
-  { id:'progress', label:'İLERLEME',        icon:'📊', desc:'Grafik & istatistik' },
-  { id:'body',     label:'ÖLÇÜLER',         icon:'⚖️', desc:'Vücut ölçüleri' },
-  { id:'recognize',label:'EGZERSİZ TANIMA', icon:'📸', desc:'AI ile tanıma' },
-  { id:'download', label:'UYGULAMAYI İNDİR',icon:'⬇', desc:'Telefona ekle' },
-]
-  { id:'history',  label:'GEÇMİŞ',          icon:'📅', desc:'Geçmiş antrenmanlar' },
-  { id:'calorie',  label:'KALORİ',          icon:'🍎', desc:'Besin takibi' },
-  { id:'goals',    label:'HEDEFLER',        icon:'🎯', desc:'Makro hedefler' },
-  { id:'progress', label:'İLERLEME',        icon:'📊', desc:'Grafik & istatistik' },
-  { id:'body',     label:'ÖLÇÜLER',         icon:'⚖️', desc:'Vücut ölçüleri' },
-  { id:'recognize',label:'EGZERSİZ TANIMA', icon:'📸', desc:'AI ile tanıma' },
+  { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkinda' },
+  { id:'today',    label:'BUGUN',            icon:'🏋', desc:'Gunluk antrenman' },
+  { id:'aicoach',  label:'AI KOCU',          icon:'🤖', desc:'Kalori & aktivite analizi' },
+  { id:'history',  label:'GECMIS',           icon:'📅', desc:'Gecmis antrenmanlar' },
+  { id:'calorie',  label:'KALORI',           icon:'🍎', desc:'Besin takibi' },
+  { id:'goals',    label:'HEDEFLER',         icon:'🎯', desc:'Makro hedefler' },
+  { id:'progress', label:'ILERLEME',         icon:'📊', desc:'Grafik & istatistik' },
+  { id:'body',     label:'OLCULER',          icon:'⚖', desc:'Vucut olculeri' },
+  { id:'recognize',label:'EGZERSIZ TANIMA',  icon:'📸', desc:'AI ile tanima' },
+  { id:'download', label:'UYGULAMAYI INDIR', icon:'⬇', desc:'Telefona ekle' },
 ]
 
 export default function NavTabs({ open, onClose }) {
@@ -25,21 +18,16 @@ export default function NavTabs({ open, onClose }) {
 
   return (
     <>
-      {/* Overlay */}
       {open && (
-        <div
-          onClick={onClose}
-          style={{
-            position:'fixed', inset:0,
-            background:'rgba(0,0,0,.6)',
-            backdropFilter:'blur(4px)',
-            zIndex:199,
-            animation:'fadeIn .2s ease',
-          }}
-        />
+        <div onClick={onClose} style={{
+          position:'fixed', inset:0,
+          background:'rgba(0,0,0,.6)',
+          backdropFilter:'blur(4px)',
+          zIndex:199,
+          animation:'fadeIn .2s ease',
+        }} />
       )}
 
-      {/* Sidebar */}
       <aside style={{
         position:'fixed', top:0, left:0, bottom:0,
         width:270,
@@ -53,7 +41,6 @@ export default function NavTabs({ open, onClose }) {
         overflowY:'auto',
         scrollbarWidth:'none',
       }}>
-        {/* Header */}
         <div style={{
           padding:'20px 20px 16px',
           borderBottom:'1px solid var(--border)',
@@ -62,10 +49,7 @@ export default function NavTabs({ open, onClose }) {
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <img src="/logo-sm.png" alt="KeroGym" style={{ height:28, width:'auto' }} />
-            <div style={{
-              fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:3,
-              color:'var(--accent)',
-            }}>
+            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:3, color:'var(--accent)' }}>
               KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
             </div>
           </div>
@@ -73,96 +57,63 @@ export default function NavTabs({ open, onClose }) {
             background:'var(--surface2)', border:'1px solid var(--border)',
             color:'var(--text-muted)', width:30, height:30, borderRadius:8,
             cursor:'pointer', fontSize:15, display:'flex', alignItems:'center', justifyContent:'center',
-            transition:'all .15s',
-          }}>✕</button>
+          }}>X</button>
         </div>
 
-        {/* Menu label */}
         <div style={{
           padding:'16px 20px 8px',
           fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3,
           color:'var(--text-muted)', textTransform:'uppercase',
         }}>
-          Menü
+          Menu
         </div>
 
-        {/* Tabs */}
         <nav style={{ padding:'0 10px', flex:1 }}>
           {TABS.map(t => {
             const isActive = activeTab === t.id
             return (
-              <div
-                key={t.id}
+              <div key={t.id}
                 onClick={() => { setActiveTab(t.id); onClose() }}
                 style={{
                   display:'flex', alignItems:'center', gap:12,
-                  padding:'11px 12px',
-                  borderRadius:10,
-                  cursor:'pointer',
-                  marginBottom:2,
+                  padding:'11px 12px', borderRadius:10, cursor:'pointer', marginBottom:2,
                   background: isActive ? 'rgba(232,255,71,.08)' : 'transparent',
-                  border: `1px solid ${isActive ? 'rgba(232,255,71,.2)' : 'transparent'}`,
-                  transition:'all .15s',
-                  userSelect:'none',
+                  border: isActive ? '1px solid rgba(232,255,71,.2)' : '1px solid transparent',
+                  transition:'all .15s', userSelect:'none',
                 }}
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--surface2)' }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
               >
-                {/* Icon */}
                 <div style={{
                   width:36, height:36, borderRadius:9, flexShrink:0,
                   background: isActive ? 'rgba(232,255,71,.12)' : 'var(--surface2)',
-                  border: `1px solid ${isActive ? 'rgba(232,255,71,.25)' : 'var(--border)'}`,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:16,
-                  transition:'all .15s',
+                  border: isActive ? '1px solid rgba(232,255,71,.25)' : '1px solid var(--border)',
+                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:16,
                 }}>
                   {t.icon}
                 </div>
-
-                {/* Text */}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{
                     fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2,
                     color: isActive ? 'var(--accent)' : 'var(--text)',
-                    transition:'color .15s',
                   }}>
                     {t.label}
                   </div>
-                  <div style={{
-                    fontSize:10, color:'var(--text-muted)',
-                    fontFamily:'DM Mono,monospace',
-                    marginTop:1,
-                  }}>
+                  <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>
                     {t.desc}
                   </div>
                 </div>
-
-                {/* Active indicator */}
                 {isActive && (
-                  <div style={{
-                    width:4, height:4, borderRadius:'50%',
-                    background:'var(--accent)', flexShrink:0,
-                  }} />
+                  <div style={{ width:4, height:4, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }} />
                 )}
               </div>
             )
           })}
         </nav>
 
-        {/* Footer */}
-        <div style={{
-          padding:'16px 20px',
-          borderTop:'1px solid var(--border)',
-          flexShrink:0,
-        }}>
+        <div style={{ padding:'16px 20px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
           <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
-            style={{
-              display:'flex', alignItems:'center', gap:8,
-              fontSize:11, color:'var(--text-muted)',
-              fontFamily:'DM Mono,monospace', textDecoration:'none',
-              opacity:.7,
-            }}>
+            style={{ display:'flex', alignItems:'center', gap:8, fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'none', opacity:.7 }}>
             <span>📸</span> @slmbnmixo
           </a>
         </div>
