@@ -10,6 +10,14 @@ const TABS = [
   { id:'progress', label:'İLERLEME',        icon:'📊', desc:'Grafik & istatistik' },
   { id:'body',     label:'ÖLÇÜLER',         icon:'⚖️', desc:'Vücut ölçüleri' },
   { id:'recognize',label:'EGZERSİZ TANIMA', icon:'📸', desc:'AI ile tanıma' },
+  { id:'download', label:'UYGULAMAYI İNDİR',icon:'⬇️', desc:'Telefona ekle' },
+]
+  { id:'history',  label:'GEÇMİŞ',          icon:'📅', desc:'Geçmiş antrenmanlar' },
+  { id:'calorie',  label:'KALORİ',          icon:'🍎', desc:'Besin takibi' },
+  { id:'goals',    label:'HEDEFLER',        icon:'🎯', desc:'Makro hedefler' },
+  { id:'progress', label:'İLERLEME',        icon:'📊', desc:'Grafik & istatistik' },
+  { id:'body',     label:'ÖLÇÜLER',         icon:'⚖️', desc:'Vücut ölçüleri' },
+  { id:'recognize',label:'EGZERSİZ TANIMA', icon:'📸', desc:'AI ile tanıma' },
 ]
 
 export default function NavTabs({ open, onClose }) {

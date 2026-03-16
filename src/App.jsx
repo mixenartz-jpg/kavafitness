@@ -9,6 +9,7 @@ import { GoalsPage, ProgressPage, BodyPage } from './components/pages/GoalsProgr
 import RecognizePage from './components/pages/Recognize'
 import HomePage from './components/pages/Home'
 import AiCoachPage from './components/pages/AiCoach'
+import DownloadPage from './components/pages/DownloadPage'
 
 export default function App() {
   const { user, loading, activeTab } = useApp()
@@ -41,6 +42,7 @@ export default function App() {
     progress: <ProgressPage />,
     body:     <BodyPage />,
     recognize:<RecognizePage />,
+    download: <DownloadPage />,
   }
 
   return (
