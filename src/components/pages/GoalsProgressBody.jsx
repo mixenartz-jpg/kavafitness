@@ -195,7 +195,7 @@ Toplam yanıt 150 kelimeyi geçmesin. Madde madde yaz.`
             </div>
             {loading
               ? <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontFamily: 'DM Mono,monospace', fontSize: 12 }}>
-                  <span className="spinner" /> Yapay zeka düşünüyor...
+                  <span className="spinner" /> Yapay zeka düşünüyor..
                 </div>
               : aiTips
                 ? <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.8, fontFamily: 'DM Sans,sans-serif', whiteSpace: 'pre-wrap' }}>
