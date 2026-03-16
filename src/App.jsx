@@ -8,6 +8,7 @@ import CaloriePage from './components/pages/Calorie'
 import { GoalsPage, ProgressPage, BodyPage } from './components/pages/GoalsProgressBody'
 import RecognizePage from './components/pages/Recognize'
 import HomePage from './components/pages/Home'
+import AiCoachPage from './components/pages/AiCoach'
 
 export default function App() {
   const { user, loading, activeTab } = useApp()
@@ -33,6 +34,7 @@ export default function App() {
   const pages = {
     home:     <HomePage />,
     today:    <TodayPage />,
+    aicoach:  <AiCoachPage />,
     history:  <HistoryPage />,
     calorie:  <CaloriePage />,
     goals:    <GoalsPage />,

@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 const TABS = [
   { id:'home',     label:'ANA MENÜ',        icon:'🏠', desc:'Uygulama hakkında' },
   { id:'today',    label:'BUGÜN',           icon:'🏋️', desc:'Günlük antrenman' },
+  { id:'aicoach',  label:'AI KOÇU',         icon:'🤖', desc:'Kalori & aktivite analizi' },
   { id:'history',  label:'GEÇMİŞ',          icon:'📅', desc:'Geçmiş antrenmanlar' },
   { id:'calorie',  label:'KALORİ',          icon:'🍎', desc:'Besin takibi' },
   { id:'goals',    label:'HEDEFLER',        icon:'🎯', desc:'Makro hedefler' },
