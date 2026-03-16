@@ -123,7 +123,44 @@ export function AppProvider({ children }) {
     return unsub
   }, [initState])
 
-  // ── Save helpers ──
+  // ── Midnight rollover check ──
+  useEffect(() => {
+    if (!uid) return
+    const check = () => {
+      const today = todayKey()
+      setExercises(prev => {
+        const stored = ls.get(uid, 'fittrack_data', { date: today, exercises: [] })
+        if (stored.date !== today) {
+          const arch = ls.get(uid, 'fittrack_archive', {})
+          if (stored.exercises.length > 0) arch[stored.date] = stored.exercises
+          const newData = { date: today, exercises: [] }
+          ls.set(uid, 'fittrack_data', newData)
+          ls.set(uid, 'fittrack_archive', arch)
+          fbSet(doc(db, 'users', uid, 'fitdata', 'main'), newData)
+          fbSet(doc(db, 'users', uid, 'fitdata', 'archive'), { data: arch })
+          setExArchive(arch)
+          setViewingDate(today)
+          return []
+        }
+        return prev
+      })
+      setFoods(prev => {
+        const stored = ls.get(uid, 'fittrack_calories', { date: today, foods: [] })
+        if (stored.date !== today) {
+          const arch = ls.get(uid, 'fittrack_cal_archive', {})
+          if (stored.foods.length > 0) arch[stored.date] = stored.foods
+          const newData = { date: today, foods: [] }
+          ls.set(uid, 'fittrack_calories', newData)
+          ls.set(uid, 'fittrack_cal_archive', arch)
+          setCalArch(arch)
+          return []
+        }
+        return prev
+      })
+    }
+    const interval = setInterval(check, 60 * 1000) // her dakika kontrol et
+    return () => clearInterval(interval)
+  }, [uid])
   const saveExercises = useCallback((exs) => {
     const data = { date: todayKey(), exercises: exs }
     setExercises(exs)
