@@ -137,7 +137,7 @@ export default function HomePage() {
               fontFamily: 'Bebas Neue,sans-serif', fontSize: 18,
               letterSpacing: 2, marginBottom: 2,
             }}>
-              slmbn
+              Kerem Teke
             </div>
             <div style={{
               fontFamily: 'DM Mono,monospace', fontSize: 10,
