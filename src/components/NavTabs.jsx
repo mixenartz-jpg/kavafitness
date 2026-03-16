@@ -9,7 +9,7 @@ const TABS = [
   { id:'goals',    label:'HEDEFLER',        icon:'🎯', desc:'Makro hedefler' },
   { id:'progress', label:'İLERLEME',        icon:'📊', desc:'Grafik & istatistik' },
   { id:'body',     label:'ÖLÇÜLER',         icon:'⚖️', desc:'Vücut ölçüleri' },
-  { id:'recognize',label:'EGZERSİZ TANIMASI', icon:'📸', desc:'AI ile tanıma' },
+  { id:'recognize',label:'EGZERSİZ TANIMA', icon:'📸', desc:'AI ile tanıma' },
 ]
 
 export default function NavTabs({ open, onClose }) {

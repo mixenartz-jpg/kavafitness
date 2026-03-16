@@ -20,7 +20,7 @@ export default function App() {
           <img src="/logo.png" alt="KeroGym"
             style={{ height:90, width:'auto', marginBottom:20, animation:'pulse 1.5s ease-in-out infinite' }} />
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:32, letterSpacing:4, color:'var(--accent)', marginBottom:16 }}>
-            KERO<span style={{ color:'var(--text-muted)' }}>GYMM</span>
+            KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
           </div>
           <div className="spinner" style={{ margin:'0 auto' }} />
           <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(.96)}}`}</style>
