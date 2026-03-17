@@ -5,9 +5,10 @@ const SECTIONS = [
     label: 'GENEL',
     color: 'var(--text-muted)',
     items: [
-      { id:'home',     label:'ANA SAYFA',         icon:'🏠', desc:'Özet & hakkında' },
+      { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkında' },
       { id:'account',  label:'HESABIM',           icon:'👤', desc:'Profil, email, şifre' },
-      { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Hedefler & ölçüler' },
+      { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Profil & hedefler & ölçüler' },
+      { id:'share',    label:'PAYLAŞ',            icon:'📤', desc:'Antrenmanını paylaş' },
       { id:'download', label:'UYGULAMAYI İNDİR',  icon:'⬇',  desc:'Telefona ekle' },
     ]
   },
@@ -15,26 +16,27 @@ const SECTIONS = [
     label: 'SPOR',
     color: '#e8ff47',
     items: [
-      { id:'today',    label:'ANTRENMAN',         icon:'🏋', desc:'Bugünkü egzersizler' },
-      { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Hazır antrenman programları' },
+      { id:'today',    label:'BUGÜN',             icon:'🏋', desc:'Günlük antrenman' },
+      { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Antrenman şablonları' },
       { id:'history',  label:'GEÇMİŞ',            icon:'📅', desc:'Geçmiş antrenmanlar' },
-      { id:'progress', label:'İLERLEME & ÖZET',   icon:'📊', desc:'Grafikler & haftalık özet' },
+      { id:'weekly',   label:'HAFTALIK ÖZET',     icon:'📈', desc:'Bu haftanın özeti' },
+      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & nasıl gidiyorum' },
     ]
   },
   {
     label: 'DİYET',
     color: '#47ff8a',
     items: [
-      { id:'calorie',  label:'KALORİ TAKİBİ',    icon:'🍎', desc:'Yemek & besin takibi' },
-      { id:'goals',    label:'HEDEFLER & SU',     icon:'🎯', desc:'Makro & su takibi' },
-      { id:'aicoach',  label:'AI KOÇU',           icon:'🤖', desc:'Beslenme asistanı' },
+      { id:'calorie',  label:'KALORİ TAKİBİ',    icon:'🍎', desc:'Besin takibi' },
+      { id:'goals',    label:'MAKRO HEDEFLER',    icon:'🎯', desc:'Günlük makro takibi' },
+      { id:'aicoach',  label:'AI KOÇU',           icon:'🤖', desc:'Kalori & aktivite analizi' },
     ]
   },
   {
     label: 'KİŞİSEL KOÇUN',
     color: '#e8ff47',
     items: [
-      { id:'coach', label:'KİŞİSEL KOÇUN', icon:'⭐', desc:'Tüm verilerini bilen AI koç', special:true },
+      { id:'coach', label:'KİŞİSEL KOÇUN 🔒', icon:'⭐', desc:'Tüm verileri bilen AI koç', special:true },
     ]
   },
 ]
@@ -42,9 +44,11 @@ const SECTIONS = [
 // ── Spotify linkleri — buraya ekle ──
 // { label: 'Liste Adı', url: 'https://open.spotify.com/playlist/...' }
 const SPOTIFY_PLAYLISTS = [
-  { label: 'Kerem\'in Gym Listesi',  url: 'SPOTIFY_LINK_1' },
-  { label: 'Playlist 2',             url: 'SPOTIFY_LINK_2' },
-  { label: 'Playlist 3',             url: 'SPOTIFY_LINK_3' },
+  { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK' },
+  { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT' },
+  { label: 'Beast Mode',           url: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP' },
+  { label: 'Gym Motivation',       url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8' },
+  { label: 'Hard Rock Workout',    url: 'https://open.spotify.com/playlist/37i9dQZF1DX9oh43oAzkyx' },
 ]
 
 function SpotifyIcon() {

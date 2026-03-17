@@ -101,8 +101,6 @@ export function GoalsPage() {
     { key:'carb',    label:'KARBONHİDRAT',  unit:'g',    color:'#47ff8a' },
   ]
 
-  const GOAL_LABELS  = { lose:'Kilo Ver', maintain:'Kilo Koru', gain:'Kilo Al', cut:'Yağ Yak' }
-  const LEVEL_LABELS = { beginner:'Yeni Başlayan', intermediate:'Orta', advanced:'İleri' }
   const WATER_GOAL   = 2500
   const waterPct     = Math.min(100, Math.round((water/WATER_GOAL)*100))
 
@@ -111,17 +109,7 @@ export function GoalsPage() {
 
   return (
     <div className="page">
-      {profile && (
-        <div style={{ background:'rgba(232,255,71,.05)', border:'1px solid rgba(232,255,71,.12)', borderRadius:14, padding:'16px 18px', marginBottom:24 }}>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--accent)', marginBottom:10 }}>KİŞİSEL PROFİL</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-            {profile.goal && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>{GOAL_LABELS[profile.goal]||profile.goal}</span>}
-            {profile.level && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>{LEVEL_LABELS[profile.level]||profile.level}</span>}
-            {profile.tdee && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>~{profile.tdee} kcal/gün</span>}
-            {profile.trainDays?.length > 0 && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>Haftada {profile.trainDays.length} gün</span>}
-          </div>
-        </div>
-      )}
+
 
       <div className="section-title">GÜNLÜK MAKRO TAKİBİ</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:14, marginBottom:24 }}>

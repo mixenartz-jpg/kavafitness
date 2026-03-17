@@ -53,7 +53,7 @@ export default function AuthScreen() {
       if (!cred.user.emailVerified) {
         await auth.signOut()
         setLoading(false)
-        setError('📧 Lütfen mail adresinizi doğrulayın. Gelen kutusu ve spam klasörünü kontrol edin.')
+        setError('📧 Lütfen mail adresinizi doğrulayın. ⚠️ SPAM / GEREKSIZ klasörünü de kontrol edin!')
         return
       }
     } catch (e) {
@@ -117,7 +117,7 @@ export default function AuthScreen() {
       if (!snap.exists()) { setLoading(false); return setError('Bu kullanıcı adı bulunamadı.') }
       const realEmail = snap.data().email
       await sendPasswordResetEmail(auth, realEmail)
-      setSuccess(`✓ Şifre sıfırlama maili gönderildi: ${realEmail} · SPAM KLASÖRÜNÜ KONTROL EDİN`)
+      setSuccess(`✓ Şifre sıfırlama maili gönderildi: ${realEmail}\n⚠️ SPAM / GEREKSIZ klasörünü mutlaka kontrol et!`)
     } catch (e) {
       setError('Hata: ' + e.message)
     }
@@ -169,13 +169,16 @@ export default function AuthScreen() {
               borderRadius:8, padding:'12px 14px', marginBottom:20,
               display:'flex', alignItems:'center', gap:10,
             }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>📬</span>
+              <span style={{ fontSize:22, flexShrink:0 }}>📬</span>
               <div style={{ textAlign:'left' }}>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:2 }}>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:4 }}>
                   LÜTFEN MAİL ADRESİNİZİ DOĞRULAYIN
                 </div>
-                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
-                  ⚠️ LÜTFEN SPAM KLASÖRÜNÜ KONTROL EDİN
+                <div style={{ fontSize:11, color:'#ff8c47', fontFamily:'DM Mono,monospace', fontWeight:'bold' }}>
+                  ⚠️ SPAM / GEREKSIZ KLASÖRÜNÜ KONTROL EDİN!
+                </div>
+                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:3 }}>
+                  Mail bazen spam'e düşebilir, mutlaka kontrol et.
                 </div>
               </div>
             </div>
@@ -208,8 +211,9 @@ export default function AuthScreen() {
                 <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.6, marginBottom:8 }}>
                   Kullanıcı adını gir, kayıtlı e-postana sıfırlama bağlantısı göndereceğiz.
                 </div>
-                <div style={{ background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.2)', borderRadius:7, padding:'8px 12px', fontSize:10, color:'#ff8c47', fontFamily:'DM Mono,monospace' }}>
-                  ⚠️ LÜTFEN SPAM KLASÖRÜNÜ KONTROL EDİN
+                <div style={{ background:'rgba(255,140,71,.12)', border:'2px solid rgba(255,140,71,.4)', borderRadius:7, padding:'10px 14px', fontFamily:'DM Mono,monospace' }}>
+                  <div style={{ fontSize:12, color:'#ff8c47', fontWeight:'bold', marginBottom:2 }}>⚠️ SPAM KLASÖRÜNÜ KONTROL ET!</div>
+                  <div style={{ fontSize:10, color:'var(--text-muted)' }}>Mail spam/gereksiz klasörüne düşmüş olabilir.</div>
                 </div>
               </div>
             )}

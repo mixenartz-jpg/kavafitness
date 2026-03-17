@@ -83,6 +83,7 @@ export default function CaloriePage() {
   const isToday      = viewingDate === todayKey()
   const viewFoods    = isToday ? foods : (calArch[viewingDate] || [])
 
+  const [tab, setTab] = useState('db')
 
   // DB state
   const [dbSearch,   setDbSearch]   = useState('')
@@ -297,6 +298,15 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
     return {...base, color:'var(--text-muted)', background:'var(--surface2)'}
   }
 
+  const tabBtn = (id, icon, label) => (
+    <button key={id} onClick={()=>setTab(id)} title={label} style={{
+      flex:1, padding:'8px 4px', borderRadius:8, border:'none', cursor:'pointer',
+      fontSize:18, background: tab===id ? 'var(--accent)' : 'transparent',
+      transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center',
+      opacity: tab===id ? 1 : 0.6,
+    }}>{icon}</button>
+  )
+
   return (
     <div className="page">
 
@@ -333,16 +343,34 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
         })}
       </div>
 
-      {/* ══ VERİTABANI ══ */}
+      {/* Tab Seçici — sadece bugün için göster */}
       {isToday && (
+        <div style={{ display:'flex', gap:6, marginBottom:20, background:'var(--surface2)', borderRadius:10, padding:4 }}>
+          {tabBtn('db',     '🗄️', 'VERİTABANI')}
+          {tabBtn('photo',  '📷', 'FOTOĞRAF')}
+          {tabBtn('label',  '🏷️', 'ETİKET OKU')}
+          {tabBtn('manual', '✏️', 'MANUEL')}
+        </div>
+      )}
+
+      {/* ══ VERİTABANI ══ */}
+      {isToday && tab === 'db' && (
         <div className="animate-fade">
-          <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-            <input type="text" placeholder="🔍  Yemek ara... (Tavuk, Pilav, Baklava...)" value={dbSearch} onChange={e=>{setDbSearch(e.target.value);setDbSelected(null)}} />
-          </div>
-          <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:6, marginBottom:14, scrollbarWidth:'none' }}>
-            {cats.map(cat=>(
-              <button key={cat} onClick={()=>{setDbCat(cat);setDbSelected(null)}} style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:dbCat===cat?'var(--accent)':'var(--surface2)',color:dbCat===cat?'#0a0a0a':'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:10,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0 }}>{cat}</button>
-            ))}
+          {/* Arama + Kategori */}
+          <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+            <div style={{ flex:1, position:'relative' }}>
+              <input type="text" placeholder="🔍  Yemek ara... (Tavuk, Pilav, Simit...)"
+                value={dbSearch}
+                onChange={e=>{setDbSearch(e.target.value);setDbSelected(null)}}
+                style={{ paddingRight:32 }} />
+              {dbSearch && (
+                <button onClick={()=>{setDbSearch('');setDbSelected(null)}} style={{ position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:14,lineHeight:1 }}>✕</button>
+              )}
+            </div>
+            <select value={dbCat} onChange={e=>{setDbCat(e.target.value);setDbSelected(null)}}
+              style={{ width:'auto', minWidth:120, flexShrink:0 }}>
+              {cats.map(cat=><option key={cat} value={cat}>{cat}</option>)}
+            </select>
           </div>
           {dbSelected && (
             <div className="animate-fade" style={{ background:'rgba(232,255,71,.06)',border:'1px solid rgba(232,255,71,.2)',borderRadius:14,padding:'16px 18px',marginBottom:16 }}>
@@ -411,7 +439,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
       )}
 
       {/* ══ FOTOĞRAF ══ */}
-      {isToday && (
+      {isToday && tab === 'photo' && (
         <div className="animate-fade">
           <input type="file" ref={fileRef} accept="image/*" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
           <div onClick={()=>fileRef.current.click()} style={{ border:'2px dashed var(--border)',borderRadius:14,padding:preview?0:'32px 24px',textAlign:'center',cursor:'pointer',transition:'all .2s',background:'var(--surface)',marginBottom:16,overflow:'hidden' }}
@@ -455,7 +483,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
       )}
 
       {/* ══ ETİKET OKU ══ */}
-      {isToday && (
+      {isToday && tab === 'label' && (
         <div className="animate-fade">
           <p style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginBottom:16,lineHeight:1.7 }}>
             Ürün ambalajı, besin değerleri etiketi veya barkodunun fotoğrafını yükle — AI besin değerlerini okur ve listene ekler.
@@ -518,7 +546,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
       )}
 
       {/* ══ MANUEL ══ */}
-      {isToday && (
+      {isToday && tab === 'manual' && (
         <div className="animate-fade card" style={{padding:18,marginBottom:16}}>
           <div className="section-title">MANUEL EKLE</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
