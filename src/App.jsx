@@ -12,6 +12,7 @@ import AiCoachPage from './components/pages/AiCoach'
 import DownloadPage from './components/pages/DownloadPage'
 import Announcement from './components/Announcement'
 import WeeklySummaryPage from './components/pages/WeeklySummary'
+import TemplatesPage from './components/pages/Templates'
 
 export default function App() {
   const { user, loading, activeTab } = useApp()
@@ -37,6 +38,7 @@ export default function App() {
   const pages = {
     home:     <HomePage />,
     today:    <TodayPage />,
+    templates:<TemplatesPage />,
     aicoach:  <AiCoachPage />,
     weekly:   <WeeklySummaryPage />,
     history:  <HistoryPage />,

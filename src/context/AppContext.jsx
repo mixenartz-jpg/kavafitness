@@ -40,6 +40,9 @@ export function AppProvider({ children }) {
   const [goals, setGoals] = useState({ kcal:2000, protein:150, fat:70, carb:250 })
   const [body,  setBody]  = useState([])
 
+  // Templates
+  const [templates, setTemplates] = useState([])
+
   // Active tab & viewing date
   const [activeTab,   setActiveTab]   = useState('today')
   const [viewingDate, setViewingDate] = useState(todayKey())
@@ -72,6 +75,8 @@ export function AppProvider({ children }) {
     ls.set(userId, 'fittrack_cal_archive', ca.data ?? {})
     ls.set(userId, 'fittrack_goals',       g)
     ls.set(userId, 'fittrack_body',        b.data ?? [])
+    const t = await get(doc(userRef, 'fitdata', 'templates'), { data: [] })
+    ls.set(userId, 'fittrack_templates',   t.data ?? [])
   }
 
   // ── Init state from localStorage ──
@@ -106,6 +111,7 @@ export function AppProvider({ children }) {
 
     setGoals(ls.get(userId, 'fittrack_goals', { kcal:2000, protein:150, fat:70, carb:250 }))
     setBody(ls.get(userId, 'fittrack_body', []))
+    setTemplates(ls.get(userId, 'fittrack_templates', []))
   }, [])
 
   // ── Auth observer ──
@@ -123,44 +129,7 @@ export function AppProvider({ children }) {
     return unsub
   }, [initState])
 
-  // ── Midnight rollover check ──
-  useEffect(() => {
-    if (!uid) return
-    const check = () => {
-      const today = todayKey()
-      setExercises(prev => {
-        const stored = ls.get(uid, 'fittrack_data', { date: today, exercises: [] })
-        if (stored.date !== today) {
-          const arch = ls.get(uid, 'fittrack_archive', {})
-          if (stored.exercises.length > 0) arch[stored.date] = stored.exercises
-          const newData = { date: today, exercises: [] }
-          ls.set(uid, 'fittrack_data', newData)
-          ls.set(uid, 'fittrack_archive', arch)
-          fbSet(doc(db, 'users', uid, 'fitdata', 'main'), newData)
-          fbSet(doc(db, 'users', uid, 'fitdata', 'archive'), { data: arch })
-          setExArchive(arch)
-          setViewingDate(today)
-          return []
-        }
-        return prev
-      })
-      setFoods(prev => {
-        const stored = ls.get(uid, 'fittrack_calories', { date: today, foods: [] })
-        if (stored.date !== today) {
-          const arch = ls.get(uid, 'fittrack_cal_archive', {})
-          if (stored.foods.length > 0) arch[stored.date] = stored.foods
-          const newData = { date: today, foods: [] }
-          ls.set(uid, 'fittrack_calories', newData)
-          ls.set(uid, 'fittrack_cal_archive', arch)
-          setCalArch(arch)
-          return []
-        }
-        return prev
-      })
-    }
-    const interval = setInterval(check, 60 * 1000) // her dakika kontrol et
-    return () => clearInterval(interval)
-  }, [uid])
+  // ── Save helpers ──
   const saveExercises = useCallback((exs) => {
     const data = { date: todayKey(), exercises: exs }
     setExercises(exs)
@@ -193,7 +162,23 @@ export function AppProvider({ children }) {
     fbSet(doc(db, 'users', uid, 'fitdata', 'goals'), g)
   }, [uid])
 
-  const saveBody = useCallback((b) => {
+  const saveTemplates = useCallback((t) => {
+    setTemplates(t)
+    ls.set(uid, 'fittrack_templates', t)
+    fbSet(doc(db, 'users', uid, 'fitdata', 'templates'), { data: t })
+  }, [uid])
+
+  const saveWorkoutNote = useCallback((note) => {
+    const data = ls.get(uid, 'fittrack_data', { date: todayKey(), exercises: [] })
+    data.note = note
+    ls.set(uid, 'fittrack_data', data)
+    fbSet(doc(db, 'users', uid, 'fitdata', 'main'), data)
+  }, [uid])
+
+  const getWorkoutNote = useCallback(() => {
+    const data = ls.get(uid, 'fittrack_data', { date: todayKey(), exercises: [] })
+    return data.note || ''
+  }, [uid])
     setBody(b)
     ls.set(uid, 'fittrack_body', b)
     fbSet(doc(db, 'users', uid, 'fitdata', 'body'), { data: b })
@@ -208,6 +193,8 @@ export function AppProvider({ children }) {
       calArch, saveCalArchive,
       goals, saveGoals,
       body, saveBody,
+      templates, saveTemplates,
+      saveWorkoutNote, getWorkoutNote,
       viewingDate, setViewingDate,
       activeTab, setActiveTab,
       showToast, toast,

@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 const TABS = [
   { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkinda' },
   { id:'today',    label:'BUGUN',            icon:'🏋', desc:'Gunluk antrenman' },
+  { id:'templates',label:'SABLONLAR',        icon:'📋', desc:'Antrenman sablonlari' },
   { id:'aicoach',  label:'AI KOCU',          icon:'🤖', desc:'Kalori & aktivite analizi' },
   { id:'weekly',   label:'HAFTALIK OZET',    icon:'📈', desc:'Bu haftanin ozeti' },
   { id:'history',  label:'GECMIS',           icon:'📅', desc:'Gecmis antrenmanlar' },
@@ -10,7 +11,6 @@ const TABS = [
   { id:'goals',    label:'HEDEFLER',         icon:'🎯', desc:'Makro hedefler' },
   { id:'progress', label:'ILERLEME',         icon:'📊', desc:'Grafik & istatistik' },
   { id:'body',     label:'OLCULER',          icon:'⚖', desc:'Vucut olculeri' },
-  { id:'recognize',label:'EGZERSIZ TANIMA',  icon:'📸', desc:'AI ile tanima' },
   { id:'download', label:'UYGULAMAYI INDIR', icon:'⬇', desc:'Telefona ekle' },
 ]
 
