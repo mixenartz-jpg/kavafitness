@@ -127,7 +127,7 @@ export default function AiCoachPage() {
     if (!checkAndUseAiCredit('kalori hesap')) return
     const act = ACTIVITIES.find(a=>a.id===activity)
     setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
-    const prompt=`Sen bir kalori koçusun. SADECE bu antrenman için yorum yap. ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal. Türkçe, maks 3 madde, 50 kelimeyi geçme: 1) Bu antrenman hakkında 1 cümle 2) 2 besin önerisi 3) 1 ipucu`
+    const prompt=`Kalori koçu olarak SADECE bu antrenman için yorum yap. ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk, ~${kcal}kcal yaktı. Türkçe, maks 3 madde, 50 kelime: 1) Antrenman değerlendirmesi 2) 2 besin önerisi 3) 1 ipucu`
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
         {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:300,thinkingConfig:{thinkingBudget:0}}})})
@@ -148,7 +148,7 @@ export default function AiCoachPage() {
       const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `Sen KeroGym beslenme asistanısın. SADECE beslenme, kalori, diyet ve makro konularında yardım et. Antrenman tekniği sorarlarsa 'Bu konu Kişisel Koç'un alanı' de. Türkçe, kısa ve madde madde.\n\n${p.length?`Kullanıcı: ${p.join(', ')}\n\n`:''}`
+    return `Sen KeroGym beslenme asistanısın. SADECE beslenme, kalori ve diyet konularında yardım et. Antrenman sorarlarsa 'Kişisel Koç daha iyi yardımcı olur' de. Türkçe, kısa, madde madde.\n\n${p.length?`Kullanıcı: ${p.join(', ')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
@@ -164,7 +164,7 @@ export default function AiCoachPage() {
     ]
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:500,thinkingConfig:{thinkingBudget:0}}})})
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:600,thinkingConfig:{thinkingBudget:0}}})})
       const d=await r.json()
       setMessages(prev=>[...prev,{role:'assistant',text:d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.'}])
     } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası.'}]) }
@@ -179,14 +179,14 @@ export default function AiCoachPage() {
     const levelMap={beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
     const sportMap={gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
     const sports=profile.sportTypes?.map(s=>sportMap[s]||s).join(', ')||'Gym'
-    const prompt=`Sen bir antrenör olarak SADECE antrenman programı ver, beslenme tavsiyesi ekleme. ${planDays} günlük haftalık antrenman programı:
+    const prompt=`Fitness antrenörü olarak SADECE antrenman programı ver, beslenme önerisi ekleme. ${planDays} günlük program:
 Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg
 Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${planFocus?` | Odak: ${planFocus}`:''}
 Sadece JSON:
 {"program_adi":"...","haftalik_plan":[{"gun":"Pazartesi","odak":"Göğüs","egzersizler":[{"isim":"Bench Press","set":4,"tekrar":"8-10"}],"sure_dk":60,"notlar":"..."}],"genel_notlar":"...","beslenme_ozeti":"..."}`
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:1200,thinkingConfig:{thinkingBudget:0}}})})
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:600,thinkingConfig:{thinkingBudget:0}}})})
       const d=await r.json()
       let raw=(d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
       let parsed=null; try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
@@ -208,7 +208,7 @@ Sadece JSON:
     const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
     const list=foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
     const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
-    const prompt=`Sen bir beslenme uzmanısın. SADECE bugünkü yemekleri analiz et, antrenman önerisi verme.
+    const prompt=`Beslenme uzmanı olarak SADECE bugünkü yemekleri analiz et, antrenman önerisi verme.
 Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
 Yemekler:\n${list}
 Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
@@ -298,8 +298,7 @@ Eksiksiz yaz.`
               </button>
             </div>
           </div>
-          <CoachNote onClick={()=>setActiveTab('coach')}/>
-          {messages.length>1&&<div style={{textAlign:'right',marginTop:4}}><button onClick={()=>setMessages([{role:'assistant',text:'👋 Merhaba! Beslenme ve diyet konusunda yardımcı olmak için buradayım.'}])} style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',textDecoration:'underline'}}>Sohbeti Temizle</button></div>}
+          {messages.length>1&&<div style={{textAlign:'right'}}><button onClick={()=>setMessages([{role:'assistant',text:'👋 Merhaba! Beslenme ve diyet konusunda yardımcı olmak için buradayım.'}])} style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',textDecoration:'underline'}}>Sohbeti Temizle</button></div>}
         </>
       )}
 

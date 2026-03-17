@@ -6,7 +6,14 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 const AppContext = createContext(null)
 export const useApp = () => useContext(AppContext)
 
-const todayKey = () => new Date().toISOString().slice(0, 10)
+const todayKey = () => {
+  const d = new Date()
+  // UTC yerine lokal tarih kullan (Türkiye UTC+3, gece farkı önlenir)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 const genId    = () => Math.random().toString(36).slice(2, 9)
 
 const ls = {
@@ -16,31 +23,47 @@ const ls = {
   },
   set: (uid, key, val) => localStorage.setItem(`${key}_${uid}`, JSON.stringify(val)),
 }
+const fbSet = (ref, data) => setDoc(ref, data).catch(console.error)
 
-const fbSet = (docRef, data) => setDoc(docRef, data).catch(console.error)
+// ── AI HARIÇ günlük 5 hak (Kişisel Koç bu sistemin dışında) ──
+export const AI_DAILY_LIMIT = 5
 
+// ── Uygunsuz içerik kelime listesi ──
+const BANNED = [
+  'siktir','orospu','götveren','piç','amk','bok','oç','göt',
+  'fuck','shit','bitch','asshole','dick','pussy','cunt',
+  'öldür','öldüreceğim','bombala','terörist','sapık',
+]
+function hasBannedContent(text) {
+  const t = text.toLowerCase()
+  return BANNED.some(w => t.includes(w))
+}
+
+// ── Streak ──
 function calcStreak(exercises, exArchive) {
   const today = todayKey()
-  let streak = 0
-  let cursor = new Date()
+  let streak = 0, cursor = new Date()
   for (let i = 0; i < 365; i++) {
-    const dk  = cursor.toISOString().slice(0, 10)
-    const has = dk === today ? exercises.length > 0 : (exArchive[dk] || []).length > 0
-    if (has) { streak++ } else if (i > 0) { break }
+    const y2 = cursor.getFullYear(), m2 = String(cursor.getMonth()+1).padStart(2,'0'), d2 = String(cursor.getDate()).padStart(2,'0')
+    const dk  = `${y2}-${m2}-${d2}`
+    const has = dk === today ? exercises.length > 0 : (exArchive[dk]||[]).length > 0
+    if (has) streak++
+    else if (i > 0) break
     cursor.setDate(cursor.getDate() - 1)
   }
   return streak
 }
 
-function checkPR(exName, newWeight, exArchive, exercises) {
-  let allTimeMax = 0
+// ── PR tespiti ──
+function isPR(exName, newWeight, exArchive, exercises) {
+  let max = 0
   Object.values(exArchive).forEach(day => {
-    const found = day.find(e => e.name.toLowerCase() === exName.toLowerCase())
-    if (found) found.sets.forEach(s => { if (+s.weight > allTimeMax) allTimeMax = +s.weight })
+    const f = day.find(e => e.name.toLowerCase() === exName.toLowerCase())
+    if (f) f.sets.forEach(s => { if (+s.weight > max) max = +s.weight })
   })
-  const todayEx = exercises.find(e => e.name.toLowerCase() === exName.toLowerCase())
-  if (todayEx) todayEx.sets.forEach(s => { if (+s.weight > allTimeMax) allTimeMax = +s.weight })
-  return newWeight > allTimeMax && allTimeMax > 0
+  const t = exercises.find(e => e.name.toLowerCase() === exName.toLowerCase())
+  if (t) t.sets.forEach(s => { if (+s.weight > max) max = +s.weight })
+  return newWeight > max && max > 0
 }
 
 export function AppProvider({ children }) {
@@ -49,28 +72,27 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const [exercises, setExercises] = useState([])
-  const [exDate,    setExDate]    = useState(todayKey())
   const [exArchive, setExArchive] = useState({})
-
-  const [foods,    setFoods]    = useState([])
-  const [calDate,  setCalDate]  = useState(todayKey())
-  const [calArch,  setCalArch]  = useState({})
+  const [foods,     setFoods]     = useState([])
+  const [calArch,   setCalArch]   = useState({})
 
   const [goals,     setGoals]     = useState({ kcal:2000, protein:150, fat:70, carb:250 })
   const [body,      setBody]      = useState([])
   const [water,     setWater]     = useState(0)
-  const [waterDate, setWaterDate] = useState(todayKey())
   const [templates, setTemplates] = useState([])
   const [profile,   setProfile]   = useState(null)
   const [favFoods,  setFavFoods]  = useState([])
 
-  const [theme, setThemeState] = useState(() => localStorage.getItem('kerogym_theme') || 'dark')
-
+  // Tema
+  const [theme, _setTheme] = useState(() => localStorage.getItem('kerogym_theme') || 'dark')
   const setTheme = useCallback((t) => {
-    setThemeState(t)
+    _setTheme(t)
     localStorage.setItem('kerogym_theme', t)
     document.documentElement.setAttribute('data-theme', t)
   }, [])
+
+  // AI hak state: { date, used, banned }
+  const [aiUsage, setAiUsage] = useState({ date:'', used:0, banned:false })
 
   const [activeTab,   setActiveTab]   = useState('home')
   const [viewingDate, setViewingDate] = useState(todayKey())
@@ -84,90 +106,123 @@ export function AppProvider({ children }) {
     setTimeout(() => setToast(null), 2800)
   }, [])
 
+  const sendNotif = useCallback((title, body) => {
+    if (typeof Notification==='undefined' || Notification.permission!=='granted') return
+    try { new Notification(title, { body, icon:'/logo.png' }) } catch(_) {}
+  }, [])
+
   const requestNotifPermission = useCallback(async () => {
     if (typeof Notification === 'undefined') return 'unsupported'
     return await Notification.requestPermission()
   }, [])
 
-  const sendNotif = useCallback((title, body, icon='/logo.png') => {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-    try { new Notification(title, { body, icon }) } catch(_) {}
-  }, [])
+  // ── AI Hak Yöneticisi ──
+  // Kişisel Koç bu fonksiyonu KULLANMAZ (sınırsız)
+  const checkAndUseAiCredit = useCallback((text = '') => {
+    if (!uid) return false
+    const today = todayKey()
+    const raw   = ls.get(uid, 'ai_usage', { date:'', used:0, banned:false })
+    const usage = raw.date === today ? raw : { date:today, used:0, banned:false }
 
-  const pullFirestore = async (userId) => {
-    const get = async (ref, fallback) => {
-      const snap = await getDoc(ref).catch(() => null)
-      return snap?.exists() ? snap.data() : fallback
+    // Zaten yasaklı
+    if (usage.banned) {
+      showToast('🚫 Bugün AI özelliklerinden yararlanamazsın. (uygunsuz içerik)', 'error')
+      return false
     }
-    const userRef = doc(db, 'users', userId)
+
+    // Uygunsuz içerik kontrolü
+    if (hasBannedContent(text)) {
+      const banned = { date:today, used:AI_DAILY_LIMIT, banned:true }
+      ls.set(uid, 'ai_usage', banned)
+      setAiUsage(banned)
+      showToast('⚠️ Uygunsuz içerik tespit edildi! Bugün AI özelliklerinden yararlanamazsın.', 'error')
+      return false
+    }
+
+    // Hak bitti mi
+    if (usage.used >= AI_DAILY_LIMIT) {
+      showToast(`⏳ Günlük ${AI_DAILY_LIMIT} AI hakkını kullandın. Yarın tekrar dene.`, 'error')
+      return false
+    }
+
+    // Hak kullan
+    const updated = { ...usage, used: usage.used + 1 }
+    ls.set(uid, 'ai_usage', updated)
+    setAiUsage(updated)
+    return true
+  }, [uid, showToast])
+
+  const aiRemaining = useCallback(() => {
+    if (!uid) return AI_DAILY_LIMIT
+    const today = todayKey()
+    const raw   = ls.get(uid, 'ai_usage', { date:'', used:0, banned:false })
+    if (raw.date !== today) return AI_DAILY_LIMIT
+    if (raw.banned) return 0
+    return Math.max(0, AI_DAILY_LIMIT - raw.used)
+  }, [uid])
+
+  const isAiBanned = useCallback(() => {
+    if (!uid) return false
+    const today = todayKey()
+    const raw   = ls.get(uid, 'ai_usage', { date:'', used:0, banned:false })
+    return raw.date === today && raw.banned
+  }, [uid])
+
+  // ── Firestore pull ──
+  const pullFirestore = async (userId) => {
+    const get = async (ref, fb) => { const s=await getDoc(ref).catch(()=>null); return s?.exists()?s.data():fb }
+    const ur  = doc(db,'users',userId)
     const [d,a,c,ca,g,b] = await Promise.all([
-      get(doc(userRef,'fitdata','main'),       { date:todayKey(), exercises:[] }),
-      get(doc(userRef,'fitdata','archive'),    { data:{} }),
-      get(doc(userRef,'fitdata','calories'),   { date:todayKey(), foods:[] }),
-      get(doc(userRef,'fitdata','calArchive'), { data:{} }),
-      get(doc(userRef,'fitdata','goals'),      { kcal:2000,protein:150,fat:70,carb:250 }),
-      get(doc(userRef,'fitdata','body'),       { data:[] }),
+      get(doc(ur,'fitdata','main'),       {date:todayKey(),exercises:[]}),
+      get(doc(ur,'fitdata','archive'),    {data:{}}),
+      get(doc(ur,'fitdata','calories'),   {date:todayKey(),foods:[]}),
+      get(doc(ur,'fitdata','calArchive'), {data:{}}),
+      get(doc(ur,'fitdata','goals'),      {kcal:2000,protein:150,fat:70,carb:250}),
+      get(doc(ur,'fitdata','body'),       {data:[]}),
     ])
-    ls.set(userId,'fittrack_data',        d)
-    ls.set(userId,'fittrack_archive',     a.data??{})
-    ls.set(userId,'fittrack_calories',    c)
-    ls.set(userId,'fittrack_cal_archive', ca.data??{})
-    ls.set(userId,'fittrack_goals',       g)
-    ls.set(userId,'fittrack_body',        b.data??[])
-    const t = await get(doc(userRef,'fitdata','templates'), { data:[] })
-    ls.set(userId,'fittrack_templates', t.data??[])
-    const p = await get(doc(userRef,'fitdata','profile'), null)
-    if (p) ls.set(userId,'fittrack_profile', p)
+    ls.set(userId,'fittrack_data',d); ls.set(userId,'fittrack_archive',a.data??{})
+    ls.set(userId,'fittrack_calories',c); ls.set(userId,'fittrack_cal_archive',ca.data??{})
+    ls.set(userId,'fittrack_goals',g); ls.set(userId,'fittrack_body',b.data??[])
+    const t=await get(doc(ur,'fitdata','templates'),{data:[]}); ls.set(userId,'fittrack_templates',t.data??[])
+    const p=await get(doc(ur,'fitdata','profile'),null); if(p) ls.set(userId,'fittrack_profile',p)
   }
 
+  // ── Init ──
   const initState = useCallback((userId) => {
     const today = todayKey()
-
-    let exData = ls.get(userId,'fittrack_data',{ date:today, exercises:[] })
-    let arch   = ls.get(userId,'fittrack_archive',{})
+    let exData=ls.get(userId,'fittrack_data',{date:today,exercises:[]}), arch=ls.get(userId,'fittrack_archive',{})
     if (exData.date !== today) {
-      if (exData.exercises?.length > 0) {
-        arch[exData.date] = exData.exercises
-        ls.set(userId,'fittrack_archive',arch)
-        fbSet(doc(db,'users',userId,'fitdata','archive'),{ data:arch })
-      }
-      exData = { date:today, exercises:[] }
-      ls.set(userId,'fittrack_data',exData)
-      fbSet(doc(db,'users',userId,'fitdata','main'),exData)
+      if (exData.exercises?.length>0) { arch[exData.date]=exData.exercises; ls.set(userId,'fittrack_archive',arch); fbSet(doc(db,'users',userId,'fitdata','archive'),{data:arch}) }
+      exData={date:today,exercises:[]}; ls.set(userId,'fittrack_data',exData); fbSet(doc(db,'users',userId,'fitdata','main'),exData)
     }
-    setExercises(exData.exercises); setExDate(exData.date); setExArchive(arch)
+    setExercises(exData.exercises); setExArchive(arch)
 
-    let calData = ls.get(userId,'fittrack_calories',{ date:today, foods:[] })
-    let cArch   = ls.get(userId,'fittrack_cal_archive',{})
+    let calData=ls.get(userId,'fittrack_calories',{date:today,foods:[]}), cArch=ls.get(userId,'fittrack_cal_archive',{})
     if (calData.date !== today) {
-      if (calData.foods?.length > 0) {
-        cArch[calData.date] = calData.foods
-        ls.set(userId,'fittrack_cal_archive',cArch)
-        fbSet(doc(db,'users',userId,'fitdata','calArchive'),{ data:cArch })
-      }
-      calData = { date:today, foods:[] }
-      ls.set(userId,'fittrack_calories',calData)
-      fbSet(doc(db,'users',userId,'fitdata','calories'),calData)
+      if (calData.foods?.length>0) { cArch[calData.date]=calData.foods; ls.set(userId,'fittrack_cal_archive',cArch); fbSet(doc(db,'users',userId,'fitdata','calArchive'),{data:cArch}) }
+      calData={date:today,foods:[]}; ls.set(userId,'fittrack_calories',calData); fbSet(doc(db,'users',userId,'fitdata','calories'),calData)
     }
-    setFoods(calData.foods); setCalDate(calData.date); setCalArch(cArch)
+    setFoods(calData.foods); setCalArch(cArch)
 
-    setGoals(ls.get(userId,'fittrack_goals',{ kcal:2000,protein:150,fat:70,carb:250 }))
+    setGoals(ls.get(userId,'fittrack_goals',{kcal:2000,protein:150,fat:70,carb:250}))
     setBody(ls.get(userId,'fittrack_body',[]))
     setTemplates(ls.get(userId,'fittrack_templates',[]))
     setProfile(ls.get(userId,'fittrack_profile',null))
     setFavFoods(ls.get(userId,'fittrack_fav_foods',[]))
 
-    const wd = ls.get(userId,'fittrack_water',{ date:today, amount:0 })
-    if (wd.date !== today) {
-      ls.set(userId,'fittrack_water',{ date:today, amount:0 })
-      setWater(0); setWaterDate(today)
-    } else { setWater(wd.amount??0); setWaterDate(wd.date) }
+    const wd=ls.get(userId,'fittrack_water',{date:today,amount:0})
+    setWater(wd.date===today ? wd.amount??0 : 0)
+    if (wd.date!==today) ls.set(userId,'fittrack_water',{date:today,amount:0})
 
-    const savedTheme = localStorage.getItem('kerogym_theme') || 'dark'
-    setThemeState(savedTheme)
-    document.documentElement.setAttribute('data-theme', savedTheme)
+    // AI usage yükle
+    const au=ls.get(userId,'ai_usage',{date:'',used:0,banned:false})
+    setAiUsage(au.date===today ? au : {date:today,used:0,banned:false})
+
+    const t=localStorage.getItem('kerogym_theme')||'dark'
+    _setTheme(t); document.documentElement.setAttribute('data-theme',t)
   }, [])
 
+  // ── Auth ──
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
@@ -176,12 +231,12 @@ export function AppProvider({ children }) {
         await pullFirestore(u.uid)
         initState(u.uid)
         try {
-          const snap = await getDoc(doc(db,'users',u.uid))
+          const snap=await getDoc(doc(db,'users',u.uid))
           if (snap.exists()) {
-            const { email:se, username } = snap.data()
-            if (se && u.email !== se && username) {
-              await setDoc(doc(db,'users',u.uid),        { email:u.email, oldEmail:null },{ merge:true })
-              await setDoc(doc(db,'usernames',username), { email:u.email, oldEmail:null },{ merge:true })
+            const {email:se,username}=snap.data()
+            if (se&&u.email!==se&&username) {
+              await setDoc(doc(db,'users',u.uid),{email:u.email,oldEmail:null},{merge:true})
+              await setDoc(doc(db,'usernames',username),{email:u.email,oldEmail:null},{merge:true})
             }
           }
         } catch(_) {}
@@ -191,108 +246,83 @@ export function AppProvider({ children }) {
     return unsub
   }, [initState])
 
+  // Streak milestone bildirimleri
   useEffect(() => {
-    if (streak > 0 && [3,7,14,21,30,60,90].includes(streak)) {
-      sendNotif(`🔥 ${streak} Günlük Seri!`, `Tebrikler! ${streak} gün üst üste antrenman yaptın!`)
-    }
+    if (streak>0 && [3,7,14,21,30,60,90].includes(streak))
+      sendNotif(`🔥 ${streak} Günlük Seri!`,`${streak} gün üst üste antrenman yaptın!`)
   }, [streak])
 
+  // ── Savers ──
   const saveExercises = useCallback((exs) => {
-    const data = { date:todayKey(), exercises:exs }
-    setExercises(exs)
-    ls.set(uid,'fittrack_data',data)
-    fbSet(doc(db,'users',uid,'fitdata','main'),data)
+    const d={date:todayKey(),exercises:exs}; setExercises(exs)
+    ls.set(uid,'fittrack_data',d); fbSet(doc(db,'users',uid,'fitdata','main'),d)
   }, [uid])
 
   const saveArchive = useCallback((arch) => {
-    setExArchive(arch)
-    ls.set(uid,'fittrack_archive',arch)
-    fbSet(doc(db,'users',uid,'fitdata','archive'),{ data:arch })
+    setExArchive(arch); ls.set(uid,'fittrack_archive',arch)
+    fbSet(doc(db,'users',uid,'fitdata','archive'),{data:arch})
   }, [uid])
 
   const saveFoods = useCallback((fs) => {
-    const data = { date:todayKey(), foods:fs }
-    setFoods(fs)
-    ls.set(uid,'fittrack_calories',data)
-    fbSet(doc(db,'users',uid,'fitdata','calories'),data)
+    const d={date:todayKey(),foods:fs}; setFoods(fs)
+    ls.set(uid,'fittrack_calories',d); fbSet(doc(db,'users',uid,'fitdata','calories'),d)
   }, [uid])
 
   const saveCalArchive = useCallback((arch) => {
-    setCalArch(arch)
-    ls.set(uid,'fittrack_cal_archive',arch)
-    fbSet(doc(db,'users',uid,'fitdata','calArchive'),{ data:arch })
+    setCalArch(arch); ls.set(uid,'fittrack_cal_archive',arch)
+    fbSet(doc(db,'users',uid,'fitdata','calArchive'),{data:arch})
   }, [uid])
 
   const saveGoals = useCallback((g) => {
-    setGoals(g)
-    ls.set(uid,'fittrack_goals',g)
-    fbSet(doc(db,'users',uid,'fitdata','goals'),g)
+    setGoals(g); ls.set(uid,'fittrack_goals',g); fbSet(doc(db,'users',uid,'fitdata','goals'),g)
   }, [uid])
 
   const saveProfile = useCallback((p) => {
-    setProfile(p)
-    ls.set(uid,'fittrack_profile',p)
-    fbSet(doc(db,'users',uid,'fitdata','profile'),p)
+    setProfile(p); ls.set(uid,'fittrack_profile',p); fbSet(doc(db,'users',uid,'fitdata','profile'),p)
     if (p?.tdee) {
-      const target  = p.goal==='lose'?p.tdee-500:p.goal==='gain'?p.tdee+300:p.goal==='cut'?p.tdee-400:p.tdee
-      const protein = Math.round((p.weight||75)*2.0)
-      const fat     = Math.round((target*0.25)/9)
-      const carb    = Math.round((target-protein*4-fat*9)/4)
-      const ng = { kcal:target,protein,fat,carb }
-      setGoals(ng); ls.set(uid,'fittrack_goals',ng)
+      const target=p.goal==='lose'?p.tdee-500:p.goal==='gain'?p.tdee+300:p.goal==='cut'?p.tdee-400:p.tdee
+      const protein=Math.round((p.weight||75)*2), fat=Math.round(target*.25/9), carb=Math.round((target-protein*4-fat*9)/4)
+      const ng={kcal:target,protein,fat,carb}; setGoals(ng); ls.set(uid,'fittrack_goals',ng)
       fbSet(doc(db,'users',uid,'fitdata','goals'),ng)
     }
   }, [uid])
 
   const saveTemplates = useCallback((t) => {
-    setTemplates(t)
-    ls.set(uid,'fittrack_templates',t)
-    fbSet(doc(db,'users',uid,'fitdata','templates'),{ data:t })
+    setTemplates(t); ls.set(uid,'fittrack_templates',t)
+    fbSet(doc(db,'users',uid,'fitdata','templates'),{data:t})
   }, [uid])
 
   const saveWorkoutNote = useCallback((note) => {
-    const data = ls.get(uid,'fittrack_data',{ date:todayKey(), exercises:[] })
-    data.note = note
-    ls.set(uid,'fittrack_data',data)
-    fbSet(doc(db,'users',uid,'fitdata','main'),data)
+    const d=ls.get(uid,'fittrack_data',{date:todayKey(),exercises:[]}); d.note=note
+    ls.set(uid,'fittrack_data',d); fbSet(doc(db,'users',uid,'fitdata','main'),d)
   }, [uid])
 
-  const getWorkoutNote = useCallback(() => {
-    return ls.get(uid,'fittrack_data',{ date:todayKey(), exercises:[] }).note || ''
-  }, [uid])
+  const getWorkoutNote = useCallback(() =>
+    ls.get(uid,'fittrack_data',{date:todayKey(),exercises:[]}).note||'', [uid])
 
   const saveBody = useCallback((b) => {
-    setBody(b)
-    ls.set(uid,'fittrack_body',b)
-    fbSet(doc(db,'users',uid,'fitdata','body'),{ data:b })
+    setBody(b); ls.set(uid,'fittrack_body',b); fbSet(doc(db,'users',uid,'fitdata','body'),{data:b})
   }, [uid])
 
   const saveWater = useCallback((amount) => {
-    const today = todayKey()
-    const val   = Math.max(0, Math.min(9999, amount))
-    setWater(val); setWaterDate(today)
-    ls.set(uid,'fittrack_water',{ date:today, amount:val })
+    const today=todayKey(), val=Math.max(0,Math.min(9999,amount))
+    setWater(val); ls.set(uid,'fittrack_water',{date:today,amount:val})
   }, [uid])
 
   const saveFavFood = useCallback((food) => {
-    const current = ls.get(uid,'fittrack_fav_foods',[])
-    const exists  = current.find(f => f.name === food.name)
-    const updated = exists
-      ? current.filter(f => f.name !== food.name)
-      : [{ ...food, addedAt:Date.now() }, ...current].slice(0, 20)
-    setFavFoods(updated)
-    ls.set(uid,'fittrack_fav_foods',updated)
+    const cur=ls.get(uid,'fittrack_fav_foods',[])
+    const exists=cur.find(f=>f.name===food.name)
+    const updated=exists?cur.filter(f=>f.name!==food.name):[{...food,addedAt:Date.now()},...cur].slice(0,20)
+    setFavFoods(updated); ls.set(uid,'fittrack_fav_foods',updated)
   }, [uid])
 
-  const isFavFood = useCallback((name) => {
-    return favFoods.some(f => f.name === name)
-  }, [favFoods])
+  const isFavFood = useCallback((name) => favFoods.some(f=>f.name===name), [favFoods])
 
   const checkAndShowPR = useCallback((exName, newWeight) => {
-    if (checkPR(exName, newWeight, exArchive, exercises)) {
-      setPrAlert({ name:exName, weight:newWeight })
-      sendNotif('🏆 Yeni Rekor!', `${exName}: ${newWeight}kg — kişisel rekor!`)
-      setTimeout(() => setPrAlert(null), 4000)
+    if (isPR(exName, newWeight, exArchive, exercises)) {
+      setPrAlert({name:exName,weight:newWeight})
+      sendNotif('🏆 Yeni Rekor!',`${exName}: ${newWeight}kg — kişisel rekor!`)
+      setTimeout(()=>setPrAlert(null), 4000)
     }
   }, [exArchive, exercises, sendNotif])
 
@@ -311,7 +341,9 @@ export function AppProvider({ children }) {
       water, saveWater,
       favFoods, saveFavFood, isFavFood,
       streak, prAlert, checkAndShowPR,
-      notifPermission: typeof Notification !== 'undefined' ? Notification.permission : 'default',
+      // AI hak sistemi
+      aiUsage, checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT,
+      notifPermission: typeof Notification!=='undefined' ? Notification.permission : 'default',
       requestNotifPermission, sendNotif,
       theme, setTheme,
       viewingDate, setViewingDate,

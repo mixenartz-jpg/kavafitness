@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const SECTIONS = [
@@ -10,6 +11,7 @@ const SECTIONS = [
       { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Profil & hedefler & ölçüler' },
       { id:'share',    label:'PAYLAŞ',            icon:'📤', desc:'Antrenmanını paylaş' },
       { id:'download', label:'UYGULAMAYI İNDİR',  icon:'⬇',  desc:'Telefona ekle' },
+      { id:'_notif',   label:'BİLDİRİMLER',       icon:'🔔', desc:'PR ve seri bildirimleri', notif:true },
     ]
   },
   {
@@ -19,7 +21,8 @@ const SECTIONS = [
       { id:'today',    label:'BUGÜN',             icon:'🏋', desc:'Günlük antrenman' },
       { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Antrenman şablonları' },
       { id:'history',  label:'GEÇMİŞ',            icon:'📅', desc:'Geçmiş antrenmanlar' },
-      { id:'progress', label:'İLERLEME & ÖZET',   icon:'📊', desc:'Grafikler & haftalık özet' },
+      { id:'weekly',   label:'HAFTALIK ÖZET',     icon:'📈', desc:'Bu haftanın özeti' },
+      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & nasıl gidiyorum' },
     ]
   },
   {
@@ -43,9 +46,11 @@ const SECTIONS = [
 // ── Spotify linkleri — buraya ekle ──
 // { label: 'Liste Adı', url: 'https://open.spotify.com/playlist/...' }
 const SPOTIFY_PLAYLISTS = [
-  { label: 'Kerem\'in Gym Listesi',  url: 'SPOTIFY_LINK_1' },
-  { label: 'Playlist 2',             url: 'SPOTIFY_LINK_2' },
-  { label: 'Playlist 3',             url: 'SPOTIFY_LINK_3' },
+  { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK' },
+  { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT' },
+  { label: 'Beast Mode',           url: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP' },
+  { label: 'Gym Motivation',       url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8' },
+  { label: 'Hard Rock Workout',    url: 'https://open.spotify.com/playlist/37i9dQZF1DX9oh43oAzkyx' },
 ]
 
 function SpotifyIcon() {
@@ -57,7 +62,14 @@ function SpotifyIcon() {
 }
 
 export default function NavTabs({ open, onClose }) {
-  const { activeTab, setActiveTab, theme, setTheme } = useApp()
+  const { activeTab, setActiveTab, theme, setTheme, requestNotifPermission, notifPermission } = useApp()
+
+  const [notifStatus, setNotifStatus] = useState(notifPermission || 'default')
+
+  const handleNotif = async () => {
+    const r = await requestNotifPermission()
+    setNotifStatus(r)
+  }
 
   return (
     <>
@@ -115,7 +127,7 @@ export default function NavTabs({ open, onClose }) {
                 const clr       = t.special ? '#e8ff47' : section.color
                 return (
                   <div key={t.id}
-                    onClick={() => { setActiveTab(t.id); onClose() }}
+                    onClick={() => { if(t.notif){handleNotif();return} setActiveTab(t.id); onClose() }}
                     style={{
                       display:'flex', alignItems:'center', gap:11,
                       padding:'8px 10px', borderRadius:9, cursor:'pointer', marginBottom:1,
@@ -139,7 +151,11 @@ export default function NavTabs({ open, onClose }) {
                         {t.label}
                       </div>
                       <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {t.desc}
+                        {t.notif
+                          ? notifStatus==='granted' ? '✅ Bildirimler açık'
+                          : notifStatus==='denied'  ? '🚫 Tarayıcıdan izin ver'
+                          : '⚠️ Bildirimleri etkinleştir'
+                          : t.desc}
                       </div>
                     </div>
                     {active && <div style={{ width:4, height:4, borderRadius:'50%', background:clr, flexShrink:0 }}/>}
