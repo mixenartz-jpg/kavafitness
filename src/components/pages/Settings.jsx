@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { auth, db } from '../../firebase'
-import { signOut } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import {
+  signOut, updatePassword, verifyBeforeUpdateEmail,
+  reauthenticateWithCredential, EmailAuthProvider, deleteUser,
+} from 'firebase/auth'
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore'
 
 const GOALS = [
   { id:'lose',     icon:'🔥', label:'Kilo Ver' },
@@ -35,9 +38,20 @@ const ACTIVITY_LEVELS = [
 const DAYS = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz']
 
 export default function SettingsPage() {
-  const { user, profile, saveProfile, goals, saveGoals, body, saveBody, showToast, todayKey } = useApp()
+  const { user, uid, profile, saveProfile, goals, saveGoals, body, saveBody, showToast, todayKey } = useApp()
 
   const [tab, setTab] = useState('profile')
+
+  // Hesap yönetimi state
+  const [currentUsername, setCurrentUsername]   = useState('')
+  const [newUsername, setNewUsername]           = useState('')
+  const [newEmail, setNewEmail]                 = useState('')
+  const [currentPw, setCurrentPw]               = useState('')
+  const [newPw, setNewPw]                       = useState('')
+  const [newPwConfirm, setNewPwConfirm]         = useState('')
+  const [deleteConfirmPw, setDeleteConfirmPw]   = useState('')
+  const [accountLoading, setAccountLoading]     = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [form, setForm] = useState({
     goal:       profile?.goal || '',
     sportTypes: profile?.sportTypes || [],
@@ -59,6 +73,106 @@ export default function SettingsPage() {
   const toggle = (key, val) => setForm(p => ({
     ...p, [key]: p[key].includes(val) ? p[key].filter(v=>v!==val) : [...p[key], val]
   }))
+
+  // Mevcut kullanıcı adını yükle
+  useState(() => {
+    if (!uid) return
+    getDoc(doc(db, 'users', uid)).then(s => {
+      if (s.exists()) setCurrentUsername(s.data().username || '')
+    })
+  })
+
+  const reauth = async (password) => {
+    const credential = EmailAuthProvider.credential(user.email, password)
+    await reauthenticateWithCredential(user, credential)
+  }
+
+  // ── Kullanıcı adı değiştir ──
+  const handleUsernameChange = async () => {
+    if (!newUsername.trim()) return showToast('Yeni kullanıcı adı girin!', 'error')
+    if (!/^[a-z0-9_]+$/.test(newUsername)) return showToast('Sadece küçük harf, rakam ve _ kullanılabilir.', 'error')
+    if (newUsername === currentUsername) return showToast('Bu zaten mevcut kullanıcı adın.', 'error')
+    setAccountLoading(true)
+    try {
+      // Yeni kullanıcı adı müsait mi?
+      const snap = await getDoc(doc(db, 'usernames', newUsername))
+      if (snap.exists()) { showToast('Bu kullanıcı adı zaten alınmış!', 'error'); setAccountLoading(false); return }
+      // Eski kaydı sil, yeni kaydı ekle
+      await deleteDoc(doc(db, 'usernames', currentUsername))
+      await setDoc(doc(db, 'usernames', newUsername), { uid, email: user.email, createdAt: new Date() })
+      await setDoc(doc(db, 'users', uid), { username: newUsername, email: user.email }, { merge: true })
+      setCurrentUsername(newUsername)
+      setNewUsername('')
+      showToast('Kullanıcı adı güncellendi ✓')
+    } catch (e) { showToast('Hata: ' + e.message, 'error') }
+    setAccountLoading(false)
+  }
+
+  // ── Email değiştir ──
+  const handleEmailChange = async () => {
+    if (!newEmail.includes('@')) return showToast('Geçerli bir e-posta girin!', 'error')
+    if (!currentPw) return showToast('Mevcut şifrenizi girin!', 'error')
+    setAccountLoading(true)
+    try {
+      await reauth(currentPw)
+      await verifyBeforeUpdateEmail(user, newEmail)
+      await setDoc(doc(db, 'usernames', currentUsername), { uid, email: newEmail }, { merge: true })
+      await setDoc(doc(db, 'users', uid), { email: newEmail }, { merge: true })
+      setNewEmail(''); setCurrentPw('')
+      showToast('Doğrulama maili gönderildi! Yeni adresinizi onaylayın.', 'success')
+    } catch (e) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
+        showToast('Mevcut şifre hatalı!', 'error')
+      else if (e.code === 'auth/email-already-in-use')
+        showToast('Bu e-posta zaten kullanımda!', 'error')
+      else
+        showToast('Hata: ' + e.message, 'error')
+    }
+    setAccountLoading(false)
+  }
+
+  // ── Şifre değiştir ──
+  const handlePasswordChange = async () => {
+    if (!currentPw) return showToast('Mevcut şifrenizi girin!', 'error')
+    if (newPw.length < 6) return showToast('Yeni şifre en az 6 karakter olmalı!', 'error')
+    if (newPw !== newPwConfirm) return showToast('Şifreler eşleşmiyor!', 'error')
+    setAccountLoading(true)
+    try {
+      await reauth(currentPw)
+      await updatePassword(user, newPw)
+      setCurrentPw(''); setNewPw(''); setNewPwConfirm('')
+      showToast('Şifre güncellendi ✓')
+    } catch (e) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
+        showToast('Mevcut şifre hatalı!', 'error')
+      else
+        showToast('Hata: ' + e.message, 'error')
+    }
+    setAccountLoading(false)
+  }
+
+  // ── Hesabı sil ──
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirmPw) return showToast('Şifrenizi girin!', 'error')
+    setAccountLoading(true)
+    try {
+      await reauth(deleteConfirmPw)
+      // Firestore verilerini sil
+      const fitdataRef = collection(db, 'users', uid, 'fitdata')
+      const fitSnap = await getDocs(fitdataRef)
+      await Promise.all(fitSnap.docs.map(d => deleteDoc(d.ref)))
+      await deleteDoc(doc(db, 'users', uid))
+      await deleteDoc(doc(db, 'usernames', currentUsername))
+      // Firebase Auth kullanıcısını sil
+      await deleteUser(user)
+    } catch (e) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
+        showToast('Şifre hatalı!', 'error')
+      else
+        showToast('Hata: ' + e.message, 'error')
+      setAccountLoading(false)
+    }
+  }
 
   const calcTDEE = () => {
     const { weight, height, age, gender, activity } = form
@@ -143,7 +257,7 @@ export default function SettingsPage() {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 4, background: 'var(--surface2)', borderRadius: 10, padding: 4, marginBottom: 24 }}>
-        {[['profile','👤 Profil'],['goals','🎯 Hedefler'],['body','⚖️ Ölçüler']].map(([t,lbl]) => (
+        {[['profile','👤 Profil'],['goals','🎯 Hedefler'],['body','⚖️ Ölçüler'],['account','🔐 Hesap']].map(([t,lbl]) => (
           <button key={t} style={tabStyle(t)} onClick={() => setTab(t)}>{lbl}</button>
         ))}
       </div>
@@ -278,6 +392,119 @@ export default function SettingsPage() {
           <button className="btn btn-ghost" onClick={() => signOut(auth)} style={{ width: '100%', borderColor: 'rgba(255,71,71,.3)', color: 'var(--red)' }}>
             🚪 Çıkış Yap
           </button>
+        </div>
+      )}
+
+      {/* ══════════ HESAP TAB ══════════ */}
+      {tab === 'account' && (
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+
+          {/* Mevcut hesap bilgisi */}
+          <div style={{ background:'rgba(232,255,71,.05)', border:'1px solid rgba(232,255,71,.12)', borderRadius:12, padding:'14px 16px' }}>
+            <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--accent)', marginBottom:8 }}>MEVCUT HESAP</div>
+            <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+              <div>
+                <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', marginBottom:3 }}>KULLANICI ADI</div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, color:'var(--accent)' }}>@{currentUsername}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', marginBottom:3 }}>E-POSTA</div>
+                <div style={{ fontFamily:'DM Mono,monospace', fontSize:12, color:'var(--text)' }}>{user?.email}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Kullanıcı adı değiştir */}
+          <div className="card" style={{ padding:'18px 20px' }}>
+            <div className="section-title">KULLANICI ADI DEĞİŞTİR</div>
+            <div className="form-group" style={{ marginBottom:12 }}>
+              <span className="flabel">Yeni Kullanıcı Adı</span>
+              <input type="text" value={newUsername}
+                onChange={e => setNewUsername(e.target.value.toLowerCase())}
+                placeholder="yeni_kullanici_adi" maxLength={20} />
+              <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
+                2-20 karakter · küçük harf, rakam, _
+              </span>
+            </div>
+            <button className="btn btn-primary" style={{ width:'100%' }}
+              onClick={handleUsernameChange} disabled={accountLoading}>
+              {accountLoading ? <><span className="spinner" style={{ width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8 }} />Güncelleniyor...</> : '✓ Kullanıcı Adını Güncelle'}
+            </button>
+          </div>
+
+          {/* Email değiştir */}
+          <div className="card" style={{ padding:'18px 20px' }}>
+            <div className="section-title">E-POSTA DEĞİŞTİR</div>
+            <div style={{ background:'rgba(71,200,255,.07)', border:'1px solid rgba(71,200,255,.2)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontFamily:'DM Mono,monospace', fontSize:10, color:'#47c8ff', lineHeight:1.7 }}>
+              📧 Yeni e-postanıza doğrulama maili gönderilecek. Onaylamadan değişmez.
+            </div>
+            <div className="form-group" style={{ marginBottom:10 }}>
+              <span className="flabel">Yeni E-Posta</span>
+              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@email.com" />
+            </div>
+            <div className="form-group" style={{ marginBottom:12 }}>
+              <span className="flabel">Mevcut Şifre (Doğrulama için)</span>
+              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="••••••••" />
+            </div>
+            <button className="btn btn-primary" style={{ width:'100%' }}
+              onClick={handleEmailChange} disabled={accountLoading}>
+              {accountLoading ? <><span className="spinner" style={{ width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8 }} />Gönderiliyor...</> : '📧 Doğrulama Maili Gönder'}
+            </button>
+          </div>
+
+          {/* Şifre değiştir */}
+          <div className="card" style={{ padding:'18px 20px' }}>
+            <div className="section-title">ŞİFRE DEĞİŞTİR</div>
+            <div className="form-group" style={{ marginBottom:10 }}>
+              <span className="flabel">Mevcut Şifre</span>
+              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="••••••••" />
+            </div>
+            <div className="form-group" style={{ marginBottom:10 }}>
+              <span className="flabel">Yeni Şifre</span>
+              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 6 karakter" />
+            </div>
+            <div className="form-group" style={{ marginBottom:14 }}>
+              <span className="flabel">Yeni Şifre (Tekrar)</span>
+              <input type="password" value={newPwConfirm} onChange={e => setNewPwConfirm(e.target.value)} placeholder="••••••••"
+                onKeyDown={e => e.key==='Enter' && handlePasswordChange()} />
+            </div>
+            <button className="btn btn-primary" style={{ width:'100%' }}
+              onClick={handlePasswordChange} disabled={accountLoading}>
+              {accountLoading ? <><span className="spinner" style={{ width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8 }} />Güncelleniyor...</> : '🔑 Şifreyi Güncelle'}
+            </button>
+          </div>
+
+          {/* Hesabı sil */}
+          <div className="card" style={{ padding:'18px 20px', border:'1px solid rgba(255,71,71,.2)' }}>
+            <div className="section-title" style={{ color:'var(--red)' }}>HESABI SİL</div>
+            <div style={{ background:'rgba(255,71,71,.07)', border:'1px solid rgba(255,71,71,.2)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--red)', lineHeight:1.7 }}>
+              ⚠️ Bu işlem geri alınamaz! Tüm verileriniz (antrenmanlar, kalori kayıtları, ölçümler) kalıcı olarak silinecek.
+            </div>
+            {!showDeleteConfirm ? (
+              <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost"
+                style={{ width:'100%', borderColor:'rgba(255,71,71,.3)', color:'var(--red)' }}>
+                🗑️ Hesabımı Sil
+              </button>
+            ) : (
+              <div className="animate-fade">
+                <div className="form-group" style={{ marginBottom:12 }}>
+                  <span className="flabel">Onaylamak için şifrenizi girin</span>
+                  <input type="password" value={deleteConfirmPw} onChange={e => setDeleteConfirmPw(e.target.value)}
+                    placeholder="Şifreniz" autoFocus />
+                </div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={handleDeleteAccount} disabled={accountLoading}
+                    style={{ flex:1, padding:12, borderRadius:8, border:'1px solid var(--red)', background:'rgba(255,71,71,.1)', color:'var(--red)', cursor:'pointer', fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2 }}>
+                    {accountLoading ? '...' : '⚠️ HESABI SİL'}
+                  </button>
+                  <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmPw('') }} className="btn btn-ghost">
+                    İptal
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
