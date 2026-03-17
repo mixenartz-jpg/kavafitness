@@ -9,7 +9,6 @@ export const useApp = () => useContext(AppContext)
 const todayKey = () => new Date().toISOString().slice(0, 10)
 const genId    = () => Math.random().toString(36).slice(2, 9)
 
-// ── localStorage helpers (keyed by uid) ──
 const ls = {
   get: (uid, key, fallback) => {
     try { return JSON.parse(localStorage.getItem(`${key}_${uid}`)) ?? fallback }
@@ -18,50 +17,41 @@ const ls = {
   set: (uid, key, val) => localStorage.setItem(`${key}_${uid}`, JSON.stringify(val)),
 }
 
-// ── Firestore sync ──
 const fbSet = (docRef, data) => setDoc(docRef, data).catch(console.error)
 
 export function AppProvider({ children }) {
-  const [user, setUser]         = useState(null)
-  const [uid,  setUid]          = useState(null)
-  const [loading, setLoading]   = useState(true)
+  const [user, setUser]       = useState(null)
+  const [uid,  setUid]        = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Exercise state
-  const [exercises, setExercises]   = useState([])
-  const [exDate,    setExDate]      = useState(todayKey())
-  const [exArchive, setExArchive]   = useState({})
+  const [exercises, setExercises] = useState([])
+  const [exDate,    setExDate]    = useState(todayKey())
+  const [exArchive, setExArchive] = useState({})
 
-  // Calorie state
-  const [foods,    setFoods]    = useState([])
-  const [calDate,  setCalDate]  = useState(todayKey())
-  const [calArch,  setCalArch]  = useState({})
+  const [foods,   setFoods]   = useState([])
+  const [calDate, setCalDate] = useState(todayKey())
+  const [calArch, setCalArch] = useState({})
 
-  // Goals, body
   const [goals, setGoals] = useState({ kcal:2000, protein:150, fat:70, carb:250 })
   const [body,  setBody]  = useState([])
 
-  // Water
-  const [water, setWater] = useState(0)
+  // Su takibi
+  const [water,     setWater]     = useState(0)
   const [waterDate, setWaterDate] = useState(todayKey())
 
-  // Templates
   const [templates, setTemplates] = useState([])
+  const [profile,   setProfile]   = useState(null)
 
-  // User Profile
-  const [profile, setProfile] = useState(null)
-
-  // Active tab & viewing date
   const [activeTab,   setActiveTab]   = useState('home')
   const [viewingDate, setViewingDate] = useState(todayKey())
 
-  // Toast
   const [toast, setToast] = useState(null)
   const showToast = useCallback((msg, type='success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 2800)
   }, [])
 
-  // ── Pull from Firestore ──
+  // ── Firestore pull ──
   const pullFirestore = async (userId) => {
     const get = async (docRef, fallback) => {
       const snap = await getDoc(docRef).catch(() => null)
@@ -83,36 +73,48 @@ export function AppProvider({ children }) {
     ls.set(userId, 'fittrack_goals',       g)
     ls.set(userId, 'fittrack_body',        b.data ?? [])
     const t = await get(doc(userRef, 'fitdata', 'templates'), { data: [] })
-    ls.set(userId, 'fittrack_templates',   t.data ?? [])
+    ls.set(userId, 'fittrack_templates', t.data ?? [])
     const p = await get(doc(userRef, 'fitdata', 'profile'), null)
     if (p) ls.set(userId, 'fittrack_profile', p)
   }
 
-  // ── Init state from localStorage ──
+  // ── Init state ──
   const initState = useCallback((userId) => {
     const today = todayKey()
 
+    // ── Egzersizler ──
     let exData = ls.get(userId, 'fittrack_data', { date: today, exercises: [] })
     let arch   = ls.get(userId, 'fittrack_archive', {})
+
     if (exData.date !== today) {
-      if (exData.exercises.length > 0) arch[exData.date] = exData.exercises
+      // BUG FIX: Gün değişiminde egzersizleri arşive kaydet
+      if (exData.exercises?.length > 0) {
+        arch[exData.date] = exData.exercises
+        ls.set(userId, 'fittrack_archive', arch)
+        fbSet(doc(db, 'users', userId, 'fitdata', 'archive'), { data: arch })
+      }
       exData = { date: today, exercises: [] }
       ls.set(userId, 'fittrack_data', exData)
-      ls.set(userId, 'fittrack_archive', arch)
       fbSet(doc(db, 'users', userId, 'fitdata', 'main'), exData)
-      fbSet(doc(db, 'users', userId, 'fitdata', 'archive'), { data: arch })
     }
     setExercises(exData.exercises)
     setExDate(exData.date)
     setExArchive(arch)
 
+    // ── Kalori ──
     let calData = ls.get(userId, 'fittrack_calories', { date: today, foods: [] })
     let cArch   = ls.get(userId, 'fittrack_cal_archive', {})
+
     if (calData.date !== today) {
-      if (calData.foods.length > 0) cArch[calData.date] = calData.foods
+      // BUG FIX: Gün değişiminde yemekleri calArchive'e kaydet
+      if (calData.foods?.length > 0) {
+        cArch[calData.date] = calData.foods
+        ls.set(userId, 'fittrack_cal_archive', cArch)
+        fbSet(doc(db, 'users', userId, 'fitdata', 'calArchive'), { data: cArch })
+      }
       calData = { date: today, foods: [] }
       ls.set(userId, 'fittrack_calories', calData)
-      ls.set(userId, 'fittrack_cal_archive', cArch)
+      fbSet(doc(db, 'users', userId, 'fitdata', 'calories'), calData)
     }
     setFoods(calData.foods)
     setCalDate(calData.date)
@@ -123,11 +125,10 @@ export function AppProvider({ children }) {
     setTemplates(ls.get(userId, 'fittrack_templates', []))
     setProfile(ls.get(userId, 'fittrack_profile', null))
 
-    // Su takibi — her gün sıfırla
+    // ── Su takibi — her gün sıfırla ──
     const waterData = ls.get(userId, 'fittrack_water', { date: today, amount: 0 })
     if (waterData.date !== today) {
-      const freshWater = { date: today, amount: 0 }
-      ls.set(userId, 'fittrack_water', freshWater)
+      ls.set(userId, 'fittrack_water', { date: today, amount: 0 })
       setWater(0)
       setWaterDate(today)
     } else {
@@ -140,7 +141,6 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
-        // Email doğrulanmamışsa uygulamaya alma
         if (!u.emailVerified) {
           setUser(null); setUid(null)
           setLoading(false)
@@ -149,15 +149,12 @@ export function AppProvider({ children }) {
         setUser(u); setUid(u.uid)
         await pullFirestore(u.uid)
         initState(u.uid)
-
-        // Email değişikliği doğrulandıysa Firestore'u sync et
         try {
-          const userSnap = await getDoc(doc(db, 'users', u.uid))
-          if (userSnap.exists()) {
-            const storedEmail = userSnap.data().email
-            const username    = userSnap.data().username
+          const snap = await getDoc(doc(db, 'users', u.uid))
+          if (snap.exists()) {
+            const { email: storedEmail, username } = snap.data()
             if (storedEmail && u.email !== storedEmail && username) {
-              await setDoc(doc(db, 'users', u.uid), { email: u.email, oldEmail: null }, { merge: true })
+              await setDoc(doc(db, 'users', u.uid),        { email: u.email, oldEmail: null }, { merge: true })
               await setDoc(doc(db, 'usernames', username), { email: u.email, oldEmail: null }, { merge: true })
             }
           }
@@ -207,13 +204,12 @@ export function AppProvider({ children }) {
     setProfile(p)
     ls.set(uid, 'fittrack_profile', p)
     fbSet(doc(db, 'users', uid, 'fitdata', 'profile'), p)
-    // Auto-update goals based on profile
     if (p?.tdee) {
-      const target = p.goal === 'lose' ? p.tdee - 500 : p.goal === 'gain' ? p.tdee + 300 : p.goal === 'cut' ? p.tdee - 400 : p.tdee
+      const target  = p.goal==='lose' ? p.tdee-500 : p.goal==='gain' ? p.tdee+300 : p.goal==='cut' ? p.tdee-400 : p.tdee
       const protein = Math.round((p.weight || 75) * 2.0)
-      const fat = Math.round((target * 0.25) / 9)
-      const carb = Math.round((target - protein * 4 - fat * 9) / 4)
-      const newGoals = { kcal: target, protein, fat, carb }
+      const fat     = Math.round((target * 0.25) / 9)
+      const carb    = Math.round((target - protein*4 - fat*9) / 4)
+      const newGoals = { kcal:target, protein, fat, carb }
       setGoals(newGoals)
       ls.set(uid, 'fittrack_goals', newGoals)
       fbSet(doc(db, 'users', uid, 'fitdata', 'goals'), newGoals)
@@ -244,10 +240,9 @@ export function AppProvider({ children }) {
     fbSet(doc(db, 'users', uid, 'fitdata', 'body'), { data: b })
   }, [uid])
 
-  // ── Su takibi ──
   const saveWater = useCallback((amount) => {
     const today = todayKey()
-    const val = Math.max(0, amount)
+    const val   = Math.max(0, Math.min(9999, amount))
     setWater(val)
     setWaterDate(today)
     ls.set(uid, 'fittrack_water', { date: today, amount: val })
