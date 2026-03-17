@@ -79,7 +79,7 @@ export default function App() {
     aicoach:  <AiCoachPage />,
     coach:    <PersonalCoachPage />,
     share:    <ShareCard />,
-    weekly:   <ProgressPage />,   // eski weekly, artık progress altında
+    weekly:   <ProgressPage />,   // eski link desteği
     history:  <HistoryPage />,
     calorie:  <CaloriePage />,
     goals:    <GoalsPage />,

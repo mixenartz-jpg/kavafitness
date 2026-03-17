@@ -84,7 +84,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
           method:'POST', headers:{'Content-Type':'application/json'},
           body:JSON.stringify({
             contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}],
-            generationConfig:{temperature:.1,maxOutputTokens:512,thinkingConfig:{thinkingBudget:0}}
+            generationConfig:{temperature:.1,maxOutputTokens:512}
           })
         })
         if(res.ok){usedModel=model;setChips(c=>c.map(ch=>ch.model===model?{...ch,state:'ok'}:ch));break}

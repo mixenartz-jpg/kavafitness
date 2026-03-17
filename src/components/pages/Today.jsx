@@ -382,7 +382,7 @@ Rules: exercise_name English lowercase, no markdown.`
       try {
         res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,{
           method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}],generationConfig:{temperature:.1,maxOutputTokens:256,thinkingConfig:{thinkingBudget:0}}})
+          body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}],generationConfig:{temperature:.1,maxOutputTokens:256}})
         })
         if(res.ok) break
         res=null
@@ -517,7 +517,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.6,maxOutputTokens:600,thinkingConfig:{thinkingBudget:0}}})
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.6,maxOutputTokens:600}})
       })
       const data = await res.json()
       let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()

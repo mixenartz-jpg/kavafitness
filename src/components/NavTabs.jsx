@@ -11,7 +11,7 @@ const SECTIONS = [
       { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Profil & hedefler & ölçüler' },
       { id:'share',    label:'PAYLAŞ',            icon:'📤', desc:'Antrenmanını paylaş' },
       { id:'download', label:'UYGULAMAYI İNDİR',  icon:'⬇',  desc:'Telefona ekle' },
-      { id:'_notif',   label:'BİLDİRİMLER',       icon:'🔔', desc:'PR ve seri bildirimleri', notif:true },
+      { id:'_notif',   label:'BİLDİRİMLER',       icon:'🔔', desc:'Tıkla & etkinleştir', notif:true },
     ]
   },
   {
@@ -21,8 +21,7 @@ const SECTIONS = [
       { id:'today',    label:'BUGÜN',             icon:'🏋', desc:'Günlük antrenman' },
       { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Antrenman şablonları' },
       { id:'history',  label:'GEÇMİŞ',            icon:'📅', desc:'Geçmiş antrenmanlar' },
-      { id:'weekly',   label:'HAFTALIK ÖZET',     icon:'📈', desc:'Bu haftanın özeti' },
-      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & nasıl gidiyorum' },
+      { id:'progress', label:'İLERLEME & ÖZET',   icon:'📊', desc:'Grafikler & haftalık özet' },
     ]
   },
   {
@@ -48,9 +47,7 @@ const SECTIONS = [
 const SPOTIFY_PLAYLISTS = [
   { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK' },
   { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT' },
-  { label: 'Beast Mode',           url: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP' },
   { label: 'Gym Motivation',       url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8' },
-  { label: 'Hard Rock Workout',    url: 'https://open.spotify.com/playlist/37i9dQZF1DX9oh43oAzkyx' },
 ]
 
 function SpotifyIcon() {
@@ -65,11 +62,7 @@ export default function NavTabs({ open, onClose }) {
   const { activeTab, setActiveTab, theme, setTheme, requestNotifPermission, notifPermission } = useApp()
 
   const [notifStatus, setNotifStatus] = useState(notifPermission || 'default')
-
-  const handleNotif = async () => {
-    const r = await requestNotifPermission()
-    setNotifStatus(r)
-  }
+  const handleNotif = async () => { const r = await requestNotifPermission(); setNotifStatus(r) }
 
   return (
     <>
@@ -127,7 +120,7 @@ export default function NavTabs({ open, onClose }) {
                 const clr       = t.special ? '#e8ff47' : section.color
                 return (
                   <div key={t.id}
-                    onClick={() => { if(t.notif){handleNotif();return} setActiveTab(t.id); onClose() }}
+                    onClick={() => { if(t.notif){ handleNotif(); return } setActiveTab(t.id); onClose() }}
                     style={{
                       display:'flex', alignItems:'center', gap:11,
                       padding:'8px 10px', borderRadius:9, cursor:'pointer', marginBottom:1,
@@ -150,12 +143,9 @@ export default function NavTabs({ open, onClose }) {
                       <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color: active ? clr : 'var(--text)' }}>
                         {t.label}
                       </div>
-                      <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {t.notif
-                          ? notifStatus==='granted' ? '✅ Bildirimler açık'
-                          : notifStatus==='denied'  ? '🚫 Tarayıcıdan izin ver'
-                          : '⚠️ Bildirimleri etkinleştir'
-                          : t.desc}
+                      <div style={{ fontSize:9, fontFamily:'DM Mono,monospace', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                        color: t.notif ? (notifStatus==='granted'?'var(--green)':notifStatus==='denied'?'var(--red)':'#ff8c47') : 'var(--text-muted)' }}>
+                        {t.notif ? (notifStatus==='granted'?'✅ Açık':notifStatus==='denied'?'🚫 Tarayıcıdan aç':'⚠️ Etkinleştirmek için tıkla') : t.desc}
                       </div>
                     </div>
                     {active && <div style={{ width:4, height:4, borderRadius:'50%', background:clr, flexShrink:0 }}/>}

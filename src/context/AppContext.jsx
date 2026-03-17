@@ -8,11 +8,7 @@ export const useApp = () => useContext(AppContext)
 
 const todayKey = () => {
   const d = new Date()
-  // UTC yerine lokal tarih kullan (Türkiye UTC+3, gece farkı önlenir)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 const genId    = () => Math.random().toString(36).slice(2, 9)
 
@@ -44,8 +40,7 @@ function calcStreak(exercises, exArchive) {
   const today = todayKey()
   let streak = 0, cursor = new Date()
   for (let i = 0; i < 365; i++) {
-    const y2 = cursor.getFullYear(), m2 = String(cursor.getMonth()+1).padStart(2,'0'), d2 = String(cursor.getDate()).padStart(2,'0')
-    const dk  = `${y2}-${m2}-${d2}`
+    const dk  = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`
     const has = dk === today ? exercises.length > 0 : (exArchive[dk]||[]).length > 0
     if (has) streak++
     else if (i > 0) break

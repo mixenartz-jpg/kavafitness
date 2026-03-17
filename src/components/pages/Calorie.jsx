@@ -90,8 +90,6 @@ export default function CaloriePage() {
   const [dbCat,      setDbCat]      = useState('Tümü')
   const [dbSelected, setDbSelected] = useState(null)
   const [dbGram,     setDbGram]     = useState('100')
-  const [openCats,   setOpenCats]   = useState({})
-  const toggleCat    = (cat) => setOpenCats(p => ({...p, [cat]: !p[cat]}))
 
   // Photo state
   const [imgB64,      setImgB64]      = useState(null)
@@ -189,7 +187,7 @@ Rules: food_name in Turkish, integers, estimate for visible portion, no markdown
       try {
         res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}], generationConfig:{temperature:.1,maxOutputTokens:256,thinkingConfig:{thinkingBudget:0}} }) })
+            body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}], generationConfig:{temperature:.1,maxOutputTokens:256} }) })
         if (res.ok) { usedModel=model; setModelChips(c=>c.map(ch=>ch.model===model?{...ch,state:'ok'}:ch)); break }
         res=null; setModelChips(c=>c.map(ch=>ch.model===model?{...ch,state:'fail'}:ch))
       } catch { res=null; setModelChips(c=>c.map(ch=>ch.model===model?{...ch,state:'fail'}:ch)) }
@@ -245,7 +243,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
         { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:labelMime,data:labelImg}}]}], generationConfig:{temperature:.1,maxOutputTokens:512,thinkingConfig:{thinkingBudget:0}} }) }
+          body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:labelMime,data:labelImg}}]}], generationConfig:{temperature:.1,maxOutputTokens:512} }) }
       )
       const data  = await res.json()
       let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
@@ -406,83 +404,30 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
               <button className="btn btn-primary" style={{ width:'100%',marginTop:12 }} onClick={addFromDb}>✓ Listeye Ekle</button>
             </div>
           )}
-          {/* Yemek listesi */}
-          {filtered.length===0 && dbSearch && (
-            <div style={{ textAlign:'center',padding:'32px 0',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}>"{dbSearch}" için sonuç bulunamadı</div>
-          )}
-          {dbSearch.trim() ? (
-            <div style={{ display:'flex',flexDirection:'column',gap:5 }}>
-              {filtered.map((food,i) => {
-                const isSel = dbSelected?.name===food.name
-                return (
-                  <div key={i} onClick={()=>{setDbSelected(food);setDbGram('100')}}
-                    style={{ background:isSel?'rgba(232,255,71,.06)':'var(--surface)',border:`1px solid ${isSel?'rgba(232,255,71,.25)':'var(--border)'}`,borderRadius:9,padding:'10px 13px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,transition:'all .12s' }}
-                    onMouseEnter={e=>{if(!isSel)e.currentTarget.style.borderColor='#333'}}
-                    onMouseLeave={e=>{if(!isSel)e.currentTarget.style.borderColor='var(--border)'}}>
-                    <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ fontFamily:'DM Sans,sans-serif',fontSize:13,color:isSel?'var(--accent)':'var(--text)',fontWeight:isSel?600:400,marginBottom:2 }}>{food.name}</div>
-                      <div style={{ display:'flex',gap:5,flexWrap:'wrap' }}>
-                        {getFoodTags(food).map(tag=><span key={tag.label} style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:tag.color,opacity:.8 }}>{tag.label}</span>)}
-                      </div>
-                    </div>
-                    <div style={{ display:'flex',gap:5,flexShrink:0 }}>
-                      {[{val:food.kcal,u:'kcal',col:'#e8ff47'},{val:`${food.protein}g`,u:'P',col:'#47c8ff'},{val:`${food.carb}g`,u:'K',col:'#47ff8a'}].map(({val,u,col})=>(
-                        <span key={u} style={{ fontFamily:'DM Mono,monospace',fontSize:9,padding:'2px 6px',borderRadius:20,border:'1px solid rgba(255,255,255,.06)',color:col }}>{u} {val}</span>
-                      ))}
+          <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+            {filtered.length===0&&<div style={{ textAlign:'center',padding:'32px 0',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}>"{dbSearch}" için sonuç bulunamadı</div>}
+            {filtered.map((food,i)=>{
+              const isSelected = dbSelected?.name===food.name
+              return (
+                <div key={i} onClick={()=>{setDbSelected(food);setDbGram('100')}}
+                  style={{ background:isSelected?'rgba(232,255,71,.06)':'var(--surface)',border:`1px solid ${isSelected?'rgba(232,255,71,.25)':'var(--border)'}`,borderRadius:10,padding:'11px 14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .15s',gap:12 }}
+                  onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.borderColor='#333'}}
+                  onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.borderColor='var(--border)'}}>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:1,marginBottom:4 }}>{food.name}</div>
+                    <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
+                      {getFoodTags(food).map(tag=><span key={tag.label} style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:tag.color,opacity:.85 }}>{tag.label}</span>)}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div style={{ display:'flex',flexDirection:'column',gap:5 }}>
-              {cats.filter(cat=>cat!=='Tümü').filter(cat=>dbCat==='Tümü'||cat===dbCat).map(cat => {
-                const catFoods = FOOD_DB.filter(f=>f.cat===cat)
-                if (!catFoods.length) return null
-                const isOpen = !!openCats[cat]
-                return (
-                  <div key={cat} className="card" style={{ overflow:'hidden' }}>
-                    <div onClick={()=>toggleCat(cat)}
-                      style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 14px',cursor:'pointer',userSelect:'none',transition:'background .15s' }}
-                      onMouseEnter={e=>e.currentTarget.style.background='var(--surface2)'}
-                      onMouseLeave={e=>e.currentTarget.style.background=''}>
-                      <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-                        <span style={{ fontSize:17 }}>{cat.split(' ')[0]}</span>
-                        <span style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:13,letterSpacing:2 }}>{cat.split(' ').slice(1).join(' ')}</span>
-                        <span style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',background:'var(--surface2)',borderRadius:20,padding:'2px 7px' }}>{catFoods.length}</span>
-                      </div>
-                      <span style={{ color:'var(--text-muted)',fontSize:13,transition:'transform .2s',transform:isOpen?'rotate(180deg)':'none' }}>⌄</span>
-                    </div>
-                    {isOpen && (
-                      <div style={{ borderTop:'1px solid var(--border)' }}>
-                        {catFoods.map((food,fi) => {
-                          const isSel = dbSelected?.name===food.name
-                          return (
-                            <div key={fi} onClick={()=>{setDbSelected(food);setDbGram('100')}}
-                              style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 14px',cursor:'pointer',background:isSel?'rgba(232,255,71,.06)':'',borderBottom:fi<catFoods.length-1?'1px solid rgba(255,255,255,.03)':'',transition:'background .12s',gap:10 }}
-                              onMouseEnter={e=>{if(!isSel)e.currentTarget.style.background='var(--surface2)'}}
-                              onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background=isSel?'rgba(232,255,71,.06)':''}}>
-                              <div style={{ flex:1,minWidth:0 }}>
-                                <div style={{ fontFamily:'DM Sans,sans-serif',fontSize:13,color:isSel?'var(--accent)':' var(--text)',fontWeight:isSel?600:400,marginBottom:2 }}>{food.name}</div>
-                                <div style={{ display:'flex',gap:5,flexWrap:'wrap' }}>
-                                  {getFoodTags(food).map(tag=><span key={tag.label} style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:tag.color,opacity:.7 }}>{tag.label}</span>)}
-                                </div>
-                              </div>
-                              <div style={{ display:'flex',gap:5,flexShrink:0 }}>
-                                {[{val:food.kcal,u:'kcal',col:'#e8ff47'},{val:`${food.protein}g`,u:'P',col:'#47c8ff'},{val:`${food.carb}g`,u:'K',col:'#47ff8a'}].map(({val,u,col})=>(
-                                  <span key={u} style={{ fontFamily:'DM Mono,monospace',fontSize:9,padding:'2px 5px',borderRadius:20,border:'1px solid rgba(255,255,255,.06)',color:col }}>{u} {val}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                  <div style={{ display:'flex',gap:8,flexShrink:0 }}>
+                    {[{val:food.kcal,u:'kcal',c:'#e8ff47'},{val:`${food.protein}g`,u:'P',c:'#47c8ff'},{val:`${food.carb}g`,u:'K',c:'#47ff8a'}].map(({val,u,c})=>(
+                      <span key={u} style={{ fontFamily:'DM Mono,monospace',fontSize:10,padding:'2px 7px',borderRadius:20,border:'1px solid rgba(255,255,255,.07)',color:c }}>{u} {val}</span>
+                    ))}
                   </div>
-                )
-              })}
-            </div>
-          )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

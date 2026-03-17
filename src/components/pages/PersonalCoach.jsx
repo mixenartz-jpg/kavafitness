@@ -162,7 +162,7 @@ export default function PersonalCoachPage() {
     const last7 = []
     for (let i=1; i<=7; i++) {
       const d = new Date(); d.setDate(d.getDate()-i)
-      const dk = d.toISOString().slice(0,10)
+      const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
       const exs = exArchive[dk] || []
       if (exs.length > 0) last7.push(`${dk}: ${exs.length} egz`)
     }
@@ -200,7 +200,7 @@ ${lines.join('\n')}
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
         { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents, generationConfig:{ temperature:.85, maxOutputTokens:4096, thinkingConfig:{ thinkingBudget:0 } } }) }
+          body: JSON.stringify({ contents, generationConfig:{ temperature:.85, maxOutputTokens:4096 } }) }
       )
       const data = await res.json()
       const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Bir hata oluştu, tekrar dene.'
