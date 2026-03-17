@@ -78,8 +78,8 @@ export default function AuthScreen() {
         createdAt: new Date(),
       })
       // Kayıt başarılı → Login ekranına yönlendir, banner göster
-      setLoading(false)
       await auth.signOut()
+      setLoading(false)
       setVerifyBanner(true)
       setMode('login')
       setPassword('')
@@ -141,19 +141,20 @@ export default function AuthScreen() {
           Spor & Beslenme Takip Uygulaması
         </div>
 
-        {/* Gmail doğrulama banner'ı — kayıt sonrası */}
+        <>
+        {/* Kayıt sonrası gmail doğrulama banner */}
         {verifyBanner && mode === 'login' && (
           <div style={{
-            background:'rgba(71,200,255,.07)', border:'1px solid rgba(71,200,255,.25)',
-            borderRadius:10, padding:'12px 14px', marginBottom:16,
-            display:'flex', alignItems:'flex-start', gap:10,
+            background:'rgba(71,200,255,.07)', border:'1px solid rgba(71,200,255,.3)',
+            borderRadius:12, padding:'14px 16px', marginBottom:18,
+            display:'flex', alignItems:'flex-start', gap:12,
           }}>
-            <span style={{ fontSize:20, flexShrink:0, marginTop:1 }}>📧</span>
+            <span style={{ fontSize:24, flexShrink:0 }}>📧</span>
             <div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2, color:'#47c8ff', marginBottom:3 }}>
-                GMAİLİNİZİ DOĞRULAYIN
+              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:3, color:'#47c8ff', marginBottom:4 }}>
+                LÜTFEN MAİLİNİZİ DOĞRULAYIN
               </div>
-              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.7 }}>
+              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.7 }}>
                 <b style={{ color:'#47c8ff' }}>{email}</b> adresine doğrulama maili gönderdik.<br />
                 Maildeki linke tıkladıktan sonra giriş yapabilirsin.<br />
                 <span style={{ color:'#ff8c47' }}>⚠️ Spam klasörünü de kontrol et!</span>
@@ -162,27 +163,25 @@ export default function AuthScreen() {
           </div>
         )}
 
-        {/* E-posta doğrulanmamış uyarısı */}
+        {/* Email doğrulanmamış giriş uyarısı */}
         {error === 'EMAIL_NOT_VERIFIED' && (
           <div style={{
             background:'rgba(255,71,71,.1)', border:'1px solid rgba(255,71,71,.35)',
-            borderRadius:10, padding:'12px 14px', marginBottom:16,
-            display:'flex', alignItems:'flex-start', gap:10,
+            borderRadius:12, padding:'14px 16px', marginBottom:18,
+            display:'flex', alignItems:'flex-start', gap:12,
           }}>
-            <span style={{ fontSize:20, flexShrink:0, marginTop:1 }}>⛔</span>
+            <span style={{ fontSize:24, flexShrink:0 }}>⛔</span>
             <div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2, color:'var(--red)', marginBottom:3 }}>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:3, color:'var(--red)', marginBottom:4 }}>
                 LÜTFEN GMAİL'İNİZİ DOĞRULAYINIZ
               </div>
-              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.7 }}>
+              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.7 }}>
                 Hesabınıza giriş yapmadan önce e-posta adresinizi doğrulamanız gerekmektedir.<br />
                 <span style={{ color:'#ff8c47' }}>⚠️ Spam klasörünü de kontrol etmeyi unutma!</span>
               </div>
             </div>
           </div>
         )}
-
-        <>
             {/* Tabs */}
             {mode !== 'forgot' && (
               <div style={{ display:'flex', background:'var(--surface2)', borderRadius:8, padding:3, marginBottom:22 }}>
@@ -310,7 +309,7 @@ export default function AuthScreen() {
                 Sorun mu var? @slmbnmixo
               </a>
             </div>
-          </>
+        </>
       </div>
     </div>
   )

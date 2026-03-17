@@ -124,6 +124,13 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
+        // Email doğrulanmamışsa uygulamaya alma
+        if (!u.emailVerified) {
+          await auth.signOut()
+          setUser(null); setUid(null)
+          setLoading(false)
+          return
+        }
         setUser(u); setUid(u.uid)
         await pullFirestore(u.uid)
         initState(u.uid)
