@@ -19,8 +19,7 @@ const SECTIONS = [
       { id:'today',    label:'BUGÜN',             icon:'🏋', desc:'Günlük antrenman' },
       { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Antrenman şablonları' },
       { id:'history',  label:'GEÇMİŞ',            icon:'📅', desc:'Geçmiş antrenmanlar' },
-      { id:'weekly',   label:'HAFTALIK ÖZET',     icon:'📈', desc:'Bu haftanın özeti' },
-      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & nasıl gidiyorum' },
+      { id:'progress', label:'İLERLEME & ÖZET',   icon:'📊', desc:'Grafikler & haftalık özet' },
     ]
   },
   {
@@ -44,11 +43,9 @@ const SECTIONS = [
 // ── Spotify linkleri — buraya ekle ──
 // { label: 'Liste Adı', url: 'https://open.spotify.com/playlist/...' }
 const SPOTIFY_PLAYLISTS = [
-  { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK' },
-  { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT' },
-  { label: 'Beast Mode',           url: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP' },
-  { label: 'Gym Motivation',       url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8' },
-  { label: 'Hard Rock Workout',    url: 'https://open.spotify.com/playlist/37i9dQZF1DX9oh43oAzkyx' },
+  { label: 'Kerem\'in Gym Listesi',  url: 'SPOTIFY_LINK_1' },
+  { label: 'Playlist 2',             url: 'SPOTIFY_LINK_2' },
+  { label: 'Playlist 3',             url: 'SPOTIFY_LINK_3' },
 ]
 
 function SpotifyIcon() {
