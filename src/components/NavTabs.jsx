@@ -8,9 +8,9 @@ const TABS = [
   { id:'weekly',   label:'HAFTALIK OZET',    icon:'📈', desc:'Bu haftanin ozeti' },
   { id:'history',  label:'GECMIS',           icon:'📅', desc:'Gecmis antrenmanlar' },
   { id:'calorie',  label:'KALORI',           icon:'🍎', desc:'Besin takibi' },
-  { id:'goals',    label:'HEDEFLER',         icon:'🎯', desc:'Makro hedefler' },
+  { id:'goals',    label:'HEDEFLER',         icon:'🎯', desc:'Makro takibi' },
   { id:'progress', label:'ILERLEME',         icon:'📊', desc:'Grafik & istatistik' },
-  { id:'body',     label:'OLCULER',          icon:'⚖', desc:'Vucut olculeri' },
+  { id:'settings', label:'AYARLAR',          icon:'⚙', desc:'Profil & hedefler & olculer' },
   { id:'download', label:'UYGULAMAYI INDIR', icon:'⬇', desc:'Telefona ekle' },
 ]
 

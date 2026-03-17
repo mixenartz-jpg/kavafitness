@@ -43,6 +43,9 @@ export function AppProvider({ children }) {
   // Templates
   const [templates, setTemplates] = useState([])
 
+  // User Profile
+  const [profile, setProfile] = useState(null)
+
   // Active tab & viewing date
   const [activeTab,   setActiveTab]   = useState('today')
   const [viewingDate, setViewingDate] = useState(todayKey())
@@ -77,6 +80,8 @@ export function AppProvider({ children }) {
     ls.set(userId, 'fittrack_body',        b.data ?? [])
     const t = await get(doc(userRef, 'fitdata', 'templates'), { data: [] })
     ls.set(userId, 'fittrack_templates',   t.data ?? [])
+    const p = await get(doc(userRef, 'fitdata', 'profile'), null)
+    if (p) ls.set(userId, 'fittrack_profile', p)
   }
 
   // ── Init state from localStorage ──
@@ -112,6 +117,7 @@ export function AppProvider({ children }) {
     setGoals(ls.get(userId, 'fittrack_goals', { kcal:2000, protein:150, fat:70, carb:250 }))
     setBody(ls.get(userId, 'fittrack_body', []))
     setTemplates(ls.get(userId, 'fittrack_templates', []))
+    setProfile(ls.get(userId, 'fittrack_profile', null))
   }, [])
 
   // ── Auth observer ──
@@ -162,6 +168,23 @@ export function AppProvider({ children }) {
     fbSet(doc(db, 'users', uid, 'fitdata', 'goals'), g)
   }, [uid])
 
+  const saveProfile = useCallback((p) => {
+    setProfile(p)
+    ls.set(uid, 'fittrack_profile', p)
+    fbSet(doc(db, 'users', uid, 'fitdata', 'profile'), p)
+    // Auto-update goals based on profile
+    if (p?.tdee) {
+      const target = p.goal === 'lose' ? p.tdee - 500 : p.goal === 'gain' ? p.tdee + 300 : p.goal === 'cut' ? p.tdee - 400 : p.tdee
+      const protein = Math.round((p.weight || 75) * 2.0)
+      const fat = Math.round((target * 0.25) / 9)
+      const carb = Math.round((target - protein * 4 - fat * 9) / 4)
+      const newGoals = { kcal: target, protein, fat, carb }
+      setGoals(newGoals)
+      ls.set(uid, 'fittrack_goals', newGoals)
+      fbSet(doc(db, 'users', uid, 'fitdata', 'goals'), newGoals)
+    }
+  }, [uid])
+
   const saveTemplates = useCallback((t) => {
     setTemplates(t)
     ls.set(uid, 'fittrack_templates', t)
@@ -196,6 +219,7 @@ export function AppProvider({ children }) {
       goals, saveGoals,
       body, saveBody,
       templates, saveTemplates,
+      profile, saveProfile,
       saveWorkoutNote, getWorkoutNote,
       viewingDate, setViewingDate,
       activeTab, setActiveTab,

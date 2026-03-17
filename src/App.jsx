@@ -1,4 +1,5 @@
 import { useApp } from './context/AppContext'
+import { useState, useEffect } from 'react'
 import AuthScreen from './components/AuthScreen'
 import Header from './components/Header'
 import Toast from './components/ui/Toast'
@@ -13,9 +14,27 @@ import DownloadPage from './components/pages/DownloadPage'
 import Announcement from './components/Announcement'
 import WeeklySummaryPage from './components/pages/WeeklySummary'
 import TemplatesPage from './components/pages/Templates'
+import SettingsPage from './components/pages/Settings'
+import Onboarding from './components/Onboarding'
 
 export default function App() {
-  const { user, loading, activeTab } = useApp()
+  const { user, loading, activeTab, profile, uid } = useApp()
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  useEffect(() => {
+    if (user && uid && profile === null) {
+      // Profile null means never filled = show onboarding
+      const key = `onboarding_shown_${uid}`
+      if (!localStorage.getItem(key)) {
+        setShowOnboarding(true)
+      }
+    }
+  }, [user, uid, profile])
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem(`onboarding_shown_${uid}`, '1')
+    setShowOnboarding(false)
+  }
 
   if (loading) {
     return (
@@ -46,12 +65,14 @@ export default function App() {
     goals:    <GoalsPage />,
     progress: <ProgressPage />,
     body:     <BodyPage />,
+    settings: <SettingsPage />,
     recognize:<RecognizePage />,
     download: <DownloadPage />,
   }
 
   return (
     <>
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Announcement />
       <Header />
       {pages[activeTab] ?? <TodayPage />}
