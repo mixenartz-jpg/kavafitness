@@ -3,6 +3,24 @@ import { useApp } from '../../context/AppContext'
 
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 
+// ── Kişisel Koç Dipnotu ──
+function CoachNote({ setActiveTab, onClose }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:'rgba(232,255,71,.04)', border:'1px solid rgba(232,255,71,.12)', borderRadius:8, marginTop:10 }}>
+      <span style={{ fontSize:14, flexShrink:0 }}>⭐</span>
+      <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', lineHeight:1.6 }}>
+        Daha detaylı analiz için{' '}
+        <button onClick={() => { setActiveTab?.('coach'); onClose?.() }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', fontFamily:'DM Mono,monospace', fontSize:10, textDecoration:'underline', textUnderlineOffset:2, padding:0 }}>
+          Kişisel Koç
+        </button>
+        {'u dene.'}
+      </span>
+    </div>
+  )
+}
+
+
+
 const ACTIVITIES = [
   { id:'walking',    label:'Yürüyüş',          icon:'🚶', met:3.5  },
   { id:'running',    label:'Koşu',              icon:'🏃', met:9.8  },
@@ -61,7 +79,7 @@ function CreditBar({ remaining, banned, limit }) {
 
 export default function AiCoachPage() {
   const { profile, goals, foods, templates, saveTemplates, genId,
-          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT } = useApp()
+          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, setActiveTab } = useApp()
 
   const [tab, setTab] = useState('chat')
 
@@ -111,13 +129,7 @@ export default function AiCoachPage() {
     if (!checkAndUseAiCredit('kalori hesap')) return
     const act = ACTIVITIES.find(a=>a.id===activity)
     setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
-    const prompt=`Sen bir fitness ve kalori koçusun. SADECE antrenman ve aktivite konusunda yorum yap.
-Kullanıcı: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal yaktı.
-Türkçe, maksimum 3 kısa madde yaz:
-1. Bu antrenman hakkında 1 cümle değerlendirme
-2. Yakılan kalorileri karşılamak için 2 besin (sadece isim + kalori)
-3. 1 performans ipucu
-TOPLAM 60 KELIMEYI GEÇME. Beslenme planı, diyet tavsiyesi verme — sadece bu antrenman.`
+    const prompt=`Fitness koçusun. ${gender==='male'?'Erkek':'Kadın'}, ${age||'?'} yaş, ${weight}kg. Aktivite: ${act.label}, ${duration}dk, ~${kcal}kcal. Türkçe kısa yanıt (150 kelime): 1) Değerlendirme 2) 2-3 besin önerisi 3) 1-2 ipucu`
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
         {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:800,thinkingConfig:{thinkingBudget:0}}})})
@@ -138,7 +150,7 @@ TOPLAM 60 KELIMEYI GEÇME. Beslenme planı, diyet tavsiyesi verme — sadece bu 
       const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `Sen KeroGym beslenme asistanısın. SADECE beslenme, kalori, diyet ve makro konularında yardım et. Antrenman, egzersiz tekniği gibi konularda 'Bu konu benim alanım dışında, ben sadece beslenme konusunda yardımcı olabilirim' de. Türkçe, kısa ve madde madde yanıt ver.\n\n${p.length?`Kullanıcı bilgileri:\n${p.join('\n')}\n\n`:''}`
+    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
@@ -154,7 +166,7 @@ TOPLAM 60 KELIMEYI GEÇME. Beslenme planı, diyet tavsiyesi verme — sadece bu 
     ]
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:600,thinkingConfig:{thinkingBudget:0}}})})
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:4096,thinkingConfig:{thinkingBudget:0}}})})
       const d=await r.json()
       setMessages(prev=>[...prev,{role:'assistant',text:d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.'}])
     } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası.'}]) }
@@ -169,7 +181,7 @@ TOPLAM 60 KELIMEYI GEÇME. Beslenme planı, diyet tavsiyesi verme — sadece bu 
     const levelMap={beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
     const sportMap={gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
     const sports=profile.sportTypes?.map(s=>sportMap[s]||s).join(', ')||'Gym'
-    const prompt=`Kişisel antrenörsün. ${planDays} günlük haftalık antrenman programı oluştur.
+    const prompt=`Sen bir fitness antrenörüsün. SADECE antrenman programı ver, beslenme/diyet tavsiyesi ekleme. ${planDays} günlük haftalık antrenman programı oluştur.
 Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg
 Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${planFocus?` | Odak: ${planFocus}`:''}
 Sadece JSON:
@@ -198,7 +210,7 @@ Sadece JSON:
     const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
     const list=foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
     const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
-    const prompt=`Beslenme uzmanısın. Bugünkü yemekleri analiz et.
+    const prompt=`Sen bir beslenme uzmanısın. SADECE bugün yenilen yemekleri analiz et, antrenman önerisi verme.
 Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
 Yemekler:\n${list}
 Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
@@ -461,6 +473,7 @@ Eksiksiz yaz.`
                 </div>
                 {calcLoad?<div style={{display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12}}><span className="spinner"/>Düşünüyor...</div>
                   :calcTips&&<div style={{fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{calcTips}</div>}
+              <CoachNote setActiveTab={setActiveTab} />
               </div>
             </div>
           )}

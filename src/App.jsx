@@ -13,7 +13,6 @@ import AiCoachPage from './components/pages/AiCoach'
 import PersonalCoachPage from './components/pages/PersonalCoach'
 import ShareCard from './components/pages/ShareCard'
 import DownloadPage from './components/pages/DownloadPage'
-import WeeklySummaryPage from './components/pages/WeeklySummary'
 import TemplatesPage from './components/pages/Templates'
 import SettingsPage from './components/pages/Settings'
 import AccountPage from './components/pages/AccountPage'
@@ -79,7 +78,6 @@ export default function App() {
     aicoach:  <AiCoachPage />,
     coach:    <PersonalCoachPage />,
     share:    <ShareCard />,
-    weekly:   <WeeklySummaryPage />,
     history:  <HistoryPage />,
     calorie:  <CaloriePage />,
     goals:    <GoalsPage />,

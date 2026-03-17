@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const SECTIONS = [
@@ -6,10 +5,9 @@ const SECTIONS = [
     label: 'GENEL',
     color: 'var(--text-muted)',
     items: [
-      { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkında' },
+      { id:'home',     label:'ANA SAYFA',         icon:'🏠', desc:'Özet & hakkında' },
       { id:'account',  label:'HESABIM',           icon:'👤', desc:'Profil, email, şifre' },
-      { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Profil & hedefler & ölçüler' },
-      { id:'share',    label:'PAYLAŞ',            icon:'📤', desc:'Antrenmanını paylaş' },
+      { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Hedefler & ölçüler' },
       { id:'download', label:'UYGULAMAYI İNDİR',  icon:'⬇',  desc:'Telefona ekle' },
     ]
   },
@@ -17,27 +15,26 @@ const SECTIONS = [
     label: 'SPOR',
     color: '#e8ff47',
     items: [
-      { id:'today',    label:'BUGÜN',             icon:'🏋', desc:'Günlük antrenman' },
-      { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Antrenman şablonları' },
+      { id:'today',    label:'ANTRENMAN',         icon:'🏋', desc:'Bugünkü egzersizler' },
+      { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Hazır antrenman programları' },
       { id:'history',  label:'GEÇMİŞ',            icon:'📅', desc:'Geçmiş antrenmanlar' },
-      { id:'weekly',   label:'HAFTALIK ÖZET',     icon:'📈', desc:'Bu haftanın özeti' },
-      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & nasıl gidiyorum' },
+      { id:'progress', label:'İLERLEME & ÖZET',   icon:'📊', desc:'Grafikler & haftalık özet' },
     ]
   },
   {
     label: 'DİYET',
     color: '#47ff8a',
     items: [
-      { id:'calorie',  label:'KALORİ TAKİBİ',    icon:'🍎', desc:'Besin takibi' },
-      { id:'goals',    label:'MAKRO HEDEFLER',    icon:'🎯', desc:'Günlük makro takibi' },
-      { id:'aicoach',  label:'AI KOÇU',           icon:'🤖', desc:'Kalori & aktivite analizi' },
+      { id:'calorie',  label:'KALORİ TAKİBİ',    icon:'🍎', desc:'Yemek & besin takibi' },
+      { id:'goals',    label:'HEDEFLER & SU',     icon:'🎯', desc:'Makro & su takibi' },
+      { id:'aicoach',  label:'AI KOÇU',           icon:'🤖', desc:'Beslenme asistanı' },
     ]
   },
   {
     label: 'KİŞİSEL KOÇUN',
     color: '#e8ff47',
     items: [
-      { id:'coach', label:'KİŞİSEL KOÇUN 🔒', icon:'⭐', desc:'Tüm verileri bilen AI koç', special:true },
+      { id:'coach', label:'KİŞİSEL KOÇUN', icon:'⭐', desc:'Tüm verilerini bilen AI koç', special:true },
     ]
   },
 ]
@@ -59,14 +56,7 @@ function SpotifyIcon() {
 }
 
 export default function NavTabs({ open, onClose }) {
-  const { activeTab, setActiveTab, theme, setTheme, requestNotifPermission, notifPermission } = useApp()
-
-  const [notifStatus, setNotifStatus] = useState(notifPermission || 'default')
-
-  const handleNotifRequest = async () => {
-    const result = await requestNotifPermission()
-    setNotifStatus(result)
-  }
+  const { activeTab, setActiveTab, theme, setTheme } = useApp()
 
   return (
     <>
@@ -193,43 +183,6 @@ export default function NavTabs({ open, onClose }) {
             ))}
           </div>
         </nav>
-
-        {/* ─ Bildirimler ─ */}
-        <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 10px 5px' }}>
-            <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'#ff8c47', fontWeight:600 }}>BİLDİRİMLER</span>
-            <div style={{ flex:1, height:1, background:'#ff8c47', opacity:.2 }} />
-          </div>
-          {notifStatus === 'granted' ? (
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:9, background:'rgba(71,255,138,.07)', border:'1px solid rgba(71,255,138,.2)' }}>
-              <div style={{ width:31,height:31,borderRadius:8,background:'rgba(71,255,138,.12)',border:'1px solid rgba(71,255,138,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0 }}>🔔</div>
-              <div>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'var(--green)' }}>BİLDİRİMLER AÇIK</div>
-                <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>PR ve seri bildirimlerini alacaksın</div>
-              </div>
-            </div>
-          ) : notifStatus === 'denied' ? (
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:9, background:'rgba(255,71,71,.06)', border:'1px solid rgba(255,71,71,.15)' }}>
-              <div style={{ width:31,height:31,borderRadius:8,background:'rgba(255,71,71,.1)',border:'1px solid rgba(255,71,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0 }}>🔕</div>
-              <div>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'var(--red)' }}>BİLDİRİMLER KAPALI</div>
-                <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>Tarayıcı ayarlarından açabilirsin</div>
-              </div>
-            </div>
-          ) : (
-            <div onClick={handleNotifRequest} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:9, background:'rgba(255,140,71,.06)', border:'1px solid rgba(255,140,71,.2)', cursor:'pointer', transition:'all .15s' }}
-              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,140,71,.12)'}
-              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,140,71,.06)'}
-            >
-              <div style={{ width:31,height:31,borderRadius:8,background:'rgba(255,140,71,.12)',border:'1px solid rgba(255,140,71,.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0 }}>🔔</div>
-              <div>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'#ff8c47' }}>BİLDİRİMLERİ AÇ</div>
-                <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>PR ve seri bildirimleri için izin ver</div>
-              </div>
-              <span style={{ marginLeft:'auto', color:'#ff8c47', fontSize:14, flexShrink:0 }}>→</span>
-            </div>
-          )}
-        </div>
 
         {/* ─ Alt kısım ─ */}
         <div style={{ padding:'14px 18px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
