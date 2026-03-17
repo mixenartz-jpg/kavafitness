@@ -31,6 +31,37 @@ const trEx = (name) => {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
+
+// ── Egzersiz Otomatik Tamamlama Listesi ──
+const EXERCISE_LIST = [
+  'Bench Press','İncline Bench Press','Decline Bench Press','Dumbbell Press',
+  'Dumbbell Fly','Cable Crossover','Pec Deck','Push Up','Dip',
+  'Squat','Hack Squat','Leg Press','Leg Extension','Leg Curl',
+  'Romanian Deadlift','Bulgarian Split Squat','Lunge','Calf Raise','Hip Thrust',
+  'Deadlift','Sumo Deadlift','Barbell Row','Dumbbell Row','T-Bar Row',
+  'Seated Cable Row','Pull Up','Chin Up','Lat Pulldown','Face Pull',
+  'Overhead Press','Dumbbell Shoulder Press','Lateral Raise','Front Raise',
+  'Arnold Press','Shrug','Upright Row',
+  'Bicep Curl','Hammer Curl','Barbell Curl','Incline Dumbbell Curl','Concentration Curl',
+  'Tricep Extension','Skull Crusher','Tricep Pushdown','Close Grip Bench Press','Overhead Tricep',
+  'Plank','Crunch','Leg Raise','Cable Crunch','Russian Twist','Mountain Climber',
+  'Burpee','Box Jump','Kettlebell Swing','Battle Rope','Sled Push',
+]
+
+function getAutocompleteSuggestions(input, exArchive, exercises) {
+  if (!input || input.length < 2) return []
+  const q = input.toLowerCase().replace(/\s+/g, '')
+  // Geçmiş egzersizleri de ekle
+  const past = new Set()
+  Object.values(exArchive).forEach(day => day.forEach(e => past.add(e.name)))
+  exercises.forEach(e => past.add(e.name))
+  const all = [...new Set([...EXERCISE_LIST, ...past])]
+  return all.filter(name => {
+    const n = name.toLowerCase().replace(/\s+/g, '')
+    return n.includes(q) || q.split('').every((ch, i) => n.indexOf(ch, i) >= 0)
+  }).slice(0, 6)
+}
+
 function DeltaBadge({ cur, prev }) {
   if (prev === null || prev === undefined) return null
   const d = +cur - +prev
@@ -99,6 +130,8 @@ export default function TodayPage() {
 
   const [showForm, setShowForm]           = useState(false)
   const [newName, setNewName]             = useState('')
+  const [suggestions, setSuggestions]     = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [openCards, setOpenCards]         = useState({})
   const [showNote, setShowNote]           = useState(false)
   const [note, setNote]                   = useState(() => getWorkoutNote ? getWorkoutNote() : '')
@@ -266,9 +299,46 @@ export default function TodayPage() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-end' }}>
             <div className="form-group">
               <span className="flabel">Egzersiz Adi</span>
-              <input type="text" value={newName} placeholder="örn. Bench Press, Squat..."
-                onChange={e=>setNewName(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&addExercise()} autoFocus />
+              <div style={{ position:'relative' }}>
+                <input type="text" value={newName} placeholder="örn. Bench Press, Squat..."
+                  onChange={e => {
+                    const val = e.target.value
+                    setNewName(val)
+                    const sugg = getAutocompleteSuggestions(val, exArchive, exercises)
+                    setSuggestions(sugg)
+                    setShowSuggestions(sugg.length > 0)
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') addExercise()
+                    if (e.key === 'Escape') setShowSuggestions(false)
+                  }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  autoFocus />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div style={{
+                    position:'absolute', top:'100%', left:0, right:0, zIndex:50,
+                    background:'var(--surface)', border:'1px solid var(--border)',
+                    borderRadius:8, overflow:'hidden', marginTop:4,
+                    boxShadow:'0 8px 24px rgba(0,0,0,.4)',
+                  }}>
+                    {suggestions.map((s, i) => (
+                      <div key={i}
+                        onMouseDown={() => { setNewName(s); setShowSuggestions(false) }}
+                        style={{
+                          padding:'9px 14px', cursor:'pointer',
+                          fontFamily:'DM Sans,sans-serif', fontSize:13,
+                          borderBottom: i < suggestions.length-1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                          transition:'background .1s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {s}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div style={{ display:'flex', gap:8 }}>
               <button className="btn btn-primary" onClick={addExercise}>Ekle</button>

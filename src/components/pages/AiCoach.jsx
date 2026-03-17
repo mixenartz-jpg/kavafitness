@@ -17,7 +17,6 @@ const ACTIVITIES = [
   { id:'hiking',     label:'Doğa Yürüyüşü',    icon:'🥾', met:6.0  },
   { id:'rowing',     label:'Kürek / Ergometre', icon:'🚣', met:8.5  },
 ]
-
 const QUICK_PROMPTS = [
   '3 günlük kilo verme planı yazar mısın?',
   'Yüksek proteinli 1 günlük beslenme listesi',
@@ -26,19 +25,51 @@ const QUICK_PROMPTS = [
   'Vejetaryen protein kaynakları neler?',
   'Kahvaltıda ne yemeliyim kilo vermek için?',
 ]
-
 const TABS = [
-  { id:'chat',    icon:'💬', label:'SOHBET'           },
-  { id:'plan',    icon:'📋', label:'ANTRENMAN PLANI'  },
-  { id:'diet',    icon:'🥗', label:'DİYET ANALİZİ'   },
-  { id:'calorie', icon:'🔥', label:'KALORİ HESAP'    },
+  { id:'chat',    icon:'💬', label:'SOHBET'          },
+  { id:'plan',    icon:'📋', label:'ANTRENMAN PLANI' },
+  { id:'diet',    icon:'🥗', label:'DİYET ANALİZİ'  },
+  { id:'calorie', icon:'🔥', label:'KALORİ HESAP'   },
 ]
 
-export default function AiCoachPage() {
-  const { profile, goals, foods, templates, saveTemplates, genId } = useApp()
-  const [activeTab, setActiveTab] = useState('chat')
+// ── Hak Göstergesi ──
+function CreditBar({ remaining, banned, limit }) {
+  if (banned) return (
+    <div style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'rgba(255,71,71,.07)',border:'1px solid rgba(255,71,71,.2)',borderRadius:9,marginBottom:16 }}>
+      <span style={{fontSize:16,flexShrink:0}}>🚫</span>
+      <div style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--red)',lineHeight:1.6}}>
+        <b>Bugün AI özelliklerinden yararlanamazsın.</b><br/>
+        <span style={{opacity:.75}}>Uygunsuz içerik tespit edildi. Yarın sıfırlanır.</span>
+      </div>
+    </div>
+  )
+  return (
+    <div style={{ display:'flex',alignItems:'center',gap:12,padding:'9px 14px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:9,marginBottom:16 }}>
+      <div style={{display:'flex',gap:5,flexShrink:0}}>
+        {Array.from({length:limit}).map((_,i) => (
+          <div key={i} style={{width:9,height:9,borderRadius:'50%',background:i<remaining?'var(--accent)':'var(--border)',transition:'background .3s'}}/>
+        ))}
+      </div>
+      <div style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>
+        <b style={{color:remaining>0?'var(--accent)':'var(--red)'}}>{remaining}</b>
+        <span> / {limit} günlük AI hakkı kaldı</span>
+        {remaining===0 && <span style={{color:'var(--red)'}}> — yarın yenilenir</span>}
+      </div>
+    </div>
+  )
+}
 
-  // ── Kalori state ──
+export default function AiCoachPage() {
+  const { profile, goals, foods, templates, saveTemplates, genId,
+          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT } = useApp()
+
+  const [tab, setTab] = useState('chat')
+
+  const remaining = aiRemaining()
+  const banned    = isAiBanned()
+  const blocked   = banned || remaining <= 0
+
+  // Kalori state
   const [weight,     setWeight]     = useState(profile?.weight || '')
   const [age,        setAge]        = useState(profile?.age    || '')
   const [gender,     setGender]     = useState(profile?.gender || 'male')
@@ -46,176 +77,167 @@ export default function AiCoachPage() {
   const [activity,   setActivity]   = useState('')
   const [duration,   setDuration]   = useState('')
   const [kcalResult, setKcalResult] = useState(null)
-  const [calcLoading,setCalcLoading]= useState(false)
+  const [calcLoad,   setCalcLoad]   = useState(false)
   const [calcTips,   setCalcTips]   = useState(null)
 
-  // ── Chat state ──
-  const [messages,    setMessages]    = useState([{ role:'assistant', text:'👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.' }])
-  const [chatInput,   setChatInput]   = useState('')
-  const [chatLoading, setChatLoading] = useState(false)
-  const chatEndRef  = useRef(null)
-  const textareaRef = useRef(null)
+  // Chat state
+  const [messages, setMessages] = useState([{role:'assistant',text:'👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.'}])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoad,  setChatLoad]  = useState(false)
+  const chatEnd  = useRef(null)
+  const textarea = useRef(null)
 
-  // ── Plan state ──
-  const [planLoading, setPlanLoading] = useState(false)
-  const [planResult,  setPlanResult]  = useState(null)
-  const [planDays,    setPlanDays]    = useState(profile?.trainDays?.length || 3)
-  const [planFocus,   setPlanFocus]   = useState('')
-  const [planSaved,   setPlanSaved]   = useState(false)
+  // Plan state
+  const [planLoad,  setPlanLoad]  = useState(false)
+  const [planResult,setPlanResult]= useState(null)
+  const [planDays,  setPlanDays]  = useState(profile?.trainDays?.length || 3)
+  const [planFocus, setPlanFocus] = useState('')
+  const [planSaved, setPlanSaved] = useState(false)
 
-  // ── Diyet state ──
-  const [dietLoading, setDietLoading] = useState(false)
-  const [dietResult,  setDietResult]  = useState(null)
+  // Diyet state
+  const [dietLoad,  setDietLoad]  = useState(false)
+  const [dietResult,setDietResult]= useState(null)
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
+  useEffect(() => { chatEnd.current?.scrollIntoView({behavior:'smooth'}) }, [messages])
 
-  // ── Kalori hesapla ──
   const calcKcal = () => {
-    if (!weight || !activity || !duration) return null
-    const act = ACTIVITIES.find(a => a.id === activity)
-    return act ? Math.round(act.met * +weight * (+duration / 60)) : null
+    if (!weight||!activity||!duration) return null
+    const act = ACTIVITIES.find(a=>a.id===activity)
+    return act ? Math.round(act.met * +weight * (+duration/60)) : null
   }
 
   const handleCalc = async () => {
-    const kcal = calcKcal()
-    if (!kcal) return
-    const act = ACTIVITIES.find(a => a.id === activity)
-    setKcalResult(kcal); setCalcTips(null); setCalcLoading(true)
-    const prompt = `Fitness koçusun. Kullanıcı: ${gender==='male'?'Erkek':'Kadın'}, ${age||'?'} yaş, ${weight}kg. Aktivite: ${act.label}, ${duration}dk, ~${kcal}kcal.
-Türkçe kısa: 1) Antrenman değerlendirme (1-2 cümle) 2) 2-3 besin önerisi (emoji ile) 3) 1-2 performans ipucu. 150 kelimeyi geçme.`
+    const kcal = calcKcal(); if (!kcal) return
+    if (!checkAndUseAiCredit('kalori hesap')) return
+    const act = ACTIVITIES.find(a=>a.id===activity)
+    setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
+    const prompt=`Sen bir fitness ve kalori koçusun. SADECE antrenman ve aktivite konusunda yorum yap.
+Kullanıcı: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal yaktı.
+Türkçe, maksimum 3 kısa madde yaz:
+1. Bu antrenman hakkında 1 cümle değerlendirme
+2. Yakılan kalorileri karşılamak için 2 besin (sadece isim + kalori)
+3. 1 performans ipucu
+TOPLAM 60 KELIMEYI GEÇME. Beslenme planı, diyet tavsiyesi verme — sadece bu antrenman.`
     try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:1000,thinkingConfig:{thinkingBudget:0}}}) })
-      const d = await r.json()
-      setCalcTips(d?.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı.')
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:800,thinkingConfig:{thinkingBudget:0}}})})
+      const d=await r.json(); setCalcTips(d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.')
     } catch { setCalcTips('AI yanıtı alınamadı.') }
-    setCalcLoading(false)
+    setCalcLoad(false)
   }
 
-  // ── Chat ──
   const buildCtx = () => {
-    const p = []
+    const p=[]
     if (profile) {
       p.push(`${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg, ${profile.height||'?'}cm`)
       if (profile.goal) p.push(`Hedef: ${profile.goal==='lose'?'Kilo ver':profile.goal==='gain'?'Kilo al':profile.goal==='cut'?'Yağ yak':'Koru'}`)
       if (profile.tdee) p.push(`TDEE: ~${profile.tdee}kcal`)
     }
-    if (goals) p.push(`Makro hedef: ${goals.kcal}kcal, ${goals.protein}g P, ${goals.fat}g Y, ${goals.carb}g K`)
-    if (foods?.length > 0) {
-      const tot = foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
+    if (goals) p.push(`Makro: ${goals.kcal}kcal, ${goals.protein}g P, ${goals.fat}g Y, ${goals.carb}g K`)
+    if (foods?.length>0) {
+      const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
+    return `Sen KeroGym beslenme asistanısın. SADECE beslenme, kalori, diyet ve makro konularında yardım et. Antrenman, egzersiz tekniği gibi konularda 'Bu konu benim alanım dışında, ben sadece beslenme konusunda yardımcı olabilirim' de. Türkçe, kısa ve madde madde yanıt ver.\n\n${p.length?`Kullanıcı bilgileri:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
-    const msg = text || chatInput.trim()
-    if (!msg || chatLoading) return
-    const newMsgs = [...messages, {role:'user',text:msg}]
-    setMessages(newMsgs); setChatInput(''); setChatLoading(true)
-    const ctx = buildCtx()
-    const contents = [
-      {role:'user',  parts:[{text:ctx+'Merhaba, yardım istiyorum.'}]},
+    const msg=text||chatInput.trim(); if (!msg||chatLoad) return
+    if (!checkAndUseAiCredit(msg)) return
+    const newMsgs=[...messages,{role:'user',text:msg}]
+    setMessages(newMsgs); setChatInput(''); setChatLoad(true)
+    const ctx=buildCtx()
+    const contents=[
+      {role:'user',  parts:[{text:ctx+'Merhaba.'}]},
       {role:'model', parts:[{text:'Merhaba! Yardımcı olmaktan memnuniyet duyarım.'}]},
       ...newMsgs.map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text}]})),
     ]
     try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:4096,thinkingConfig:{thinkingBudget:0}}}) })
-      const d = await r.json()
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:600,thinkingConfig:{thinkingBudget:0}}})})
+      const d=await r.json()
       setMessages(prev=>[...prev,{role:'assistant',text:d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.'}])
     } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası.'}]) }
-    setChatLoading(false)
+    setChatLoad(false)
   }
 
-  // ── Antrenman Planı ──
   const generatePlan = async () => {
     if (!profile) return
-    setPlanLoading(true); setPlanResult(null); setPlanSaved(false)
-    const goalMap  = {lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
-    const levelMap = {beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
-    const sportMap = {gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
-    const sports   = profile.sportTypes?.map(s=>sportMap[s]||s).join(', ') || 'Gym'
-    const prompt = `Kişisel antrenörsün. ${planDays} günlük haftalık antrenman programı oluştur.
-Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg, ${profile.height||'?'}cm
+    if (!checkAndUseAiCredit('antrenman planı')) return
+    setPlanLoad(true); setPlanResult(null); setPlanSaved(false)
+    const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
+    const levelMap={beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
+    const sportMap={gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
+    const sports=profile.sportTypes?.map(s=>sportMap[s]||s).join(', ')||'Gym'
+    const prompt=`Kişisel antrenörsün. ${planDays} günlük haftalık antrenman programı oluştur.
+Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg
 Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${planFocus?` | Odak: ${planFocus}`:''}
-
-Sadece JSON döndür:
+Sadece JSON:
 {"program_adi":"...","haftalik_plan":[{"gun":"Pazartesi","odak":"Göğüs","egzersizler":[{"isim":"Bench Press","set":4,"tekrar":"8-10"}],"sure_dk":60,"notlar":"..."}],"genel_notlar":"...","beslenme_ozeti":"..."}`
-
     try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:4096,thinkingConfig:{thinkingBudget:0}}}) })
-      const d  = await r.json()
-      let raw  = (d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
-      let parsed = null
-      try { parsed = JSON.parse(raw) } catch { const m=raw.match(/\{[\s\S]*\}/); try{parsed=m?JSON.parse(m[0]):null}catch{} }
-      setPlanResult(parsed || {error:'Plan oluşturulamadı.'})
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:4096,thinkingConfig:{thinkingBudget:0}}})})
+      const d=await r.json()
+      let raw=(d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+      let parsed=null; try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
+      setPlanResult(parsed||{error:'Plan oluşturulamadı.'})
     } catch { setPlanResult({error:'⚠️ Bağlantı hatası.'}) }
-    setPlanLoading(false)
+    setPlanLoad(false)
   }
 
   const savePlanAsTemplate = () => {
     if (!planResult?.haftalik_plan) return
-    const newTpls = planResult.haftalik_plan
-      .filter(g => g.egzersizler?.length > 0)
-      .map(g => ({ id:genId(), name:`${planResult.program_adi} — ${g.gun} (${g.odak})`, exercises:g.egzersizler.map(e=>`${e.isim} ${e.set}×${e.tekrar}`) }))
-    saveTemplates([...(templates||[]),...newTpls])
-    setPlanSaved(true)
+    const tpls=planResult.haftalik_plan.filter(g=>g.egzersizler?.length>0).map(g=>({id:genId(),name:`${planResult.program_adi} — ${g.gun} (${g.odak})`,exercises:g.egzersizler.map(e=>`${e.isim} ${e.set}×${e.tekrar}`)}))
+    saveTemplates([...(templates||[]),...tpls]); setPlanSaved(true)
   }
 
-  // ── Diyet Analizi ──
   const analyzeDiet = async () => {
     if (!foods?.length) return
-    setDietLoading(true); setDietResult(null)
-    const tot  = foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
-    const list = foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
-    const goalMap = {lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
-    const prompt = `Beslenme uzmanısın. Bugünkü yemekleri analiz et.
+    if (!checkAndUseAiCredit('diyet analizi')) return
+    setDietLoad(true); setDietResult(null)
+    const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
+    const list=foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
+    const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
+    const prompt=`Beslenme uzmanısın. Bugünkü yemekleri analiz et.
 Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
-
 Yemekler:\n${list}
 Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
-
-Türkçe analiz (başlıklar altında):
+Türkçe analiz:
 1. ✅ OLUMLU NOKTALAR (2-3 madde)
-2. ⚠️ EKSİK/FAZLA NOKTALAR (2-3 madde)
-3. 🍽️ YARIN İÇİN 3 ÖĞÜN ÖNERİSİ (kısa)
+2. ⚠️ EKSİK/FAZLA (2-3 madde)
+3. 🍽️ YARIN İÇİN 3 ÖĞÜN ÖNERİSİ
 4. 💡 GENEL TAVSİYE (1-2 cümle)
 Eksiksiz yaz.`
     try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:2048,thinkingConfig:{thinkingBudget:0}}}) })
-      const d = await r.json()
-      setDietResult(d?.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz alınamadı.')
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:2048,thinkingConfig:{thinkingBudget:0}}})})
+      const d=await r.json(); setDietResult(d?.candidates?.[0]?.content?.parts?.[0]?.text||'Analiz alınamadı.')
     } catch { setDietResult('⚠️ Bağlantı hatası.') }
-    setDietLoading(false)
+    setDietLoad(false)
   }
 
-  const selectedAct = ACTIVITIES.find(a => a.id === activity)
-
+  const selectedAct = ACTIVITIES.find(a=>a.id===activity)
   const tabStyle = (id) => ({
     flex:1, padding:'9px 4px', border:'none', cursor:'pointer',
     fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5,
-    background: activeTab===id ? 'var(--accent)' : 'transparent',
-    color: activeTab===id ? '#0a0a0a' : 'var(--text-muted)',
+    background: tab===id?'var(--accent)':'transparent',
+    color: tab===id?'#0a0a0a':'var(--text-muted)',
     borderRadius:6, transition:'all .15s',
   })
 
   return (
     <div className="page animate-fade" style={{ maxWidth:700 }}>
 
-      {/* Sekme Çubuğu */}
-      <div style={{ display:'flex',gap:3,background:'var(--surface2)',borderRadius:10,padding:3,marginBottom:24 }}>
-        {TABS.map(t => <button key={t.id} style={tabStyle(t.id)} onClick={()=>setActiveTab(t.id)}>{t.icon} {t.label}</button>)}
+      {/* Sekme çubuğu */}
+      <div style={{ display:'flex',gap:3,background:'var(--surface2)',borderRadius:10,padding:3,marginBottom:16 }}>
+        {TABS.map(t => <button key={t.id} style={tabStyle(t.id)} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>)}
       </div>
 
-      {/* ════════════════════ SOHBET ════════════════════ */}
-      {activeTab === 'chat' && (
+      {/* Hak göstergesi */}
+      <CreditBar remaining={remaining} banned={banned} limit={AI_DAILY_LIMIT} />
+
+      {/* ═══ SOHBET ═══ */}
+      {tab==='chat' && (
         <>
           <div className="section-title">🥗 BESLENME PLANI YARDIMCISI</div>
           <div className="card" style={{ marginBottom:12, overflow:'hidden' }}>
@@ -230,35 +252,39 @@ Eksiksiz yaz.`
                   </div>
                 </div>
               ))}
-              {chatLoading && (
+              {chatLoad && (
                 <div style={{ display:'flex',gap:10,alignItems:'center' }}>
                   <div style={{ width:28,height:28,borderRadius:'50%',background:'rgba(71,200,255,.15)',border:'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13 }}>🤖</div>
                   <div style={{ background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'4px 14px 14px 14px',padding:'12px 16px',display:'flex',gap:5,alignItems:'center' }}>
-                    <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite' }}/>
-                    <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite .2s' }}/>
-                    <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite .4s' }}/>
+                    {[0,.2,.4].map((d,i)=><span key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:`pulse 1.2s ease infinite ${d}s`,display:'inline-block'}}/>)}
                   </div>
                 </div>
               )}
-              <div ref={chatEndRef}/>
+              <div ref={chatEnd}/>
             </div>
+
+            {/* Hızlı sorular */}
             <div style={{ padding:'12px 16px 0',display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none' }}>
               {QUICK_PROMPTS.map((q,i) => (
-                <button key={i} onClick={()=>sendMessage(q)} disabled={chatLoading} style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:10,cursor:'pointer',whiteSpace:'nowrap',transition:'all .15s',flexShrink:0,opacity:chatLoading?.5:1 }}
-                  onMouseEnter={e=>{if(!chatLoading){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}}
+                <button key={i} onClick={()=>sendMessage(q)} disabled={chatLoad||blocked}
+                  style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:10,cursor:blocked?'not-allowed':'pointer',whiteSpace:'nowrap',transition:'all .15s',flexShrink:0,opacity:(chatLoad||blocked)?.4:1 }}
+                  onMouseEnter={e=>{ if(!chatLoad&&!blocked){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}
                 >{q}</button>
               ))}
             </div>
+
+            {/* Input */}
             <div style={{ padding:'12px 16px 16px',display:'flex',gap:8,alignItems:'flex-end' }}>
-              <textarea ref={textareaRef} value={chatInput} onChange={e=>setChatInput(e.target.value)}
-                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}}
-                placeholder="Beslenme planı, kalori, diyet önerisi... (Enter = gönder, Shift+Enter = satır)" disabled={chatLoading} rows={2}
-                style={{ flex:1,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',fontSize:13,padding:'10px 12px',outline:'none',resize:'none',fontFamily:'DM Sans,sans-serif',lineHeight:1.5,transition:'border-color .2s' }}
+              <textarea ref={textarea} value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()} }}
+                placeholder={blocked?'🚫 Bugün AI kullanım hakkın yok.':'Beslenme planı, kalori, diyet... (Enter = gönder)'}
+                disabled={chatLoad||blocked} rows={2}
+                style={{ flex:1,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',fontSize:13,padding:'10px 12px',outline:'none',resize:'none',fontFamily:'DM Sans,sans-serif',lineHeight:1.5,opacity:blocked?.6:1 }}
                 onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='var(--border)'}/>
-              <button onClick={()=>sendMessage()} disabled={!chatInput.trim()||chatLoading}
-                style={{ width:42,height:42,borderRadius:10,border:'none',background:chatInput.trim()&&!chatLoading?'var(--accent)':'var(--surface2)',color:chatInput.trim()&&!chatLoading?'#0a0a0a':'var(--text-muted)',cursor:chatInput.trim()&&!chatLoading?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,transition:'all .2s',flexShrink:0 }}>
-                {chatLoading?<span className="spinner" style={{width:16,height:16,borderTopColor:'var(--text-muted)'}}/>:'↑'}
+              <button onClick={()=>sendMessage()} disabled={!chatInput.trim()||chatLoad||blocked}
+                style={{ width:42,height:42,borderRadius:10,border:'none',background:chatInput.trim()&&!chatLoad&&!blocked?'var(--accent)':'var(--surface2)',color:chatInput.trim()&&!chatLoad&&!blocked?'#0a0a0a':'var(--text-muted)',cursor:chatInput.trim()&&!chatLoad&&!blocked?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0 }}>
+                {chatLoad?<span className="spinner" style={{width:16,height:16,borderTopColor:'var(--text-muted)'}}/>:'↑'}
               </button>
             </div>
           </div>
@@ -266,24 +292,24 @@ Eksiksiz yaz.`
         </>
       )}
 
-      {/* ════════════════════ ANTRENMAN PLANI ════════════════════ */}
-      {activeTab === 'plan' && (
+      {/* ═══ ANTRENMAN PLANI ═══ */}
+      {tab==='plan' && (
         <>
           <div className="section-title">📋 AI ANTRENMAN PLANLAYICI</div>
           {!profile ? (
-            <div className="card" style={{ padding:'32px 24px',textAlign:'center' }}>
-              <div style={{ fontSize:36,marginBottom:12 }}>⚙️</div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:8 }}>PROFİL GEREKLİ</div>
-              <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',lineHeight:1.7 }}>Ayarlar → Profil bölümünü doldurun.</div>
+            <div className="card" style={{padding:'32px 24px',textAlign:'center'}}>
+              <div style={{fontSize:36,marginBottom:12}}>⚙️</div>
+              <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:8}}>PROFİL GEREKLİ</div>
+              <div style={{fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)'}}>Ayarlar → Profil bölümünü doldurun.</div>
             </div>
           ) : (
-            <div className="card" style={{ padding:20,marginBottom:16 }}>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16 }}>
+            <div className="card" style={{padding:20,marginBottom:16}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
                 <div className="form-group">
-                  <span className="flabel">Haftada kaç gün antrenman?</span>
-                  <div style={{ display:'flex',gap:6 }}>
+                  <span className="flabel">Haftada kaç gün?</span>
+                  <div style={{display:'flex',gap:6}}>
                     {[2,3,4,5,6].map(d=>(
-                      <div key={d} onClick={()=>setPlanDays(d)} style={{ flex:1,padding:'8px 4px',borderRadius:8,cursor:'pointer',textAlign:'center',background:planDays===d?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${planDays===d?'rgba(232,255,71,.3)':'var(--border)'}`,fontFamily:'Bebas Neue,sans-serif',fontSize:16,color:planDays===d?'var(--accent)':'var(--text-muted)',transition:'all .15s' }}>
+                      <div key={d} onClick={()=>setPlanDays(d)} style={{flex:1,padding:'8px 4px',borderRadius:8,cursor:'pointer',textAlign:'center',background:planDays===d?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${planDays===d?'rgba(232,255,71,.3)':'var(--border)'}`,fontFamily:'Bebas Neue,sans-serif',fontSize:16,color:planDays===d?'var(--accent)':'var(--text-muted)'}}>
                         {d}
                       </div>
                     ))}
@@ -291,113 +317,107 @@ Eksiksiz yaz.`
                 </div>
                 <div className="form-group">
                   <span className="flabel">Özel odak (opsiyonel)</span>
-                  <input type="text" value={planFocus} onChange={e=>setPlanFocus(e.target.value)} placeholder="üst vücut, bacak, core..."/>
+                  <input type="text" value={planFocus} onChange={e=>setPlanFocus(e.target.value)} placeholder="üst vücut, bacak..."/>
                 </div>
               </div>
-              <div style={{ display:'flex',gap:8,flexWrap:'wrap',marginBottom:16 }}>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
                 {[profile.goal&&`🎯 ${profile.goal==='lose'?'Kilo Ver':profile.goal==='gain'?'Kilo Al':profile.goal==='cut'?'Yağ Yak':'Koru'}`,profile.level&&`📊 ${profile.level==='beginner'?'Başlangıç':profile.level==='intermediate'?'Orta':'İleri'}`,profile.weight&&`⚖️ ${profile.weight}kg`].filter(Boolean).map((t,i)=>(
-                  <span key={i} style={{ fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)' }}>{t}</span>
+                  <span key={i} style={{fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)'}}>{t}</span>
                 ))}
               </div>
-              <button className="btn btn-primary" onClick={generatePlan} disabled={planLoading} style={{ width:'100%',padding:13 }}>
-                {planLoading?<><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Oluşturuluyor...</>:'🤖 Haftalık Plan Oluştur'}
+              <button className="btn btn-primary" onClick={generatePlan} disabled={planLoad||blocked} style={{width:'100%',padding:13,opacity:blocked?.4:1}}>
+                {planLoad?<><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Oluşturuluyor...</>:blocked?'🚫 Hak yok':'🤖 Haftalık Plan Oluştur'}
               </button>
             </div>
           )}
-
-          {planResult && !planResult.error && (
+          {planResult&&!planResult.error&&(
             <div className="animate-fade">
-              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8 }}>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:20,letterSpacing:2,color:'var(--accent)' }}>{planResult.program_adi}</div>
-                <button onClick={savePlanAsTemplate} disabled={planSaved} className="btn btn-ghost"
-                  style={{ fontSize:11,padding:'6px 14px',borderColor:planSaved?'rgba(71,255,138,.3)':'var(--border)',color:planSaved?'var(--green)':'var(--text-muted)' }}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
+                <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:20,letterSpacing:2,color:'var(--accent)'}}>{planResult.program_adi}</div>
+                <button onClick={savePlanAsTemplate} disabled={planSaved} className="btn btn-ghost" style={{fontSize:11,padding:'6px 14px',borderColor:planSaved?'rgba(71,255,138,.3)':'var(--border)',color:planSaved?'var(--green)':'var(--text-muted)'}}>
                   {planSaved?'✓ Eklendi':'📋 Şablona Kaydet'}
                 </button>
               </div>
-              <div style={{ display:'flex',flexDirection:'column',gap:10,marginBottom:16 }}>
+              <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
                 {planResult.haftalik_plan?.map((gun,i)=>(
-                  <div key={i} className="card" style={{ padding:'14px 16px' }}>
-                    <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:gun.egzersizler?.length>0?10:0 }}>
+                  <div key={i} className="card" style={{padding:'14px 16px'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:gun.egzersizler?.length>0?10:0}}>
                       <div>
-                        <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:16,letterSpacing:1.5,color:gun.egzersizler?.length>0?'var(--accent)':'var(--text-muted)' }}>{gun.gun}</div>
-                        <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:2 }}>{gun.odak}</div>
+                        <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:16,letterSpacing:1.5,color:gun.egzersizler?.length>0?'var(--accent)':'var(--text-muted)'}}>{gun.gun}</div>
+                        <div style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:2}}>{gun.odak}</div>
                       </div>
-                      {gun.sure_dk&&<span style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 9px' }}>{gun.sure_dk} dk</span>}
+                      {gun.sure_dk&&<span style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 9px'}}>{gun.sure_dk} dk</span>}
                     </div>
                     {gun.egzersizler?.length>0?(
-                      <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
                         {gun.egzersizler.map((ex,j)=>(
-                          <div key={j} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 10px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)' }}>
-                            <span style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text)' }}>{ex.isim}</span>
-                            <span style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:13,color:'var(--accent)',letterSpacing:1 }}>{ex.set} × {ex.tekrar}</span>
+                          <div key={j} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 10px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+                            <span style={{fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text)'}}>{ex.isim}</span>
+                            <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:13,color:'var(--accent)',letterSpacing:1}}>{ex.set} × {ex.tekrar}</span>
                           </div>
                         ))}
-                        {gun.notlar&&<div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:4,fontStyle:'italic' }}>💡 {gun.notlar}</div>}
+                        {gun.notlar&&<div style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:4,fontStyle:'italic'}}>💡 {gun.notlar}</div>}
                       </div>
-                    ):<div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginTop:6 }}>😴 Dinlenme günü</div>}
+                    ):<div style={{fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginTop:6}}>😴 Dinlenme günü</div>}
                   </div>
                 ))}
               </div>
-              {planResult.genel_notlar&&<div style={{ background:'rgba(71,200,255,.05)',border:'1px solid rgba(71,200,255,.15)',borderRadius:10,padding:'12px 14px',marginBottom:10 }}><div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'#47c8ff',marginBottom:6 }}>GENEL NOTLAR</div><div style={{ fontSize:12,color:'var(--text-muted)',lineHeight:1.7,fontFamily:'DM Sans,sans-serif' }}>{planResult.genel_notlar}</div></div>}
-              {planResult.beslenme_ozeti&&<div style={{ background:'rgba(71,255,138,.05)',border:'1px solid rgba(71,255,138,.15)',borderRadius:10,padding:'12px 14px' }}><div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--green)',marginBottom:6 }}>BESLENME ÖZETİ</div><div style={{ fontSize:12,color:'var(--text-muted)',lineHeight:1.7,fontFamily:'DM Sans,sans-serif' }}>{planResult.beslenme_ozeti}</div></div>}
+              {planResult.genel_notlar&&<div style={{background:'rgba(71,200,255,.05)',border:'1px solid rgba(71,200,255,.15)',borderRadius:10,padding:'12px 14px',marginBottom:10}}><div style={{fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'#47c8ff',marginBottom:6}}>GENEL NOTLAR</div><div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.7,fontFamily:'DM Sans,sans-serif'}}>{planResult.genel_notlar}</div></div>}
+              {planResult.beslenme_ozeti&&<div style={{background:'rgba(71,255,138,.05)',border:'1px solid rgba(71,255,138,.15)',borderRadius:10,padding:'12px 14px'}}><div style={{fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--green)',marginBottom:6}}>BESLENME ÖZETİ</div><div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.7,fontFamily:'DM Sans,sans-serif'}}>{planResult.beslenme_ozeti}</div></div>}
             </div>
           )}
-          {planResult?.error&&<div style={{ background:'rgba(255,71,71,.08)',border:'1px solid rgba(255,71,71,.2)',borderRadius:10,padding:'12px 14px',fontFamily:'DM Mono,monospace',fontSize:12,color:'var(--red)' }}>{planResult.error}</div>}
+          {planResult?.error&&<div style={{background:'rgba(255,71,71,.08)',border:'1px solid rgba(255,71,71,.2)',borderRadius:10,padding:'12px 14px',fontFamily:'DM Mono,monospace',fontSize:12,color:'var(--red)'}}>{planResult.error}</div>}
         </>
       )}
 
-      {/* ════════════════════ DİYET ANALİZİ ════════════════════ */}
-      {activeTab === 'diet' && (
+      {/* ═══ DİYET ANALİZİ ═══ */}
+      {tab==='diet' && (
         <>
           <div className="section-title">🥗 GÜNLÜK DİYET ANALİZİ</div>
           {!foods?.length ? (
-            <div className="card" style={{ padding:'32px 24px',textAlign:'center' }}>
-              <div style={{ fontSize:36,marginBottom:12 }}>🍽️</div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:8 }}>YEMEĞİ KAYDET ÖNCE</div>
-              <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',lineHeight:1.7 }}>Kalori Takibi sayfasından bugünkü<br/>yemekleri ekle, sonra analiz et.</div>
+            <div className="card" style={{padding:'32px 24px',textAlign:'center'}}>
+              <div style={{fontSize:36,marginBottom:12}}>🍽️</div>
+              <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:8}}>YEMEĞİ KAYDET ÖNCE</div>
+              <div style={{fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',lineHeight:1.7}}>Kalori Takibi sayfasından bugünkü<br/>yemekleri ekle, sonra analiz et.</div>
             </div>
           ) : (
-            <div className="card" style={{ padding:20,marginBottom:16 }}>
-              <div style={{ marginBottom:14 }}>
-                <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8 }}>BUGÜN KAYDEDİLEN ({foods.length} yemek)</div>
-                <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
-                  {foods.slice(0,6).map((f,i)=>(
-                    <span key={i} style={{ fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)' }}>{f.name}</span>
-                  ))}
-                  {foods.length>6&&<span style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)' }}>+{foods.length-6} daha</span>}
+            <div className="card" style={{padding:20,marginBottom:16}}>
+              <div style={{marginBottom:14}}>
+                <div style={{fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8}}>BUGÜN ({foods.length} yemek)</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {foods.slice(0,6).map((f,i)=><span key={i} style={{fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)'}}>{f.name}</span>)}
+                  {foods.length>6&&<span style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>+{foods.length-6} daha</span>}
                 </div>
               </div>
-              <button className="btn btn-primary" onClick={analyzeDiet} disabled={dietLoading} style={{ width:'100%',padding:13 }}>
-                {dietLoading?<><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Analiz Ediliyor...</>:'🤖 Bugünkü Diyetimi Analiz Et'}
+              <button className="btn btn-primary" onClick={analyzeDiet} disabled={dietLoad||blocked} style={{width:'100%',padding:13,opacity:blocked?.4:1}}>
+                {dietLoad?<><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Analiz Ediliyor...</>:blocked?'🚫 Hak yok':'🤖 Bugünkü Diyetimi Analiz Et'}
               </button>
             </div>
           )}
           {dietResult&&(
-            <div className="animate-fade card" style={{ padding:'18px 20px' }}>
-              <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:14 }}>
-                <div style={{ width:28,height:28,borderRadius:7,background:'rgba(71,255,138,.1)',border:'1px solid rgba(71,255,138,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🥗</div>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--green)' }}>AI DİYET ANALİZİ</div>
+            <div className="animate-fade card" style={{padding:'18px 20px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                <div style={{width:28,height:28,borderRadius:7,background:'rgba(71,255,138,.1)',border:'1px solid rgba(71,255,138,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🥗</div>
+                <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--green)'}}>AI DİYET ANALİZİ</div>
               </div>
-              {dietLoading
-                ?<div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}><span className="spinner"/>Analiz ediliyor...</div>
-                :<div style={{ fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap' }}>{dietResult}</div>
-              }
+              {dietLoad?<div style={{display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12}}><span className="spinner"/>Analiz ediliyor...</div>
+                :<div style={{fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{dietResult}</div>}
             </div>
           )}
         </>
       )}
 
-      {/* ════════════════════ KALORİ HESAP ════════════════════ */}
-      {activeTab === 'calorie' && (
+      {/* ═══ KALORİ HESAP ═══ */}
+      {tab==='calorie' && (
         <>
           <div className="section-title">🔥 AKTİVİTE KALORİ HESAPLAYICI</div>
-          <div className="card" style={{ padding:20,marginBottom:20 }}>
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:14 }}>
+          <div className="card" style={{padding:20,marginBottom:20}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:14}}>
               <div className="form-group">
                 <span className="flabel">Cinsiyet</span>
-                <div style={{ display:'flex',gap:6 }}>
+                <div style={{display:'flex',gap:6}}>
                   {[['male','👨 Erkek'],['female','👩 Kadın']].map(([v,l])=>(
-                    <div key={v} onClick={()=>setGender(v)} style={{ flex:1,padding:'8px 10px',borderRadius:8,cursor:'pointer',textAlign:'center',background:gender===v?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${gender===v?'rgba(232,255,71,.3)':'var(--border)'}`,fontFamily:'DM Mono,monospace',fontSize:11,color:gender===v?'var(--accent)':'var(--text-muted)' }}>{l}</div>
+                    <div key={v} onClick={()=>setGender(v)} style={{flex:1,padding:'8px 10px',borderRadius:8,cursor:'pointer',textAlign:'center',background:gender===v?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${gender===v?'rgba(232,255,71,.3)':'var(--border)'}`,fontFamily:'DM Mono,monospace',fontSize:11,color:gender===v?'var(--accent)':'var(--text-muted)'}}>{l}</div>
                   ))}
                 </div>
               </div>
@@ -405,40 +425,42 @@ Eksiksiz yaz.`
               <div className="form-group"><span className="flabel">Yaş</span><input type="number" value={age} onChange={e=>setAge(e.target.value)} placeholder="25"/></div>
               <div className="form-group"><span className="flabel">Boy (cm)</span><input type="number" value={height} onChange={e=>setHeight(e.target.value)} placeholder="175"/></div>
             </div>
-            <div className="form-group" style={{ marginBottom:12 }}>
+            <div className="form-group" style={{marginBottom:12}}>
               <span className="flabel">Aktivite</span>
-              <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6 }}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
                 {ACTIVITIES.map(act=>(
-                  <div key={act.id} onClick={()=>setActivity(act.id)} style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 10px',borderRadius:8,cursor:'pointer',background:activity===act.id?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${activity===act.id?'rgba(232,255,71,.3)':'var(--border)'}`,transition:'all .15s' }}>
-                    <span style={{ fontSize:15 }}>{act.icon}</span>
-                    <span style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:activity===act.id?'var(--accent)':'var(--text-muted)' }}>{act.label}</span>
+                  <div key={act.id} onClick={()=>setActivity(act.id)} style={{display:'flex',alignItems:'center',gap:6,padding:'8px 10px',borderRadius:8,cursor:'pointer',background:activity===act.id?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${activity===act.id?'rgba(232,255,71,.3)':'var(--border)'}`,transition:'all .15s'}}>
+                    <span style={{fontSize:15}}>{act.icon}</span>
+                    <span style={{fontFamily:'DM Mono,monospace',fontSize:10,color:activity===act.id?'var(--accent)':'var(--text-muted)'}}>{act.label}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="form-group" style={{ marginBottom:16 }}>
+            <div className="form-group" style={{marginBottom:16}}>
               <span className="flabel">Süre (dakika)</span>
               <input type="number" value={duration} onChange={e=>setDuration(e.target.value)} placeholder="45"/>
             </div>
-            <button className="btn btn-primary" onClick={handleCalc} disabled={!weight||!activity||!duration} style={{ width:'100%',opacity:(!weight||!activity||!duration)?.4:1 }}>🔥 Kalori Hesapla</button>
+            <button className="btn btn-primary" onClick={handleCalc} disabled={!weight||!activity||!duration||blocked} style={{width:'100%',opacity:(!weight||!activity||!duration||blocked)?.4:1}}>
+              {blocked?'🚫 Hak yok':'🔥 Kalori Hesapla'}
+            </button>
           </div>
           {kcalResult&&(
-            <div style={{ display:'flex',flexDirection:'column',gap:12,marginBottom:24 }}>
-              <div style={{ background:'linear-gradient(135deg,rgba(232,255,71,.08),rgba(232,255,71,.03))',border:'1px solid rgba(232,255,71,.2)',borderRadius:14,padding:'20px 22px',display:'flex',alignItems:'center',gap:16 }}>
-                <div style={{ fontSize:36 }}>🔥</div>
+            <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
+              <div style={{background:'linear-gradient(135deg,rgba(232,255,71,.08),rgba(232,255,71,.03))',border:'1px solid rgba(232,255,71,.2)',borderRadius:14,padding:'20px 22px',display:'flex',alignItems:'center',gap:16}}>
+                <div style={{fontSize:36}}>🔥</div>
                 <div>
-                  <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,letterSpacing:3,color:'var(--text-muted)',marginBottom:4 }}>{selectedAct?.label?.toUpperCase()} · {duration} DAK</div>
-                  <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:48,lineHeight:1,color:'var(--accent)' }}>{kcalResult} <span style={{ fontSize:18,color:'var(--text-muted)' }}>KCAL</span></div>
-                  <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginTop:4 }}>{weight} kg · MET {selectedAct?.met}</div>
+                  <div style={{fontFamily:'DM Mono,monospace',fontSize:10,letterSpacing:3,color:'var(--text-muted)',marginBottom:4}}>{selectedAct?.label?.toUpperCase()} · {duration} DAK</div>
+                  <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:48,lineHeight:1,color:'var(--accent)'}}>{kcalResult} <span style={{fontSize:18,color:'var(--text-muted)'}}>KCAL</span></div>
+                  <div style={{fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginTop:4}}>{weight} kg · MET {selectedAct?.met}</div>
                 </div>
               </div>
-              <div className="card" style={{ padding:18 }}>
-                <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:12 }}>
-                  <div style={{ width:28,height:28,borderRadius:7,background:'rgba(232,255,71,.12)',border:'1px solid rgba(232,255,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🤖</div>
-                  <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2 }}>AI KOÇ ÖNERİSİ</div>
+              <div className="card" style={{padding:18}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                  <div style={{width:28,height:28,borderRadius:7,background:'rgba(232,255,71,.12)',border:'1px solid rgba(232,255,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🤖</div>
+                  <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2}}>AI KOÇ ÖNERİSİ</div>
                 </div>
-                {calcLoading?<div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}><span className="spinner"/>Düşünüyor...</div>
-                :calcTips&&<div style={{ fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap' }}>{calcTips}</div>}
+                {calcLoad?<div style={{display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12}}><span className="spinner"/>Düşünüyor...</div>
+                  :calcTips&&<div style={{fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{calcTips}</div>}
               </div>
             </div>
           )}

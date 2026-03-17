@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const SECTIONS = [
@@ -44,11 +45,9 @@ const SECTIONS = [
 // ── Spotify linkleri — buraya ekle ──
 // { label: 'Liste Adı', url: 'https://open.spotify.com/playlist/...' }
 const SPOTIFY_PLAYLISTS = [
-  { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK?si=da37a847584642a4' },
-  { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT?si=efd57a81b5c248f0' },
-  { label: 'Beast Mode',           url: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP?si=95cbfb7f07704f73' },
-  { label: 'Gym Motivation',       url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8?si=afe688ebc7bf43da' },
-  { label: 'Hard Rock Workout',    url: 'https://open.spotify.com/playlist/37i9dQZF1DX9oh43oAzkyx?si=02a83233a20649b7' },
+  { label: 'Kerem\'in Gym Listesi',  url: 'SPOTIFY_LINK_1' },
+  { label: 'Playlist 2',             url: 'SPOTIFY_LINK_2' },
+  { label: 'Playlist 3',             url: 'SPOTIFY_LINK_3' },
 ]
 
 function SpotifyIcon() {
@@ -60,7 +59,14 @@ function SpotifyIcon() {
 }
 
 export default function NavTabs({ open, onClose }) {
-  const { activeTab, setActiveTab, theme, setTheme } = useApp()
+  const { activeTab, setActiveTab, theme, setTheme, requestNotifPermission, notifPermission } = useApp()
+
+  const [notifStatus, setNotifStatus] = useState(notifPermission || 'default')
+
+  const handleNotifRequest = async () => {
+    const result = await requestNotifPermission()
+    setNotifStatus(result)
+  }
 
   return (
     <>
@@ -187,6 +193,43 @@ export default function NavTabs({ open, onClose }) {
             ))}
           </div>
         </nav>
+
+        {/* ─ Bildirimler ─ */}
+        <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 10px 5px' }}>
+            <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'#ff8c47', fontWeight:600 }}>BİLDİRİMLER</span>
+            <div style={{ flex:1, height:1, background:'#ff8c47', opacity:.2 }} />
+          </div>
+          {notifStatus === 'granted' ? (
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:9, background:'rgba(71,255,138,.07)', border:'1px solid rgba(71,255,138,.2)' }}>
+              <div style={{ width:31,height:31,borderRadius:8,background:'rgba(71,255,138,.12)',border:'1px solid rgba(71,255,138,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0 }}>🔔</div>
+              <div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'var(--green)' }}>BİLDİRİMLER AÇIK</div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>PR ve seri bildirimlerini alacaksın</div>
+              </div>
+            </div>
+          ) : notifStatus === 'denied' ? (
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:9, background:'rgba(255,71,71,.06)', border:'1px solid rgba(255,71,71,.15)' }}>
+              <div style={{ width:31,height:31,borderRadius:8,background:'rgba(255,71,71,.1)',border:'1px solid rgba(255,71,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0 }}>🔕</div>
+              <div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'var(--red)' }}>BİLDİRİMLER KAPALI</div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>Tarayıcı ayarlarından açabilirsin</div>
+              </div>
+            </div>
+          ) : (
+            <div onClick={handleNotifRequest} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:9, background:'rgba(255,140,71,.06)', border:'1px solid rgba(255,140,71,.2)', cursor:'pointer', transition:'all .15s' }}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,140,71,.12)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,140,71,.06)'}
+            >
+              <div style={{ width:31,height:31,borderRadius:8,background:'rgba(255,140,71,.12)',border:'1px solid rgba(255,140,71,.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0 }}>🔔</div>
+              <div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'#ff8c47' }}>BİLDİRİMLERİ AÇ</div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>PR ve seri bildirimleri için izin ver</div>
+              </div>
+              <span style={{ marginLeft:'auto', color:'#ff8c47', fontSize:14, flexShrink:0 }}>→</span>
+            </div>
+          )}
+        </div>
 
         {/* ─ Alt kısım ─ */}
         <div style={{ padding:'14px 18px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
