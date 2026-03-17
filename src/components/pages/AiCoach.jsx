@@ -27,400 +27,425 @@ const QUICK_PROMPTS = [
   'Kahvaltıda ne yemeliyim kilo vermek için?',
 ]
 
+const TABS = [
+  { id:'chat',    icon:'💬', label:'SOHBET'           },
+  { id:'plan',    icon:'📋', label:'ANTRENMAN PLANI'  },
+  { id:'diet',    icon:'🥗', label:'DİYET ANALİZİ'   },
+  { id:'calorie', icon:'🔥', label:'KALORİ HESAP'    },
+]
+
 export default function AiCoachPage() {
-  const { profile, goals, foods } = useApp()
+  const { profile, goals, foods, templates, saveTemplates, genId } = useApp()
+  const [activeTab, setActiveTab] = useState('chat')
 
-  // ── Kalori Hesap state ──
-  const [weight,   setWeight]   = useState(profile?.weight || '')
-  const [age,      setAge]      = useState(profile?.age    || '')
-  const [gender,   setGender]   = useState(profile?.gender || 'male')
-  const [height,   setHeight]   = useState(profile?.height || '')
-  const [activity, setActivity] = useState('')
-  const [duration, setDuration] = useState('')
+  // ── Kalori state ──
+  const [weight,     setWeight]     = useState(profile?.weight || '')
+  const [age,        setAge]        = useState(profile?.age    || '')
+  const [gender,     setGender]     = useState(profile?.gender || 'male')
+  const [height,     setHeight]     = useState(profile?.height || '')
+  const [activity,   setActivity]   = useState('')
+  const [duration,   setDuration]   = useState('')
   const [kcalResult, setKcalResult] = useState(null)
-  const [calcLoading, setCalcLoading] = useState(false)
-  const [calcTips, setCalcTips] = useState(null)
+  const [calcLoading,setCalcLoading]= useState(false)
+  const [calcTips,   setCalcTips]   = useState(null)
 
-  // ── Beslenme Asistanı state ──
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      text: '👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin. Aşağıdaki hızlı sorulardan birini seçebilir ya da kendi sorunuzu yazabilirsin.',
-    }
-  ])
-  const [chatInput, setChatInput]   = useState('')
+  // ── Chat state ──
+  const [messages,    setMessages]    = useState([{ role:'assistant', text:'👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.' }])
+  const [chatInput,   setChatInput]   = useState('')
   const [chatLoading, setChatLoading] = useState(false)
-  const chatEndRef = useRef(null)
+  const chatEndRef  = useRef(null)
   const textareaRef = useRef(null)
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  // ── Plan state ──
+  const [planLoading, setPlanLoading] = useState(false)
+  const [planResult,  setPlanResult]  = useState(null)
+  const [planDays,    setPlanDays]    = useState(profile?.trainDays?.length || 3)
+  const [planFocus,   setPlanFocus]   = useState('')
+  const [planSaved,   setPlanSaved]   = useState(false)
 
-  // ── Kalori Hesapla ──
-  const calcCalories = () => {
+  // ── Diyet state ──
+  const [dietLoading, setDietLoading] = useState(false)
+  const [dietResult,  setDietResult]  = useState(null)
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
+
+  // ── Kalori hesapla ──
+  const calcKcal = () => {
     if (!weight || !activity || !duration) return null
     const act = ACTIVITIES.find(a => a.id === activity)
-    if (!act) return null
-    return Math.round(act.met * +weight * (+duration / 60))
+    return act ? Math.round(act.met * +weight * (+duration / 60)) : null
   }
 
   const handleCalc = async () => {
-    const kcal = calcCalories()
+    const kcal = calcKcal()
     if (!kcal) return
     const act = ACTIVITIES.find(a => a.id === activity)
-    setKcalResult(kcal)
-    setCalcTips(null)
-    setCalcLoading(true)
-
-    const prompt = `Sen bir fitness ve beslenme koçusun. Kullanıcı:
-- ${gender === 'male' ? 'Erkek' : 'Kadın'}, ${age || '?'} yaş, ${weight} kg, ${height || '?'} cm
-- Aktivite: ${act.label}, ${duration} dakika
-- Yakılan kalori: ~${kcal} kcal
-
-Şunları yap (Türkçe, kısa ve net):
-1. Bu antrenman hakkında 1-2 cümle değerlendirme
-2. Bu kalorileri karşılamak için 2-3 besin önerisi (emoji ile)
-3. Performansı artırmak için 1-2 ipucu
-
-150 kelimeyi geçme. Madde madde yaz.`
-
+    setKcalResult(kcal); setCalcTips(null); setCalcLoading(true)
+    const prompt = `Fitness koçusun. Kullanıcı: ${gender==='male'?'Erkek':'Kadın'}, ${age||'?'} yaş, ${weight}kg. Aktivite: ${act.label}, ${duration}dk, ~${kcal}kcal.
+Türkçe kısa: 1) Antrenman değerlendirme (1-2 cümle) 2) 2-3 besin önerisi (emoji ile) 3) 1-2 performans ipucu. 150 kelimeyi geçme.`
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1000,
-              thinkingConfig: { thinkingBudget: 0 },
-            },
-          }),
-        }
-      )
-      const data = await res.json()
-      setCalcTips(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı.')
-    } catch {
-      setCalcTips('AI yanıtı alınamadı, tekrar dene.')
-    }
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:1000,thinkingConfig:{thinkingBudget:0}}}) })
+      const d = await r.json()
+      setCalcTips(d?.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı.')
+    } catch { setCalcTips('AI yanıtı alınamadı.') }
     setCalcLoading(false)
   }
 
-  // ── Beslenme Asistanı Chat ──
-  const buildSystemContext = () => {
-    const parts = []
+  // ── Chat ──
+  const buildCtx = () => {
+    const p = []
     if (profile) {
-      parts.push(`Kullanıcı profili: ${profile.gender === 'male' ? 'Erkek' : 'Kadın'}, ${profile.age || '?'} yaş, ${profile.weight || '?'} kg, ${profile.height || '?'} cm`)
-      if (profile.goal) parts.push(`Hedef: ${profile.goal === 'lose' ? 'Kilo vermek' : profile.goal === 'gain' ? 'Kilo almak' : profile.goal === 'cut' ? 'Yağ yakmak' : 'Kiloyu korumak'}`)
-      if (profile.tdee) parts.push(`Günlük kalori ihtiyacı: ~${profile.tdee} kcal`)
+      p.push(`${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg, ${profile.height||'?'}cm`)
+      if (profile.goal) p.push(`Hedef: ${profile.goal==='lose'?'Kilo ver':profile.goal==='gain'?'Kilo al':profile.goal==='cut'?'Yağ yak':'Koru'}`)
+      if (profile.tdee) p.push(`TDEE: ~${profile.tdee}kcal`)
     }
-    if (goals) parts.push(`Günlük makro hedefler: ${goals.kcal} kcal, ${goals.protein}g protein, ${goals.fat}g yağ, ${goals.carb}g karb`)
+    if (goals) p.push(`Makro hedef: ${goals.kcal}kcal, ${goals.protein}g P, ${goals.fat}g Y, ${goals.carb}g K`)
     if (foods?.length > 0) {
-      const tot = foods.reduce((t, f) => ({ kcal: t.kcal + (+f.kcal || 0), protein: t.protein + (+f.protein || 0) }), { kcal: 0, protein: 0 })
-      parts.push(`Bugün tüketilen: ${Math.round(tot.kcal)} kcal, ${Math.round(tot.protein)}g protein`)
+      const tot = foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
+      p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return parts.length > 0
-      ? `Sen KeroGym uygulamasının beslenme asistanısın. Türkçe yanıt ver, net ve detaylı ol. Yanıtlarını ASLA yarıda kesme, her zaman tam ve eksiksiz ver.\n\nKullanıcı bilgileri:\n${parts.join('\n')}\n\n`
-      : `Sen KeroGym uygulamasının beslenme asistanısın. Türkçe yanıt ver, net ve detaylı ol. Yanıtlarını ASLA yarıda kesme, her zaman tam ve eksiksiz ver.\n\n`
+    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
     const msg = text || chatInput.trim()
     if (!msg || chatLoading) return
-
-    const userMsg = { role: 'user', text: msg }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
-    setChatInput('')
-    setChatLoading(true)
-
-    const systemPrompt = buildSystemContext()
+    const newMsgs = [...messages, {role:'user',text:msg}]
+    setMessages(newMsgs); setChatInput(''); setChatLoading(true)
+    const ctx = buildCtx()
     const contents = [
-      { role: 'user',  parts: [{ text: systemPrompt + 'Merhaba, beslenme konusunda yardım istiyorum.' }] },
-      { role: 'model', parts: [{ text: 'Merhaba! Beslenme ve diyet konusunda sana yardımcı olmaktan memnuniyet duyarım. Ne sormak istersin?' }] },
-      ...newMessages.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }],
-      })),
+      {role:'user',  parts:[{text:ctx+'Merhaba, yardım istiyorum.'}]},
+      {role:'model', parts:[{text:'Merhaba! Yardımcı olmaktan memnuniyet duyarım.'}]},
+      ...newMsgs.map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text}]})),
     ]
-
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents,
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 4096,
-              thinkingConfig: { thinkingBudget: 0 },
-            },
-          }),
-        }
-      )
-      const data = await res.json()
-      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı, tekrar dene.'
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Bağlantı hatası, tekrar dene.' }])
-    }
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:4096,thinkingConfig:{thinkingBudget:0}}}) })
+      const d = await r.json()
+      setMessages(prev=>[...prev,{role:'assistant',text:d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.'}])
+    } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası.'}]) }
     setChatLoading(false)
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
+  // ── Antrenman Planı ──
+  const generatePlan = async () => {
+    if (!profile) return
+    setPlanLoading(true); setPlanResult(null); setPlanSaved(false)
+    const goalMap  = {lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
+    const levelMap = {beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
+    const sportMap = {gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
+    const sports   = profile.sportTypes?.map(s=>sportMap[s]||s).join(', ') || 'Gym'
+    const prompt = `Kişisel antrenörsün. ${planDays} günlük haftalık antrenman programı oluştur.
+Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg, ${profile.height||'?'}cm
+Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${planFocus?` | Odak: ${planFocus}`:''}
+
+Sadece JSON döndür:
+{"program_adi":"...","haftalik_plan":[{"gun":"Pazartesi","odak":"Göğüs","egzersizler":[{"isim":"Bench Press","set":4,"tekrar":"8-10"}],"sure_dk":60,"notlar":"..."}],"genel_notlar":"...","beslenme_ozeti":"..."}`
+
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:4096,thinkingConfig:{thinkingBudget:0}}}) })
+      const d  = await r.json()
+      let raw  = (d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+      let parsed = null
+      try { parsed = JSON.parse(raw) } catch { const m=raw.match(/\{[\s\S]*\}/); try{parsed=m?JSON.parse(m[0]):null}catch{} }
+      setPlanResult(parsed || {error:'Plan oluşturulamadı.'})
+    } catch { setPlanResult({error:'⚠️ Bağlantı hatası.'}) }
+    setPlanLoading(false)
+  }
+
+  const savePlanAsTemplate = () => {
+    if (!planResult?.haftalik_plan) return
+    const newTpls = planResult.haftalik_plan
+      .filter(g => g.egzersizler?.length > 0)
+      .map(g => ({ id:genId(), name:`${planResult.program_adi} — ${g.gun} (${g.odak})`, exercises:g.egzersizler.map(e=>`${e.isim} ${e.set}×${e.tekrar}`) }))
+    saveTemplates([...(templates||[]),...newTpls])
+    setPlanSaved(true)
+  }
+
+  // ── Diyet Analizi ──
+  const analyzeDiet = async () => {
+    if (!foods?.length) return
+    setDietLoading(true); setDietResult(null)
+    const tot  = foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
+    const list = foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
+    const goalMap = {lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
+    const prompt = `Beslenme uzmanısın. Bugünkü yemekleri analiz et.
+Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
+
+Yemekler:\n${list}
+Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
+
+Türkçe analiz (başlıklar altında):
+1. ✅ OLUMLU NOKTALAR (2-3 madde)
+2. ⚠️ EKSİK/FAZLA NOKTALAR (2-3 madde)
+3. 🍽️ YARIN İÇİN 3 ÖĞÜN ÖNERİSİ (kısa)
+4. 💡 GENEL TAVSİYE (1-2 cümle)
+Eksiksiz yaz.`
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:2048,thinkingConfig:{thinkingBudget:0}}}) })
+      const d = await r.json()
+      setDietResult(d?.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz alınamadı.')
+    } catch { setDietResult('⚠️ Bağlantı hatası.') }
+    setDietLoading(false)
   }
 
   const selectedAct = ACTIVITIES.find(a => a.id === activity)
 
+  const tabStyle = (id) => ({
+    flex:1, padding:'9px 4px', border:'none', cursor:'pointer',
+    fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5,
+    background: activeTab===id ? 'var(--accent)' : 'transparent',
+    color: activeTab===id ? '#0a0a0a' : 'var(--text-muted)',
+    borderRadius:6, transition:'all .15s',
+  })
+
   return (
-    <div className="page animate-fade" style={{ maxWidth: 700 }}>
+    <div className="page animate-fade" style={{ maxWidth:700 }}>
 
-      {/* ══════════ AKTİVİTE KALORİ HESAPLAYICI ══════════ */}
-      <div className="section-title">🔥 AKTİVİTE KALORİ HESAPLAYICI</div>
-
-      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-        {/* Kişisel bilgiler */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 14 }}>
-          <div className="form-group">
-            <span className="flabel">Cinsiyet</span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[['male', '👨 Erkek'], ['female', '👩 Kadın']].map(([v, l]) => (
-                <div key={v} onClick={() => setGender(v)} style={{
-                  flex: 1, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
-                  background: gender === v ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
-                  border: `1px solid ${gender === v ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
-                  fontFamily: 'DM Mono,monospace', fontSize: 11,
-                  color: gender === v ? 'var(--accent)' : 'var(--text-muted)',
-                }}>{l}</div>
-              ))}
-            </div>
-          </div>
-          <div className="form-group">
-            <span className="flabel">Kilo (kg)</span>
-            <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="75" />
-          </div>
-          <div className="form-group">
-            <span className="flabel">Yaş</span>
-            <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="25" />
-          </div>
-          <div className="form-group">
-            <span className="flabel">Boy (cm)</span>
-            <input type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="175" />
-          </div>
-        </div>
-
-        {/* Aktivite seçimi */}
-        <div className="form-group" style={{ marginBottom: 12 }}>
-          <span className="flabel">Aktivite</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
-            {ACTIVITIES.map(act => (
-              <div key={act.id} onClick={() => setActivity(act.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-                background: activity === act.id ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
-                border: `1px solid ${activity === act.id ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
-                transition: 'all .15s',
-              }}>
-                <span style={{ fontSize: 15 }}>{act.icon}</span>
-                <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: activity === act.id ? 'var(--accent)' : 'var(--text-muted)' }}>{act.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Süre */}
-        <div className="form-group" style={{ marginBottom: 16 }}>
-          <span className="flabel">Süre (dakika)</span>
-          <input type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="45" />
-        </div>
-
-        <button className="btn btn-primary" onClick={handleCalc}
-          disabled={!weight || !activity || !duration}
-          style={{ width: '100%', opacity: (!weight || !activity || !duration) ? .4 : 1 }}>
-          🔥 Kalori Hesapla
-        </button>
+      {/* Sekme Çubuğu */}
+      <div style={{ display:'flex',gap:3,background:'var(--surface2)',borderRadius:10,padding:3,marginBottom:24 }}>
+        {TABS.map(t => <button key={t.id} style={tabStyle(t.id)} onClick={()=>setActiveTab(t.id)}>{t.icon} {t.label}</button>)}
       </div>
 
-      {/* Sonuç */}
-      {kcalResult && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(232,255,71,.08), rgba(232,255,71,.03))',
-            border: '1px solid rgba(232,255,71,.2)', borderRadius: 14, padding: '20px 22px',
-            display: 'flex', alignItems: 'center', gap: 16,
-          }}>
-            <div style={{ fontSize: 36 }}>🔥</div>
-            <div>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, letterSpacing: 3, color: 'var(--text-muted)', marginBottom: 4 }}>
-                {selectedAct?.label?.toUpperCase()} · {duration} DAK
-              </div>
-              <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 48, lineHeight: 1, color: 'var(--accent)' }}>
-                {kcalResult} <span style={{ fontSize: 18, color: 'var(--text-muted)' }}>KCAL</span>
-              </div>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                {weight} kg · MET {selectedAct?.met}
-              </div>
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <div style={{ width:28,height:28,borderRadius:7,background:'rgba(232,255,71,.12)',border:'1px solid rgba(232,255,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🤖</div>
-              <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 14, letterSpacing: 2 }}>AI KOÇ ÖNERİSİ</div>
-            </div>
-            {calcLoading
-              ? <div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}>
-                  <span className="spinner" /> Yapay zeka düşünüyor...
+      {/* ════════════════════ SOHBET ════════════════════ */}
+      {activeTab === 'chat' && (
+        <>
+          <div className="section-title">🥗 BESLENME PLANI YARDIMCISI</div>
+          <div className="card" style={{ marginBottom:12, overflow:'hidden' }}>
+            <div style={{ padding:'16px 16px 0',maxHeight:420,overflowY:'auto',display:'flex',flexDirection:'column',gap:12,scrollbarWidth:'thin' }}>
+              {messages.map((msg,i) => (
+                <div key={i} style={{ display:'flex',gap:10,flexDirection:msg.role==='user'?'row-reverse':'row',alignItems:'flex-start' }}>
+                  <div style={{ width:28,height:28,borderRadius:'50%',flexShrink:0,background:msg.role==='user'?'var(--accent)':'rgba(71,200,255,.15)',border:msg.role==='user'?'none':'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:msg.role==='user'?'#0a0a0a':'#47c8ff' }}>
+                    {msg.role==='user'?'👤':'🤖'}
+                  </div>
+                  <div style={{ maxWidth:'78%',background:msg.role==='user'?'rgba(232,255,71,.1)':'var(--surface2)',border:msg.role==='user'?'1px solid rgba(232,255,71,.2)':'1px solid var(--border)',borderRadius:msg.role==='user'?'14px 4px 14px 14px':'4px 14px 14px 14px',padding:'10px 14px' }}>
+                    <div style={{ fontSize:13,lineHeight:1.75,color:msg.role==='user'?'var(--accent)':'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap',wordBreak:'break-word' }}>{msg.text}</div>
+                  </div>
                 </div>
-              : calcTips
-                ? <div style={{ fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap' }}>{calcTips}</div>
-                : null
-            }
+              ))}
+              {chatLoading && (
+                <div style={{ display:'flex',gap:10,alignItems:'center' }}>
+                  <div style={{ width:28,height:28,borderRadius:'50%',background:'rgba(71,200,255,.15)',border:'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13 }}>🤖</div>
+                  <div style={{ background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'4px 14px 14px 14px',padding:'12px 16px',display:'flex',gap:5,alignItems:'center' }}>
+                    <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite' }}/>
+                    <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite .2s' }}/>
+                    <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite .4s' }}/>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef}/>
+            </div>
+            <div style={{ padding:'12px 16px 0',display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none' }}>
+              {QUICK_PROMPTS.map((q,i) => (
+                <button key={i} onClick={()=>sendMessage(q)} disabled={chatLoading} style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:10,cursor:'pointer',whiteSpace:'nowrap',transition:'all .15s',flexShrink:0,opacity:chatLoading?.5:1 }}
+                  onMouseEnter={e=>{if(!chatLoading){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}
+                >{q}</button>
+              ))}
+            </div>
+            <div style={{ padding:'12px 16px 16px',display:'flex',gap:8,alignItems:'flex-end' }}>
+              <textarea ref={textareaRef} value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}}
+                placeholder="Beslenme planı, kalori, diyet önerisi... (Enter = gönder, Shift+Enter = satır)" disabled={chatLoading} rows={2}
+                style={{ flex:1,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',fontSize:13,padding:'10px 12px',outline:'none',resize:'none',fontFamily:'DM Sans,sans-serif',lineHeight:1.5,transition:'border-color .2s' }}
+                onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='var(--border)'}/>
+              <button onClick={()=>sendMessage()} disabled={!chatInput.trim()||chatLoading}
+                style={{ width:42,height:42,borderRadius:10,border:'none',background:chatInput.trim()&&!chatLoading?'var(--accent)':'var(--surface2)',color:chatInput.trim()&&!chatLoading?'#0a0a0a':'var(--text-muted)',cursor:chatInput.trim()&&!chatLoading?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,transition:'all .2s',flexShrink:0 }}>
+                {chatLoading?<span className="spinner" style={{width:16,height:16,borderTopColor:'var(--text-muted)'}}/>:'↑'}
+              </button>
+            </div>
           </div>
-        </div>
+          {messages.length>1&&<div style={{textAlign:'right'}}><button onClick={()=>setMessages([{role:'assistant',text:'👋 Merhaba! Beslenme ve diyet konusunda yardımcı olmak için buradayım.'}])} style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',textDecoration:'underline'}}>Sohbeti Temizle</button></div>}
+        </>
       )}
 
-      {/* ══════════ BESLENME PLANI YARDIMCISI ══════════ */}
-      <div className="section-title" style={{ marginTop: 8 }}>🥗 BESLENME PLANI YARDIMCISI</div>
-
-      {/* Chat kutusu */}
-      <div className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
-
-        {/* Mesajlar */}
-        <div style={{ padding:'16px 16px 0', maxHeight:420, overflowY:'auto', display:'flex', flexDirection:'column', gap:12, scrollbarWidth:'thin' }}>
-          {messages.map((msg, i) => (
-            <div key={i} style={{
-              display: 'flex', gap: 10,
-              flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-              alignItems: 'flex-start',
-            }}>
-              {/* Avatar */}
-              <div style={{
-                width:28, height:28, borderRadius:'50%', flexShrink:0,
-                background: msg.role === 'user' ? 'var(--accent)' : 'rgba(71,200,255,.15)',
-                border: msg.role === 'user' ? 'none' : '1px solid rgba(71,200,255,.3)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:13, color: msg.role === 'user' ? '#0a0a0a' : '#47c8ff',
-                fontFamily:'Bebas Neue,sans-serif',
-              }}>
-                {msg.role === 'user' ? '👤' : '🤖'}
-              </div>
-
-              {/* Balon */}
-              <div style={{
-                maxWidth: '78%',
-                background: msg.role === 'user' ? 'rgba(232,255,71,.1)' : 'var(--surface2)',
-                border: msg.role === 'user' ? '1px solid rgba(232,255,71,.2)' : '1px solid var(--border)',
-                borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
-                padding: '10px 14px',
-              }}>
-                <div style={{
-                  fontSize:13, lineHeight:1.75,
-                  color: msg.role === 'user' ? 'var(--accent)' : 'var(--text-dim)',
-                  fontFamily:'DM Sans,sans-serif',
-                  whiteSpace:'pre-wrap', wordBreak:'break-word',
-                }}>
-                  {msg.text}
+      {/* ════════════════════ ANTRENMAN PLANI ════════════════════ */}
+      {activeTab === 'plan' && (
+        <>
+          <div className="section-title">📋 AI ANTRENMAN PLANLAYICI</div>
+          {!profile ? (
+            <div className="card" style={{ padding:'32px 24px',textAlign:'center' }}>
+              <div style={{ fontSize:36,marginBottom:12 }}>⚙️</div>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:8 }}>PROFİL GEREKLİ</div>
+              <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',lineHeight:1.7 }}>Ayarlar → Profil bölümünü doldurun.</div>
+            </div>
+          ) : (
+            <div className="card" style={{ padding:20,marginBottom:16 }}>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16 }}>
+                <div className="form-group">
+                  <span className="flabel">Haftada kaç gün antrenman?</span>
+                  <div style={{ display:'flex',gap:6 }}>
+                    {[2,3,4,5,6].map(d=>(
+                      <div key={d} onClick={()=>setPlanDays(d)} style={{ flex:1,padding:'8px 4px',borderRadius:8,cursor:'pointer',textAlign:'center',background:planDays===d?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${planDays===d?'rgba(232,255,71,.3)':'var(--border)'}`,fontFamily:'Bebas Neue,sans-serif',fontSize:16,color:planDays===d?'var(--accent)':'var(--text-muted)',transition:'all .15s' }}>
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <span className="flabel">Özel odak (opsiyonel)</span>
+                  <input type="text" value={planFocus} onChange={e=>setPlanFocus(e.target.value)} placeholder="üst vücut, bacak, core..."/>
                 </div>
               </div>
+              <div style={{ display:'flex',gap:8,flexWrap:'wrap',marginBottom:16 }}>
+                {[profile.goal&&`🎯 ${profile.goal==='lose'?'Kilo Ver':profile.goal==='gain'?'Kilo Al':profile.goal==='cut'?'Yağ Yak':'Koru'}`,profile.level&&`📊 ${profile.level==='beginner'?'Başlangıç':profile.level==='intermediate'?'Orta':'İleri'}`,profile.weight&&`⚖️ ${profile.weight}kg`].filter(Boolean).map((t,i)=>(
+                  <span key={i} style={{ fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)' }}>{t}</span>
+                ))}
+              </div>
+              <button className="btn btn-primary" onClick={generatePlan} disabled={planLoading} style={{ width:'100%',padding:13 }}>
+                {planLoading?<><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Oluşturuluyor...</>:'🤖 Haftalık Plan Oluştur'}
+              </button>
             </div>
-          ))}
+          )}
 
-          {/* Typing indicator */}
-          {chatLoading && (
-            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-              <div style={{ width:28,height:28,borderRadius:'50%',background:'rgba(71,200,255,.15)',border:'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13 }}>🤖</div>
-              <div style={{ background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'4px 14px 14px 14px',padding:'12px 16px',display:'flex',gap:5,alignItems:'center' }}>
-                <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite' }} />
-                <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite .2s' }} />
-                <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:'pulse 1.2s ease infinite .4s' }} />
+          {planResult && !planResult.error && (
+            <div className="animate-fade">
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8 }}>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:20,letterSpacing:2,color:'var(--accent)' }}>{planResult.program_adi}</div>
+                <button onClick={savePlanAsTemplate} disabled={planSaved} className="btn btn-ghost"
+                  style={{ fontSize:11,padding:'6px 14px',borderColor:planSaved?'rgba(71,255,138,.3)':'var(--border)',color:planSaved?'var(--green)':'var(--text-muted)' }}>
+                  {planSaved?'✓ Eklendi':'📋 Şablona Kaydet'}
+                </button>
+              </div>
+              <div style={{ display:'flex',flexDirection:'column',gap:10,marginBottom:16 }}>
+                {planResult.haftalik_plan?.map((gun,i)=>(
+                  <div key={i} className="card" style={{ padding:'14px 16px' }}>
+                    <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:gun.egzersizler?.length>0?10:0 }}>
+                      <div>
+                        <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:16,letterSpacing:1.5,color:gun.egzersizler?.length>0?'var(--accent)':'var(--text-muted)' }}>{gun.gun}</div>
+                        <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:2 }}>{gun.odak}</div>
+                      </div>
+                      {gun.sure_dk&&<span style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 9px' }}>{gun.sure_dk} dk</span>}
+                    </div>
+                    {gun.egzersizler?.length>0?(
+                      <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+                        {gun.egzersizler.map((ex,j)=>(
+                          <div key={j} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 10px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)' }}>
+                            <span style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text)' }}>{ex.isim}</span>
+                            <span style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:13,color:'var(--accent)',letterSpacing:1 }}>{ex.set} × {ex.tekrar}</span>
+                          </div>
+                        ))}
+                        {gun.notlar&&<div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:4,fontStyle:'italic' }}>💡 {gun.notlar}</div>}
+                      </div>
+                    ):<div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginTop:6 }}>😴 Dinlenme günü</div>}
+                  </div>
+                ))}
+              </div>
+              {planResult.genel_notlar&&<div style={{ background:'rgba(71,200,255,.05)',border:'1px solid rgba(71,200,255,.15)',borderRadius:10,padding:'12px 14px',marginBottom:10 }}><div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'#47c8ff',marginBottom:6 }}>GENEL NOTLAR</div><div style={{ fontSize:12,color:'var(--text-muted)',lineHeight:1.7,fontFamily:'DM Sans,sans-serif' }}>{planResult.genel_notlar}</div></div>}
+              {planResult.beslenme_ozeti&&<div style={{ background:'rgba(71,255,138,.05)',border:'1px solid rgba(71,255,138,.15)',borderRadius:10,padding:'12px 14px' }}><div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--green)',marginBottom:6 }}>BESLENME ÖZETİ</div><div style={{ fontSize:12,color:'var(--text-muted)',lineHeight:1.7,fontFamily:'DM Sans,sans-serif' }}>{planResult.beslenme_ozeti}</div></div>}
+            </div>
+          )}
+          {planResult?.error&&<div style={{ background:'rgba(255,71,71,.08)',border:'1px solid rgba(255,71,71,.2)',borderRadius:10,padding:'12px 14px',fontFamily:'DM Mono,monospace',fontSize:12,color:'var(--red)' }}>{planResult.error}</div>}
+        </>
+      )}
+
+      {/* ════════════════════ DİYET ANALİZİ ════════════════════ */}
+      {activeTab === 'diet' && (
+        <>
+          <div className="section-title">🥗 GÜNLÜK DİYET ANALİZİ</div>
+          {!foods?.length ? (
+            <div className="card" style={{ padding:'32px 24px',textAlign:'center' }}>
+              <div style={{ fontSize:36,marginBottom:12 }}>🍽️</div>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:8 }}>YEMEĞİ KAYDET ÖNCE</div>
+              <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',lineHeight:1.7 }}>Kalori Takibi sayfasından bugünkü<br/>yemekleri ekle, sonra analiz et.</div>
+            </div>
+          ) : (
+            <div className="card" style={{ padding:20,marginBottom:16 }}>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8 }}>BUGÜN KAYDEDİLEN ({foods.length} yemek)</div>
+                <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
+                  {foods.slice(0,6).map((f,i)=>(
+                    <span key={i} style={{ fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)' }}>{f.name}</span>
+                  ))}
+                  {foods.length>6&&<span style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)' }}>+{foods.length-6} daha</span>}
+                </div>
+              </div>
+              <button className="btn btn-primary" onClick={analyzeDiet} disabled={dietLoading} style={{ width:'100%',padding:13 }}>
+                {dietLoading?<><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Analiz Ediliyor...</>:'🤖 Bugünkü Diyetimi Analiz Et'}
+              </button>
+            </div>
+          )}
+          {dietResult&&(
+            <div className="animate-fade card" style={{ padding:'18px 20px' }}>
+              <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:14 }}>
+                <div style={{ width:28,height:28,borderRadius:7,background:'rgba(71,255,138,.1)',border:'1px solid rgba(71,255,138,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🥗</div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--green)' }}>AI DİYET ANALİZİ</div>
+              </div>
+              {dietLoading
+                ?<div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}><span className="spinner"/>Analiz ediliyor...</div>
+                :<div style={{ fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap' }}>{dietResult}</div>
+              }
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ════════════════════ KALORİ HESAP ════════════════════ */}
+      {activeTab === 'calorie' && (
+        <>
+          <div className="section-title">🔥 AKTİVİTE KALORİ HESAPLAYICI</div>
+          <div className="card" style={{ padding:20,marginBottom:20 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:14 }}>
+              <div className="form-group">
+                <span className="flabel">Cinsiyet</span>
+                <div style={{ display:'flex',gap:6 }}>
+                  {[['male','👨 Erkek'],['female','👩 Kadın']].map(([v,l])=>(
+                    <div key={v} onClick={()=>setGender(v)} style={{ flex:1,padding:'8px 10px',borderRadius:8,cursor:'pointer',textAlign:'center',background:gender===v?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${gender===v?'rgba(232,255,71,.3)':'var(--border)'}`,fontFamily:'DM Mono,monospace',fontSize:11,color:gender===v?'var(--accent)':'var(--text-muted)' }}>{l}</div>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group"><span className="flabel">Kilo (kg)</span><input type="number" value={weight} onChange={e=>setWeight(e.target.value)} placeholder="75"/></div>
+              <div className="form-group"><span className="flabel">Yaş</span><input type="number" value={age} onChange={e=>setAge(e.target.value)} placeholder="25"/></div>
+              <div className="form-group"><span className="flabel">Boy (cm)</span><input type="number" value={height} onChange={e=>setHeight(e.target.value)} placeholder="175"/></div>
+            </div>
+            <div className="form-group" style={{ marginBottom:12 }}>
+              <span className="flabel">Aktivite</span>
+              <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6 }}>
+                {ACTIVITIES.map(act=>(
+                  <div key={act.id} onClick={()=>setActivity(act.id)} style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 10px',borderRadius:8,cursor:'pointer',background:activity===act.id?'rgba(232,255,71,.08)':'var(--surface2)',border:`1px solid ${activity===act.id?'rgba(232,255,71,.3)':'var(--border)'}`,transition:'all .15s' }}>
+                    <span style={{ fontSize:15 }}>{act.icon}</span>
+                    <span style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:activity===act.id?'var(--accent)':'var(--text-muted)' }}>{act.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="form-group" style={{ marginBottom:16 }}>
+              <span className="flabel">Süre (dakika)</span>
+              <input type="number" value={duration} onChange={e=>setDuration(e.target.value)} placeholder="45"/>
+            </div>
+            <button className="btn btn-primary" onClick={handleCalc} disabled={!weight||!activity||!duration} style={{ width:'100%',opacity:(!weight||!activity||!duration)?.4:1 }}>🔥 Kalori Hesapla</button>
+          </div>
+          {kcalResult&&(
+            <div style={{ display:'flex',flexDirection:'column',gap:12,marginBottom:24 }}>
+              <div style={{ background:'linear-gradient(135deg,rgba(232,255,71,.08),rgba(232,255,71,.03))',border:'1px solid rgba(232,255,71,.2)',borderRadius:14,padding:'20px 22px',display:'flex',alignItems:'center',gap:16 }}>
+                <div style={{ fontSize:36 }}>🔥</div>
+                <div>
+                  <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,letterSpacing:3,color:'var(--text-muted)',marginBottom:4 }}>{selectedAct?.label?.toUpperCase()} · {duration} DAK</div>
+                  <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:48,lineHeight:1,color:'var(--accent)' }}>{kcalResult} <span style={{ fontSize:18,color:'var(--text-muted)' }}>KCAL</span></div>
+                  <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginTop:4 }}>{weight} kg · MET {selectedAct?.met}</div>
+                </div>
+              </div>
+              <div className="card" style={{ padding:18 }}>
+                <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:12 }}>
+                  <div style={{ width:28,height:28,borderRadius:7,background:'rgba(232,255,71,.12)',border:'1px solid rgba(232,255,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🤖</div>
+                  <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2 }}>AI KOÇ ÖNERİSİ</div>
+                </div>
+                {calcLoading?<div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}><span className="spinner"/>Düşünüyor...</div>
+                :calcTips&&<div style={{ fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap' }}>{calcTips}</div>}
               </div>
             </div>
           )}
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* Hızlı sorular */}
-        <div style={{ padding:'12px 16px 0', display:'flex', gap:6, overflowX:'auto', scrollbarWidth:'none' }}>
-          {QUICK_PROMPTS.map((q, i) => (
-            <button key={i} onClick={() => sendMessage(q)} disabled={chatLoading} style={{
-              padding:'5px 12px', borderRadius:20, border:'1px solid var(--border)',
-              background:'var(--surface2)', color:'var(--text-muted)',
-              fontFamily:'DM Mono,monospace', fontSize:10, cursor:'pointer', whiteSpace:'nowrap',
-              transition:'all .15s', flexShrink:0, opacity: chatLoading ? .5 : 1,
-            }}
-              onMouseEnter={e => { if(!chatLoading) { e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' }}}
-              onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}
-            >{q}</button>
-          ))}
-        </div>
-
-        {/* Input alanı */}
-        <div style={{ padding:'12px 16px 16px', display:'flex', gap:8, alignItems:'flex-end' }}>
-          <textarea
-            ref={textareaRef}
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Beslenme planı, kalori, diyet önerisi... (Enter = gönder, Shift+Enter = yeni satır)"
-            disabled={chatLoading}
-            rows={2}
-            style={{
-              flex:1, background:'var(--surface2)', border:'1px solid var(--border)',
-              borderRadius:10, color:'var(--text)', fontSize:13, padding:'10px 12px',
-              outline:'none', resize:'none', fontFamily:'DM Sans,sans-serif',
-              lineHeight:1.5, transition:'border-color .2s',
-            }}
-            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-            onBlur={e => e.target.style.borderColor = 'var(--border)'}
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={!chatInput.trim() || chatLoading}
-            style={{
-              width:42, height:42, borderRadius:10, border:'none',
-              background: chatInput.trim() && !chatLoading ? 'var(--accent)' : 'var(--surface2)',
-              color: chatInput.trim() && !chatLoading ? '#0a0a0a' : 'var(--text-muted)',
-              cursor: chatInput.trim() && !chatLoading ? 'pointer' : 'not-allowed',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:18, transition:'all .2s', flexShrink:0,
-            }}>
-            {chatLoading
-              ? <span className="spinner" style={{ width:16, height:16, borderTopColor:'var(--text-muted)' }} />
-              : '↑'}
-          </button>
-        </div>
-      </div>
-
-      {/* Sohbeti temizle */}
-      {messages.length > 1 && (
-        <div style={{ textAlign: 'right' }}>
-          <button onClick={() => setMessages([{
-            role: 'assistant',
-            text: '👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.',
-          }])} style={{
-            background:'none', border:'none', cursor:'pointer',
-            fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace',
-            textDecoration:'underline', textUnderlineOffset:2,
-          }}>Sohbeti Temizle</button>
-        </div>
+        </>
       )}
 
-      <style>{`
-        @keyframes pulse {
-          0%,100% { opacity:.3; transform:scale(.8); }
-          50% { opacity:1; transform:scale(1.2); }
-        }
-      `}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
     </div>
   )
 }
