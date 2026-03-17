@@ -11,7 +11,6 @@ import RecognizePage from './components/pages/Recognize'
 import HomePage from './components/pages/Home'
 import AiCoachPage from './components/pages/AiCoach'
 import DownloadPage from './components/pages/DownloadPage'
-import Announcement from './components/Announcement'
 import WeeklySummaryPage from './components/pages/WeeklySummary'
 import TemplatesPage from './components/pages/Templates'
 import SettingsPage from './components/pages/Settings'
@@ -73,7 +72,6 @@ export default function App() {
   return (
     <>
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
-      <Announcement />
       <Header />
       {pages[activeTab] ?? <TodayPage />}
       <Toast />

@@ -39,8 +39,7 @@ export default function AuthScreen() {
       if (!cred.user.emailVerified) {
         await auth.signOut()
         setLoading(false)
-        setVerifyPending(true)
-        setError('')
+        setError('📧 Lütfen mail adresinizi doğrulayın. Gelen kutusu ve spam klasörünü kontrol edin.')
         return
       }
     } catch (e) {
@@ -104,7 +103,7 @@ export default function AuthScreen() {
       if (!snap.exists()) { setLoading(false); return setError('Bu kullanıcı adı bulunamadı.') }
       const realEmail = snap.data().email
       await sendPasswordResetEmail(auth, realEmail)
-      setSuccess(`✓ Şifre sıfırlama maili gönderildi: ${realEmail} — SPAM KUTUSUNU KONTROL EDİNİZ`)
+      setSuccess(`✓ Şifre sıfırlama maili gönderildi: ${realEmail} · SPAM KLASÖRÜNÜ KONTROL EDİN`)
     } catch (e) {
       setError('Hata: ' + e.message)
     }
@@ -140,33 +139,14 @@ export default function AuthScreen() {
           Spor & Beslenme Takip Uygulaması
         </div>
 
-        {/* Hesap sıfırlama notu — sadece login modunda */}
-        {!verifyPending && mode === 'login' && (
-          <div style={{
-            background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.25)',
-            borderRadius:10, padding:'10px 14px', marginBottom:20,
-            display:'flex', alignItems:'flex-start', gap:8,
-          }}>
-            <span style={{ fontSize:14, flexShrink:0 }}>⚠️</span>
-            <div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color:'#ff8c47', marginBottom:3 }}>
-                HESAPLAR SIFIRLANDI
-              </div>
-              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.6 }}>
-                Tüm hesaplar 17.03.2026 tarihinde sıfırlandı. Lütfen tekrar hesap oluşturun.
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* E-posta doğrulama bekleme ekranı */}
         {verifyPending ? (
           <div style={{ textAlign:'center', padding:'8px 0' }}>
             <div style={{ fontSize:48, marginBottom:16 }}>📧</div>
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3, marginBottom:10 }}>
-              E-POSTANI DOĞRULA
+              MAİL ADRESİNİZİ DOĞRULAYIN
             </div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.8, marginBottom:20 }}>
+            <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.8, marginBottom:16 }}>
               <b style={{ color:'var(--accent)' }}>{email}</b> adresine doğrulama maili gönderdik.
               <br />Maildeki linke tıkladıktan sonra giriş yapabilirsin.
             </div>
@@ -176,22 +156,19 @@ export default function AuthScreen() {
               display:'flex', alignItems:'center', gap:10,
             }}>
               <span style={{ fontSize:18, flexShrink:0 }}>📬</span>
-              <div>
+              <div style={{ textAlign:'left' }}>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:2 }}>
-                  LÜTFİ GMAİLİNİZİ DOĞRULAYIN
+                  LÜTFEN MAİL ADRESİNİZİ DOĞRULAYIN
                 </div>
                 <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
-                  SPAM KLASÖRÜNÜ KONTROL EDİN
+                  ⚠️ LÜTFEN SPAM KLASÖRÜNÜ KONTROL EDİN
                 </div>
               </div>
             </div>
             <button onClick={() => { setVerifyPending(false); setMode('login'); setEmail(''); setPassword('') }}
-              className="btn btn-primary" style={{ width:'100%', padding:12, marginBottom:10 }}>
+              className="btn btn-primary" style={{ width:'100%', padding:12 }}>
               Giriş Ekranına Dön
             </button>
-            <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
-              Mail gelmediyse spam kutusunu kontrol et veya yeni hesap oluştur.
-            </div>
           </div>
         ) : (
           <>
@@ -214,14 +191,17 @@ export default function AuthScreen() {
             {mode === 'forgot' && (
               <div style={{ marginBottom:20 }}>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, marginBottom:6 }}>🔑 ŞİFREMİ UNUTTUM</div>
-                <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.6 }}>
+                <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.6, marginBottom:8 }}>
                   Kullanıcı adını gir, kayıtlı e-postana sıfırlama bağlantısı göndereceğiz.
+                </div>
+                <div style={{ background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.2)', borderRadius:7, padding:'8px 12px', fontSize:10, color:'#ff8c47', fontFamily:'DM Mono,monospace' }}>
+                  ⚠️ LÜTFEN SPAM KLASÖRÜNÜ KONTROL EDİN
                 </div>
               </div>
             )}
 
             {/* Hata / Başarı */}
-            {error && (
+            {error && error !== 'EMAIL_NOT_VERIFIED' && (
               <div style={{ background:'rgba(255,71,71,.1)', border:'1px solid rgba(255,71,71,.3)', borderRadius:8,
                 padding:'10px 14px', fontSize:12, color:'var(--red)', fontFamily:'DM Mono,monospace', marginBottom:14 }}>
                 {error}
