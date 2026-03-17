@@ -5,11 +5,11 @@ const SECTIONS = [
     label: 'GENEL',
     color: 'var(--text-muted)',
     items: [
-      { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkinda' },
-      { id:'account',  label:'HESABIM',           icon:'👤', desc:'Profil, email, şifre, hesap sil' },
+      { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkında' },
+      { id:'account',  label:'HESABIM',           icon:'👤', desc:'Profil, email, şifre' },
       { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Profil & hedefler & ölçüler' },
       { id:'share',    label:'PAYLAŞ',            icon:'📤', desc:'Antrenmanını paylaş' },
-      { id:'download', label:'UYGULAMAYI INDIR',  icon:'⬇',  desc:'Telefona ekle' },
+      { id:'download', label:'UYGULAMAYI İNDİR',  icon:'⬇',  desc:'Telefona ekle' },
     ]
   },
   {
@@ -20,7 +20,7 @@ const SECTIONS = [
       { id:'templates',label:'ŞABLONLAR',         icon:'📋', desc:'Antrenman şablonları' },
       { id:'history',  label:'GEÇMİŞ',            icon:'📅', desc:'Geçmiş antrenmanlar' },
       { id:'weekly',   label:'HAFTALIK ÖZET',     icon:'📈', desc:'Bu haftanın özeti' },
-      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & istatistik & nasıl gidiyorum' },
+      { id:'progress', label:'İLERLEME',          icon:'📊', desc:'Grafik & nasıl gidiyorum' },
     ]
   },
   {
@@ -36,10 +36,28 @@ const SECTIONS = [
     label: 'KİŞİSEL KOÇUN',
     color: '#e8ff47',
     items: [
-      { id:'coach',    label:'KİŞİSEL KOÇUN 🔒',  icon:'⭐', desc:'Tüm verileri bilen AI koç', special:true },
+      { id:'coach', label:'KİŞİSEL KOÇUN 🔒', icon:'⭐', desc:'Tüm verileri bilen AI koç', special:true },
     ]
   },
 ]
+
+// ── Spotify linkleri — buraya ekle ──
+// { label: 'Liste Adı', url: 'https://open.spotify.com/playlist/...' }
+const SPOTIFY_PLAYLISTS = [
+  { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK?si=da37a847584642a4' },
+  { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT?si=efd57a81b5c248f0' },
+  { label: 'Beast Mode',           url: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP?si=95cbfb7f07704f73' },
+  { label: 'Gym Motivation',       url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8?si=afe688ebc7bf43da' },
+  { label: 'Hard Rock Workout',    url: 'https://open.spotify.com/playlist/37i9dQZF1DX9oh43oAzkyx?si=02a83233a20649b7' },
+]
+
+function SpotifyIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="#1DB954">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+    </svg>
+  )
+}
 
 export default function NavTabs({ open, onClose }) {
   const { activeTab, setActiveTab, theme, setTheme } = useApp()
@@ -47,95 +65,133 @@ export default function NavTabs({ open, onClose }) {
   return (
     <>
       {open && (
-        <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', backdropFilter:'blur(4px)', zIndex:199, animation:'fadeIn .2s ease' }} />
+        <div onClick={onClose}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', backdropFilter:'blur(4px)', zIndex:199 }}
+        />
       )}
 
       <aside style={{
-        position:'fixed', top:0, left:0, bottom:0, width:270,
+        position:'fixed', top:0, left:0, bottom:0, width:272,
         background:'var(--surface)', borderRight:'1px solid var(--border)',
         zIndex:200, display:'flex', flexDirection:'column',
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
         transition:'transform .28s cubic-bezier(.4,0,.2,1)',
-        boxShadow: open ? '8px 0 40px rgba(0,0,0,.6)' : 'none',
+        boxShadow: open ? '8px 0 40px rgba(0,0,0,.55)' : 'none',
         overflowY:'auto', scrollbarWidth:'none',
       }}>
 
-        {/* Header */}
-        <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <img src="/logo-sm.png" alt="KeroGym" style={{ height:28, width:'auto' }} />
+        {/* ─ Başlık ─ */}
+        <div style={{ padding:'18px 18px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+            <img src="/logo-sm.png" alt="" style={{ height:26, width:'auto' }} onError={e=>e.target.style.display='none'} />
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:3, color:'var(--accent)' }}>
               KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            {/* Tema toggle */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              style={{ background:'var(--surface2)', border:'1px solid var(--border)', color:'var(--text-muted)', width:30, height:30, borderRadius:8, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', transition:'all .15s' }}
-              title={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
+          <div style={{ display:'flex', gap:7 }}>
+            <button onClick={() => setTheme(theme==='dark'?'light':'dark')}
+              style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--border)', background:'var(--surface2)', color:'var(--text-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}
+              title={theme==='dark'?'Açık tema':'Koyu tema'}>
+              {theme==='dark' ? '☀️' : '🌙'}
             </button>
-            <button onClick={onClose} style={{ background:'var(--surface2)', border:'1px solid var(--border)', color:'var(--text-muted)', width:30, height:30, borderRadius:8, cursor:'pointer', fontSize:15, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+            <button onClick={onClose}
+              style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--border)', background:'var(--surface2)', color:'var(--text-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>
+              ✕
+            </button>
           </div>
         </div>
 
-        {/* Sections */}
-        <nav style={{ padding:'8px 10px', flex:1 }}>
-          {SECTIONS.map((section, si) => (
-            <div key={section.label} style={{ marginBottom: si < SECTIONS.length - 1 ? 8 : 0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 12px 6px' }}>
-                <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:section.color, textTransform:'uppercase', fontWeight:600 }}>
+        {/* ─ Navigasyon ─ */}
+        <nav style={{ padding:'6px 8px', flex:1 }}>
+          {SECTIONS.map(section => (
+            <div key={section.label} style={{ marginBottom:6 }}>
+              {/* Bölüm başlığı */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 10px 5px' }}>
+                <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:section.color, fontWeight:600 }}>
                   {section.label}
-                </div>
+                </span>
                 <div style={{ flex:1, height:1, background:section.color, opacity:.2 }} />
               </div>
 
               {section.items.map(t => {
-                const isActive = activeTab === t.id
-                const itemColor = t.special ? '#e8ff47' : section.color
+                const active    = activeTab === t.id
+                const clr       = t.special ? '#e8ff47' : section.color
                 return (
                   <div key={t.id}
                     onClick={() => { setActiveTab(t.id); onClose() }}
                     style={{
-                      display:'flex', alignItems:'center', gap:12,
-                      padding:'9px 12px', borderRadius:10, cursor:'pointer', marginBottom:2,
-                      background: isActive ? `${itemColor}12` : 'transparent',
-                      border: isActive ? `1px solid ${itemColor}30` : '1px solid transparent',
-                      transition:'all .15s', userSelect:'none',
+                      display:'flex', alignItems:'center', gap:11,
+                      padding:'8px 10px', borderRadius:9, cursor:'pointer', marginBottom:1,
+                      background: active ? `${clr}12` : 'transparent',
+                      border: active ? `1px solid ${clr}28` : '1px solid transparent',
+                      transition:'all .13s', userSelect:'none',
                     }}
-                    onMouseEnter={e => { if(!isActive) e.currentTarget.style.background='var(--surface2)' }}
-                    onMouseLeave={e => { if(!isActive) e.currentTarget.style.background='transparent' }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--surface2)' }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                   >
                     <div style={{
-                      width:32, height:32, borderRadius:8, flexShrink:0,
-                      background: isActive ? `${itemColor}18` : 'var(--surface2)',
-                      border: isActive ? `1px solid ${itemColor}30` : '1px solid var(--border)',
+                      width:31, height:31, borderRadius:8, flexShrink:0,
+                      background: active ? `${clr}18` : 'var(--surface2)',
+                      border: active ? `1px solid ${clr}30` : '1px solid var(--border)',
                       display:'flex', alignItems:'center', justifyContent:'center', fontSize:14,
                     }}>
                       {t.icon}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color: isActive ? itemColor : 'var(--text)' }}>
+                      <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:2, color: active ? clr : 'var(--text)' }}>
                         {t.label}
                       </div>
-                      <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1 }}>
+                      <div style={{ fontSize:9, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                         {t.desc}
                       </div>
                     </div>
-                    {isActive && <div style={{ width:4, height:4, borderRadius:'50%', background:itemColor, flexShrink:0 }}/>}
+                    {active && <div style={{ width:4, height:4, borderRadius:'50%', background:clr, flexShrink:0 }}/>}
                   </div>
                 )
               })}
             </div>
           ))}
+
+          {/* ─ Spotify Gym Listesi ─ */}
+          <div style={{ marginBottom:6 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 10px 5px' }}>
+              <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'#1DB954', fontWeight:600 }}>
+                AYLIK GYM LİSTESİ
+              </span>
+              <div style={{ flex:1, height:1, background:'#1DB954', opacity:.22 }} />
+            </div>
+
+            {SPOTIFY_PLAYLISTS.map((pl, i) => (
+              <a key={i} href={pl.url} target="_blank" rel="noreferrer" onClick={onClose}
+                style={{
+                  display:'flex', alignItems:'center', gap:11,
+                  padding:'8px 10px', borderRadius:9, marginBottom:1,
+                  border:'1px solid transparent', textDecoration:'none',
+                  transition:'all .13s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='var(--surface2)'; e.currentTarget.style.borderColor='rgba(29,185,84,.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='transparent' }}
+              >
+                <div style={{ width:31, height:31, borderRadius:8, flexShrink:0, background:'rgba(29,185,84,.1)', border:'1px solid rgba(29,185,84,.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <SpotifyIcon />
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {pl.label}
+                  </div>
+                  <div style={{ fontSize:9, color:'#1DB954', fontFamily:'DM Mono,monospace', marginTop:1 }}>
+                    Spotify'da aç ↗
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
         </nav>
 
-        {/* Footer */}
-        <div style={{ padding:'16px 20px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
+        {/* ─ Alt kısım ─ */}
+        <div style={{ padding:'14px 18px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
           <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
-            style={{ display:'flex', alignItems:'center', gap:8, fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'none', opacity:.7 }}>
+            style={{ display:'flex', alignItems:'center', gap:7, fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'none', opacity:.65 }}>
             <span>📸</span> @slmbnmixo
           </a>
         </div>
