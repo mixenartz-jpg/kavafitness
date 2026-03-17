@@ -7,6 +7,42 @@ import NavTabs from './NavTabs'
 
 const DAYS = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt']
 
+const QUOTES = [
+  'Bugün acı çek, yarın şampiyon ol.',
+  'Vazgeçmek her zaman bir seçenektir — ama sen öyle biri değilsin.',
+  'Vücudun yapabilir. Zihnini ikna et.',
+  'Küçük adımlar büyük sonuçlar doğurur.',
+  'Dün kendinden daha iyi ol, başka rakip yok.',
+  'Ter, zayıflığın vücudu terk etmesidir.',
+  'Konfor alanın dışında büyürsün.',
+  'Her tekrar seni biraz daha güçlü yapar.',
+  'Motivasyon seni başlatır, disiplin seni devam ettirir.',
+  'Bugün ağır kaldır, yarın daha hafif hisset.',
+  'Başarı, her gün tekrarlanan küçük çabaların toplamıdır.',
+  'En zor set, yapmaya karar verdiğin settir.',
+  'Sınırlarını zorlayan kişi, sınırlarını genişletir.',
+  'Bugün yaptıkların, yarınki bedeni şekillendirir.',
+  'Ağrı geçici, gurur kalıcıdır.',
+  'Güçlü olmak bir seçimdir — her gün yeniden seç.',
+  'Hedefin seni korkutuyorsa doğru hedef seçmişsin.',
+  'Bedenin en büyük yatırımındır.',
+  'İlerleme mükemmelliği geçer.',
+  'Her sabah yeni bir şans, kaçırma.',
+  'Sen düşündüğünden çok daha güçlüsün.',
+  'Yarım saat spor, günün en iyi yatırımı.',
+  'Hedefine ulaşana kadar dur, hedefe ulaştıktan sonra devam et.',
+  'Başarının formülü: Devamlılık + Sabır + Emek.',
+  'Güçlü ol, çünkü hayat kolaylaşmaz — sen güçlenirsin.',
+  'Bugün kendini zorla, yarın kendine teşekkür et.',
+  'Spor bir alışkanlık, alışkanlıklar kaderini belirler.',
+]
+
+const getDailyQuote = () => {
+  const d = new Date()
+  const day = d.getDate() + d.getMonth() * 31 + d.getFullYear()
+  return QUOTES[day % QUOTES.length]
+}
+
 function stringToColor(str) {
   const colors = ['#e8ff47','#47c8ff','#47ff8a','#ff8c47','#ff47c8','#c847ff']
   let h = 0; for (let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h)
@@ -150,6 +186,25 @@ export default function Header() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* ── QUOTE BAR ── */}
+      <div style={{
+        background: 'rgba(10,10,10,.94)', backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border)',
+        padding: '7px 16px',
+        display: 'flex', alignItems: 'center', gap: 8,
+        position: 'sticky', top: 108, zIndex: 98,
+      }}>
+        <span style={{ fontSize: 12, flexShrink: 0 }}>💪</span>
+        <div style={{
+          fontFamily: 'DM Mono,monospace', fontSize: 10,
+          color: 'var(--text-muted)', letterSpacing: 1,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontStyle: 'italic',
+        }}>
+          {getDailyQuote()}
+        </div>
       </div>
 
       {/* Profile Modal */}

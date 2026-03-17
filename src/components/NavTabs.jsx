@@ -4,6 +4,7 @@ const TABS = [
   { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkinda' },
   { id:'today',    label:'BUGUN',            icon:'🏋', desc:'Gunluk antrenman' },
   { id:'aicoach',  label:'AI KOCU',          icon:'🤖', desc:'Kalori & aktivite analizi' },
+  { id:'weekly',   label:'HAFTALIK OZET',    icon:'📈', desc:'Bu haftanin ozeti' },
   { id:'history',  label:'GECMIS',           icon:'📅', desc:'Gecmis antrenmanlar' },
   { id:'calorie',  label:'KALORI',           icon:'🍎', desc:'Besin takibi' },
   { id:'goals',    label:'HEDEFLER',         icon:'🎯', desc:'Makro hedefler' },
