@@ -124,9 +124,9 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
-        // Email doğrulanmamışsa uygulamaya alma
+        // Email doğrulanmamışsa uygulamaya alma — ama signOut çağırma!
+        // (Kayıt sırasında Firestore yazma işlemleri henüz devam ediyor olabilir)
         if (!u.emailVerified) {
-          await auth.signOut()
           setUser(null); setUid(null)
           setLoading(false)
           return
