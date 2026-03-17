@@ -40,6 +40,10 @@ export function AppProvider({ children }) {
   const [goals, setGoals] = useState({ kcal:2000, protein:150, fat:70, carb:250 })
   const [body,  setBody]  = useState([])
 
+  // Water
+  const [water, setWater] = useState(0)
+  const [waterDate, setWaterDate] = useState(todayKey())
+
   // Templates
   const [templates, setTemplates] = useState([])
 
@@ -118,6 +122,18 @@ export function AppProvider({ children }) {
     setBody(ls.get(userId, 'fittrack_body', []))
     setTemplates(ls.get(userId, 'fittrack_templates', []))
     setProfile(ls.get(userId, 'fittrack_profile', null))
+
+    // Su takibi — her gün sıfırla
+    const waterData = ls.get(userId, 'fittrack_water', { date: today, amount: 0 })
+    if (waterData.date !== today) {
+      const freshWater = { date: today, amount: 0 }
+      ls.set(userId, 'fittrack_water', freshWater)
+      setWater(0)
+      setWaterDate(today)
+    } else {
+      setWater(waterData.amount ?? 0)
+      setWaterDate(waterData.date)
+    }
   }, [])
 
   // ── Auth observer ──
@@ -228,6 +244,15 @@ export function AppProvider({ children }) {
     fbSet(doc(db, 'users', uid, 'fitdata', 'body'), { data: b })
   }, [uid])
 
+  // ── Su takibi ──
+  const saveWater = useCallback((amount) => {
+    const today = todayKey()
+    const val = Math.max(0, amount)
+    setWater(val)
+    setWaterDate(today)
+    ls.set(uid, 'fittrack_water', { date: today, amount: val })
+  }, [uid])
+
   return (
     <AppContext.Provider value={{
       user, uid, loading,
@@ -240,6 +265,7 @@ export function AppProvider({ children }) {
       templates, saveTemplates,
       profile, saveProfile,
       saveWorkoutNote, getWorkoutNote,
+      water, saveWater,
       viewingDate, setViewingDate,
       activeTab, setActiveTab,
       showToast, toast,

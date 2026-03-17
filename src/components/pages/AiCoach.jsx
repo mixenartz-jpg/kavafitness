@@ -88,12 +88,24 @@ export default function AiCoachPage() {
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.7, maxOutputTokens:400} }) }
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1000,
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          }),
+        }
       )
       const data = await res.json()
       setCalcTips(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı.')
-    } catch { setCalcTips('AI yanıtı alınamadı, tekrar dene.') }
+    } catch {
+      setCalcTips('AI yanıtı alınamadı, tekrar dene.')
+    }
     setCalcLoading(false)
   }
 
@@ -107,12 +119,12 @@ export default function AiCoachPage() {
     }
     if (goals) parts.push(`Günlük makro hedefler: ${goals.kcal} kcal, ${goals.protein}g protein, ${goals.fat}g yağ, ${goals.carb}g karb`)
     if (foods?.length > 0) {
-      const tot = foods.reduce((t,f) => ({ kcal: t.kcal+(+f.kcal||0), protein: t.protein+(+f.protein||0) }), {kcal:0, protein:0})
+      const tot = foods.reduce((t, f) => ({ kcal: t.kcal + (+f.kcal || 0), protein: t.protein + (+f.protein || 0) }), { kcal: 0, protein: 0 })
       parts.push(`Bugün tüketilen: ${Math.round(tot.kcal)} kcal, ${Math.round(tot.protein)}g protein`)
     }
     return parts.length > 0
-      ? `Sen KeroGym uygulamasının beslenme asistanısın. Türkçe yanıt ver, kısa ve pratik ol.\n\nKullanıcı bilgileri:\n${parts.join('\n')}\n\n`
-      : `Sen KeroGym uygulamasının beslenme asistanısın. Türkçe yanıt ver, kısa ve pratik ol.\n\n`
+      ? `Sen KeroGym uygulamasının beslenme asistanısın. Türkçe yanıt ver, net ve detaylı ol. Yanıtlarını ASLA yarıda kesme, her zaman tam ve eksiksiz ver.\n\nKullanıcı bilgileri:\n${parts.join('\n')}\n\n`
+      : `Sen KeroGym uygulamasının beslenme asistanısın. Türkçe yanıt ver, net ve detaylı ol. Yanıtlarını ASLA yarıda kesme, her zaman tam ve eksiksiz ver.\n\n`
   }
 
   const sendMessage = async (text) => {
@@ -125,37 +137,37 @@ export default function AiCoachPage() {
     setChatInput('')
     setChatLoading(true)
 
-    // Chat geçmişini API formatına çevir
-    const history = newMessages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.role === 'assistant' && m === messages[0]
-        ? buildSystemContext() + m.text
-        : m.text
-      }]
-    }))
-
-    // Son mesaj zaten history'de, ayrıca gönderme
     const systemPrompt = buildSystemContext()
     const contents = [
-      { role: 'user', parts: [{ text: systemPrompt + 'Merhaba, beslenme konusunda yardım istiyorum.' }] },
+      { role: 'user',  parts: [{ text: systemPrompt + 'Merhaba, beslenme konusunda yardım istiyorum.' }] },
       { role: 'model', parts: [{ text: 'Merhaba! Beslenme ve diyet konusunda sana yardımcı olmaktan memnuniyet duyarım. Ne sormak istersin?' }] },
       ...newMessages.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }]
-      }))
+        parts: [{ text: m.text }],
+      })),
     ]
 
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents, generationConfig:{ temperature:.7, maxOutputTokens:800 } }) }
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 4096,
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          }),
+        }
       )
       const data = await res.json()
       const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı, tekrar dene.'
-      setMessages(prev => [...prev, { role:'assistant', text: reply }])
+      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
     } catch {
-      setMessages(prev => [...prev, { role:'assistant', text:'⚠️ Bağlantı hatası, tekrar dene.' }])
+      setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Bağlantı hatası, tekrar dene.' }])
     }
     setChatLoading(false)
   }
@@ -170,102 +182,100 @@ export default function AiCoachPage() {
   const selectedAct = ACTIVITIES.find(a => a.id === activity)
 
   return (
-    <div className="page animate-fade" style={{ maxWidth:750 }}>
+    <div className="page animate-fade" style={{ maxWidth: 700 }}>
 
-      {/* ══════════ KALORİ HESAPLAMA ══════════ */}
-      <div className="section-title">🔥 KALORİ HESAPLAMA</div>
+      {/* ══════════ AKTİVİTE KALORİ HESAPLAYICI ══════════ */}
+      <div className="section-title">🔥 AKTİVİTE KALORİ HESAPLAYICI</div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
-
+      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
         {/* Kişisel bilgiler */}
-        <div className="card" style={{ padding:18 }}>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginBottom:12 }}>KİŞİSEL BİLGİLER</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-            <div className="form-group">
-              <span className="flabel">Cinsiyet</span>
-              <select value={gender} onChange={e => setGender(e.target.value)}>
-                <option value="male">Erkek</option>
-                <option value="female">Kadın</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <span className="flabel">Kilo (kg)</span>
-              <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="75" />
-            </div>
-            <div className="form-group">
-              <span className="flabel">Boy (cm)</span>
-              <input type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="175" />
-            </div>
-            <div className="form-group">
-              <span className="flabel">Yaş</span>
-              <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="25" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 14 }}>
+          <div className="form-group">
+            <span className="flabel">Cinsiyet</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[['male', '👨 Erkek'], ['female', '👩 Kadın']].map(([v, l]) => (
+                <div key={v} onClick={() => setGender(v)} style={{
+                  flex: 1, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                  background: gender === v ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
+                  border: `1px solid ${gender === v ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
+                  fontFamily: 'DM Mono,monospace', fontSize: 11,
+                  color: gender === v ? 'var(--accent)' : 'var(--text-muted)',
+                }}>{l}</div>
+              ))}
             </div>
           </div>
-          <div className="form-group" style={{ marginTop:10 }}>
-            <span className="flabel">Süre (dakika)</span>
-            <input type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="45" />
+          <div className="form-group">
+            <span className="flabel">Kilo (kg)</span>
+            <input type="number" value={weight} onChange={e => setWeight(e.target.value)} placeholder="75" />
+          </div>
+          <div className="form-group">
+            <span className="flabel">Yaş</span>
+            <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="25" />
+          </div>
+          <div className="form-group">
+            <span className="flabel">Boy (cm)</span>
+            <input type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="175" />
           </div>
         </div>
 
-        {/* Aktivite */}
-        <div className="card" style={{ padding:18 }}>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginBottom:12 }}>AKTİVİTE SEÇ</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-            {ACTIVITIES.map(a => (
-              <div key={a.id} onClick={() => setActivity(a.id)} style={{
-                display:'flex', alignItems:'center', gap:6,
-                padding:'7px 10px', borderRadius:8, cursor:'pointer',
-                background: activity===a.id ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
-                border:`1px solid ${activity===a.id ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
-                transition:'all .15s', userSelect:'none',
+        {/* Aktivite seçimi */}
+        <div className="form-group" style={{ marginBottom: 12 }}>
+          <span className="flabel">Aktivite</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+            {ACTIVITIES.map(act => (
+              <div key={act.id} onClick={() => setActivity(act.id)} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
+                background: activity === act.id ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
+                border: `1px solid ${activity === act.id ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
+                transition: 'all .15s',
               }}>
-                <span style={{ fontSize:14 }}>{a.icon}</span>
-                <span style={{ fontFamily:'DM Mono,monospace', fontSize:9,
-                  color: activity===a.id ? 'var(--accent)' : 'var(--text-muted)' }}>{a.label}</span>
+                <span style={{ fontSize: 15 }}>{act.icon}</span>
+                <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: activity === act.id ? 'var(--accent)' : 'var(--text-muted)' }}>{act.label}</span>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Süre */}
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <span className="flabel">Süre (dakika)</span>
+          <input type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="45" />
+        </div>
+
+        <button className="btn btn-primary" onClick={handleCalc}
+          disabled={!weight || !activity || !duration}
+          style={{ width: '100%', opacity: (!weight || !activity || !duration) ? .4 : 1 }}>
+          🔥 Kalori Hesapla
+        </button>
       </div>
 
-      {/* Hesapla butonu */}
-      <button className="btn btn-primary" onClick={handleCalc}
-        disabled={!weight || !activity || !duration || calcLoading}
-        style={{ width:'100%', padding:13, fontSize:14, marginBottom:16,
-          opacity:(!weight||!activity||!duration) ? .4 : 1,
-          cursor:(!weight||!activity||!duration) ? 'not-allowed' : 'pointer' }}>
-        {calcLoading
-          ? <><span className="spinner" style={{ width:16,height:16,borderTopColor:'#0a0a0a',marginRight:8 }} />Hesaplanıyor...</>
-          : '🔥 Kalori Hesapla & Koç Önerisi Al'}
-      </button>
-
-      {/* Kalori sonucu */}
-      {kcalResult !== null && (
-        <div className="animate-fade" style={{ marginBottom:28 }}>
+      {/* Sonuç */}
+      {kcalResult && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
           <div style={{
-            background:'linear-gradient(135deg,rgba(232,255,71,.1),rgba(232,255,71,.03))',
-            border:'1px solid rgba(232,255,71,.25)',
-            borderRadius:14, padding:'20px 24px', marginBottom:12,
-            display:'flex', alignItems:'center', gap:20,
+            background: 'linear-gradient(135deg, rgba(232,255,71,.08), rgba(232,255,71,.03))',
+            border: '1px solid rgba(232,255,71,.2)', borderRadius: 14, padding: '20px 22px',
+            display: 'flex', alignItems: 'center', gap: 16,
           }}>
-            <div style={{ fontSize:44 }}>{selectedAct?.icon}</div>
+            <div style={{ fontSize: 36 }}>🔥</div>
             <div>
-              <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, letterSpacing:3, color:'var(--text-muted)', marginBottom:4 }}>
+              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, letterSpacing: 3, color: 'var(--text-muted)', marginBottom: 4 }}>
                 {selectedAct?.label?.toUpperCase()} · {duration} DAK
               </div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:48, lineHeight:1, color:'var(--accent)' }}>
-                {kcalResult} <span style={{ fontSize:18, color:'var(--text-muted)' }}>KCAL</span>
+              <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 48, lineHeight: 1, color: 'var(--accent)' }}>
+                {kcalResult} <span style={{ fontSize: 18, color: 'var(--text-muted)' }}>KCAL</span>
               </div>
-              <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
+              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                 {weight} kg · MET {selectedAct?.met}
               </div>
             </div>
           </div>
 
-          <div className="card" style={{ padding:18 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          <div className="card" style={{ padding: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <div style={{ width:28,height:28,borderRadius:7,background:'rgba(232,255,71,.12)',border:'1px solid rgba(232,255,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🤖</div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2 }}>AI KOÇ ÖNERİSİ</div>
+              <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 14, letterSpacing: 2 }}>AI KOÇ ÖNERİSİ</div>
             </div>
             {calcLoading
               ? <div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}>
@@ -280,18 +290,18 @@ export default function AiCoachPage() {
       )}
 
       {/* ══════════ BESLENME PLANI YARDIMCISI ══════════ */}
-      <div className="section-title" style={{ marginTop:8 }}>🥗 BESLENME PLANI YARDIMCISI</div>
+      <div className="section-title" style={{ marginTop: 8 }}>🥗 BESLENME PLANI YARDIMCISI</div>
 
       {/* Chat kutusu */}
-      <div className="card" style={{ marginBottom:12, overflow:'hidden' }}>
+      <div className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
 
         {/* Mesajlar */}
         <div style={{ padding:'16px 16px 0', maxHeight:420, overflowY:'auto', display:'flex', flexDirection:'column', gap:12, scrollbarWidth:'thin' }}>
           {messages.map((msg, i) => (
             <div key={i} style={{
-              display:'flex', gap:10,
+              display: 'flex', gap: 10,
               flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-              alignItems:'flex-start',
+              alignItems: 'flex-start',
             }}>
               {/* Avatar */}
               <div style={{
@@ -307,17 +317,11 @@ export default function AiCoachPage() {
 
               {/* Balon */}
               <div style={{
-                maxWidth:'78%',
-                background: msg.role === 'user'
-                  ? 'rgba(232,255,71,.1)'
-                  : 'var(--surface2)',
-                border: msg.role === 'user'
-                  ? '1px solid rgba(232,255,71,.2)'
-                  : '1px solid var(--border)',
-                borderRadius: msg.role === 'user'
-                  ? '14px 4px 14px 14px'
-                  : '4px 14px 14px 14px',
-                padding:'10px 14px',
+                maxWidth: '78%',
+                background: msg.role === 'user' ? 'rgba(232,255,71,.1)' : 'var(--surface2)',
+                border: msg.role === 'user' ? '1px solid rgba(232,255,71,.2)' : '1px solid var(--border)',
+                borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+                padding: '10px 14px',
               }}>
                 <div style={{
                   fontSize:13, lineHeight:1.75,
@@ -390,17 +394,19 @@ export default function AiCoachPage() {
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:18, transition:'all .2s', flexShrink:0,
             }}>
-            {chatLoading ? <span className="spinner" style={{ width:16,height:16,borderTopColor:'var(--text-muted)' }} /> : '↑'}
+            {chatLoading
+              ? <span className="spinner" style={{ width:16, height:16, borderTopColor:'var(--text-muted)' }} />
+              : '↑'}
           </button>
         </div>
       </div>
 
       {/* Sohbeti temizle */}
       {messages.length > 1 && (
-        <div style={{ textAlign:'right' }}>
+        <div style={{ textAlign: 'right' }}>
           <button onClick={() => setMessages([{
-            role:'assistant',
-            text:'👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.',
+            role: 'assistant',
+            text: '👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.',
           }])} style={{
             background:'none', border:'none', cursor:'pointer',
             fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace',
