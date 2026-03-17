@@ -19,27 +19,28 @@ const ls = {
 
 const fbSet = (docRef, data) => setDoc(docRef, data).catch(console.error)
 
-// ── Streak hesapla ──
 function calcStreak(exercises, exArchive) {
   const today = todayKey()
-  let streak  = 0
-  const hasTrained = (dk) => {
-    if (dk === today) return exercises.length > 0
-    return (exArchive[dk] || []).length > 0
-  }
-  // Bugünden geriye git
+  let streak = 0
   let cursor = new Date()
   for (let i = 0; i < 365; i++) {
-    const dk = cursor.toISOString().slice(0, 10)
-    if (hasTrained(dk)) {
-      streak++
-    } else if (i > 0) {
-      // Bugün henüz antrenman yapılmamışsa streak kırılmaz, sadece dün kontrol et
-      break
-    }
+    const dk  = cursor.toISOString().slice(0, 10)
+    const has = dk === today ? exercises.length > 0 : (exArchive[dk] || []).length > 0
+    if (has) { streak++ } else if (i > 0) { break }
     cursor.setDate(cursor.getDate() - 1)
   }
   return streak
+}
+
+function checkPR(exName, newWeight, exArchive, exercises) {
+  let allTimeMax = 0
+  Object.values(exArchive).forEach(day => {
+    const found = day.find(e => e.name.toLowerCase() === exName.toLowerCase())
+    if (found) found.sets.forEach(s => { if (+s.weight > allTimeMax) allTimeMax = +s.weight })
+  })
+  const todayEx = exercises.find(e => e.name.toLowerCase() === exName.toLowerCase())
+  if (todayEx) todayEx.sets.forEach(s => { if (+s.weight > allTimeMax) allTimeMax = +s.weight })
+  return newWeight > allTimeMax && allTimeMax > 0
 }
 
 export function AppProvider({ children }) {
@@ -51,60 +52,55 @@ export function AppProvider({ children }) {
   const [exDate,    setExDate]    = useState(todayKey())
   const [exArchive, setExArchive] = useState({})
 
-  const [foods,   setFoods]   = useState([])
-  const [calDate, setCalDate] = useState(todayKey())
-  const [calArch, setCalArch] = useState({})
+  const [foods,    setFoods]    = useState([])
+  const [calDate,  setCalDate]  = useState(todayKey())
+  const [calArch,  setCalArch]  = useState({})
 
-  const [goals, setGoals] = useState({ kcal:2000, protein:150, fat:70, carb:250 })
-  const [body,  setBody]  = useState([])
-
+  const [goals,     setGoals]     = useState({ kcal:2000, protein:150, fat:70, carb:250 })
+  const [body,      setBody]      = useState([])
   const [water,     setWater]     = useState(0)
   const [waterDate, setWaterDate] = useState(todayKey())
-
   const [templates, setTemplates] = useState([])
   const [profile,   setProfile]   = useState(null)
+  const [favFoods,  setFavFoods]  = useState([])
+
+  const [theme, setThemeState] = useState(() => localStorage.getItem('kerogym_theme') || 'dark')
+
+  const setTheme = useCallback((t) => {
+    setThemeState(t)
+    localStorage.setItem('kerogym_theme', t)
+    document.documentElement.setAttribute('data-theme', t)
+  }, [])
 
   const [activeTab,   setActiveTab]   = useState('home')
   const [viewingDate, setViewingDate] = useState(todayKey())
+  const [toast,       setToast]       = useState(null)
+  const [prAlert,     setPrAlert]     = useState(null)
 
-  const [toast, setToast] = useState(null)
-
-  // Streak — exercises veya exArchive değişince otomatik hesapla
   const streak = calcStreak(exercises, exArchive)
-
-  // Bildirim izni durumu
-  const [notifPermission, setNotifPermission] = useState(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default'
-  )
 
   const showToast = useCallback((msg, type='success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 2800)
   }, [])
 
-  // ── Push Bildirim İzni İste ──
   const requestNotifPermission = useCallback(async () => {
     if (typeof Notification === 'undefined') return 'unsupported'
-    if (Notification.permission === 'granted') { setNotifPermission('granted'); return 'granted' }
-    const result = await Notification.requestPermission()
-    setNotifPermission(result)
-    return result
+    return await Notification.requestPermission()
   }, [])
 
-  // ── Yerel Bildirim Gönder ──
-  const sendNotif = useCallback((title, body, icon = '/logo.png') => {
+  const sendNotif = useCallback((title, body, icon='/logo.png') => {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-    try { new Notification(title, { body, icon }) } catch (_) {}
+    try { new Notification(title, { body, icon }) } catch(_) {}
   }, [])
 
-  // ── Firestore pull ──
   const pullFirestore = async (userId) => {
     const get = async (ref, fallback) => {
       const snap = await getDoc(ref).catch(() => null)
       return snap?.exists() ? snap.data() : fallback
     }
     const userRef = doc(db, 'users', userId)
-    const [d, a, c, ca, g, b] = await Promise.all([
+    const [d,a,c,ca,g,b] = await Promise.all([
       get(doc(userRef,'fitdata','main'),       { date:todayKey(), exercises:[] }),
       get(doc(userRef,'fitdata','archive'),    { data:{} }),
       get(doc(userRef,'fitdata','calories'),   { date:todayKey(), foods:[] }),
@@ -124,7 +120,6 @@ export function AppProvider({ children }) {
     if (p) ls.set(userId,'fittrack_profile', p)
   }
 
-  // ── Init state ──
   const initState = useCallback((userId) => {
     const today = todayKey()
 
@@ -133,49 +128,46 @@ export function AppProvider({ children }) {
     if (exData.date !== today) {
       if (exData.exercises?.length > 0) {
         arch[exData.date] = exData.exercises
-        ls.set(userId,'fittrack_archive', arch)
-        fbSet(doc(db,'users',userId,'fitdata','archive'), { data:arch })
+        ls.set(userId,'fittrack_archive',arch)
+        fbSet(doc(db,'users',userId,'fitdata','archive'),{ data:arch })
       }
       exData = { date:today, exercises:[] }
-      ls.set(userId,'fittrack_data', exData)
-      fbSet(doc(db,'users',userId,'fitdata','main'), exData)
+      ls.set(userId,'fittrack_data',exData)
+      fbSet(doc(db,'users',userId,'fitdata','main'),exData)
     }
-    setExercises(exData.exercises)
-    setExDate(exData.date)
-    setExArchive(arch)
+    setExercises(exData.exercises); setExDate(exData.date); setExArchive(arch)
 
     let calData = ls.get(userId,'fittrack_calories',{ date:today, foods:[] })
     let cArch   = ls.get(userId,'fittrack_cal_archive',{})
     if (calData.date !== today) {
       if (calData.foods?.length > 0) {
         cArch[calData.date] = calData.foods
-        ls.set(userId,'fittrack_cal_archive', cArch)
-        fbSet(doc(db,'users',userId,'fitdata','calArchive'), { data:cArch })
+        ls.set(userId,'fittrack_cal_archive',cArch)
+        fbSet(doc(db,'users',userId,'fitdata','calArchive'),{ data:cArch })
       }
       calData = { date:today, foods:[] }
-      ls.set(userId,'fittrack_calories', calData)
-      fbSet(doc(db,'users',userId,'fitdata','calories'), calData)
+      ls.set(userId,'fittrack_calories',calData)
+      fbSet(doc(db,'users',userId,'fitdata','calories'),calData)
     }
-    setFoods(calData.foods)
-    setCalDate(calData.date)
-    setCalArch(cArch)
+    setFoods(calData.foods); setCalDate(calData.date); setCalArch(cArch)
 
     setGoals(ls.get(userId,'fittrack_goals',{ kcal:2000,protein:150,fat:70,carb:250 }))
     setBody(ls.get(userId,'fittrack_body',[]))
     setTemplates(ls.get(userId,'fittrack_templates',[]))
     setProfile(ls.get(userId,'fittrack_profile',null))
+    setFavFoods(ls.get(userId,'fittrack_fav_foods',[]))
 
-    const waterData = ls.get(userId,'fittrack_water',{ date:today, amount:0 })
-    if (waterData.date !== today) {
+    const wd = ls.get(userId,'fittrack_water',{ date:today, amount:0 })
+    if (wd.date !== today) {
       ls.set(userId,'fittrack_water',{ date:today, amount:0 })
       setWater(0); setWaterDate(today)
-    } else {
-      setWater(waterData.amount??0)
-      setWaterDate(waterData.date)
-    }
+    } else { setWater(wd.amount??0); setWaterDate(wd.date) }
+
+    const savedTheme = localStorage.getItem('kerogym_theme') || 'dark'
+    setThemeState(savedTheme)
+    document.documentElement.setAttribute('data-theme', savedTheme)
   }, [])
 
-  // ── Auth ──
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
@@ -186,8 +178,8 @@ export function AppProvider({ children }) {
         try {
           const snap = await getDoc(doc(db,'users',u.uid))
           if (snap.exists()) {
-            const { email:storedEmail, username } = snap.data()
-            if (storedEmail && u.email !== storedEmail && username) {
+            const { email:se, username } = snap.data()
+            if (se && u.email !== se && username) {
               await setDoc(doc(db,'users',u.uid),        { email:u.email, oldEmail:null },{ merge:true })
               await setDoc(doc(db,'usernames',username), { email:u.email, oldEmail:null },{ merge:true })
             }
@@ -199,17 +191,12 @@ export function AppProvider({ children }) {
     return unsub
   }, [initState])
 
-  // ── Streak milestone bildirimi ──
   useEffect(() => {
     if (streak > 0 && [3,7,14,21,30,60,90].includes(streak)) {
-      sendNotif(
-        `🔥 ${streak} Günlük Seri!`,
-        `Tebrikler! ${streak} gün üst üste antrenman yaptın. Devam et!`
-      )
+      sendNotif(`🔥 ${streak} Günlük Seri!`, `Tebrikler! ${streak} gün üst üste antrenman yaptın!`)
     }
   }, [streak])
 
-  // ── Save helpers ──
   const saveExercises = useCallback((exs) => {
     const data = { date:todayKey(), exercises:exs }
     setExercises(exs)
@@ -251,7 +238,7 @@ export function AppProvider({ children }) {
       const protein = Math.round((p.weight||75)*2.0)
       const fat     = Math.round((target*0.25)/9)
       const carb    = Math.round((target-protein*4-fat*9)/4)
-      const ng = { kcal:target, protein, fat, carb }
+      const ng = { kcal:target,protein,fat,carb }
       setGoals(ng); ls.set(uid,'fittrack_goals',ng)
       fbSet(doc(db,'users',uid,'fitdata','goals'),ng)
     }
@@ -287,6 +274,28 @@ export function AppProvider({ children }) {
     ls.set(uid,'fittrack_water',{ date:today, amount:val })
   }, [uid])
 
+  const saveFavFood = useCallback((food) => {
+    const current = ls.get(uid,'fittrack_fav_foods',[])
+    const exists  = current.find(f => f.name === food.name)
+    const updated = exists
+      ? current.filter(f => f.name !== food.name)
+      : [{ ...food, addedAt:Date.now() }, ...current].slice(0, 20)
+    setFavFoods(updated)
+    ls.set(uid,'fittrack_fav_foods',updated)
+  }, [uid])
+
+  const isFavFood = useCallback((name) => {
+    return favFoods.some(f => f.name === name)
+  }, [favFoods])
+
+  const checkAndShowPR = useCallback((exName, newWeight) => {
+    if (checkPR(exName, newWeight, exArchive, exercises)) {
+      setPrAlert({ name:exName, weight:newWeight })
+      sendNotif('🏆 Yeni Rekor!', `${exName}: ${newWeight}kg — kişisel rekor!`)
+      setTimeout(() => setPrAlert(null), 4000)
+    }
+  }, [exArchive, exercises, sendNotif])
+
   return (
     <AppContext.Provider value={{
       user, uid, loading,
@@ -300,8 +309,11 @@ export function AppProvider({ children }) {
       profile, saveProfile,
       saveWorkoutNote, getWorkoutNote,
       water, saveWater,
-      streak,
-      notifPermission, requestNotifPermission, sendNotif,
+      favFoods, saveFavFood, isFavFood,
+      streak, prAlert, checkAndShowPR,
+      notifPermission: typeof Notification !== 'undefined' ? Notification.permission : 'default',
+      requestNotifPermission, sendNotif,
+      theme, setTheme,
       viewingDate, setViewingDate,
       activeTab, setActiveTab,
       showToast, toast,

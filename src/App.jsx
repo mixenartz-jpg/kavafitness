@@ -10,6 +10,8 @@ import { GoalsPage, ProgressPage, BodyPage } from './components/pages/GoalsProgr
 import RecognizePage from './components/pages/Recognize'
 import HomePage from './components/pages/Home'
 import AiCoachPage from './components/pages/AiCoach'
+import PersonalCoachPage from './components/pages/PersonalCoach'
+import ShareCard from './components/pages/ShareCard'
 import DownloadPage from './components/pages/DownloadPage'
 import WeeklySummaryPage from './components/pages/WeeklySummary'
 import TemplatesPage from './components/pages/Templates'
@@ -19,15 +21,18 @@ import Onboarding from './components/Onboarding'
 import DaySummaryPage from './components/pages/DaySummary'
 
 export default function App() {
-  const { user, loading, activeTab, profile, uid, viewingDate, todayKey } = useApp()
+  const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Tema uygula
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme || 'dark')
+  }, [theme])
 
   useEffect(() => {
     if (user && uid && profile === null) {
       const key = `onboarding_shown_${uid}`
-      if (!localStorage.getItem(key)) {
-        setShowOnboarding(true)
-      }
+      if (!localStorage.getItem(key)) setShowOnboarding(true)
     }
   }, [user, uid, profile])
 
@@ -40,8 +45,7 @@ export default function App() {
     return (
       <div style={{ position:'fixed', inset:0, background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
         <div style={{ textAlign:'center' }}>
-          <img src="/logo.png" alt="KeroGym"
-            style={{ height:90, width:'auto', marginBottom:20, animation:'pulse 1.5s ease-in-out infinite' }} />
+          <img src="/logo.png" alt="KeroGym" style={{ height:90, width:'auto', marginBottom:20, animation:'pulse 1.5s ease-in-out infinite' }} />
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:32, letterSpacing:4, color:'var(--accent)', marginBottom:16 }}>
             KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
           </div>
@@ -54,9 +58,9 @@ export default function App() {
 
   if (!user) return <AuthScreen />
 
-  // Geçmiş bir gün seçiliyse ve spor/kalori tabındaysa → DaySummary göster
+  // Geçmiş gün kontrolü
   const isViewingPast = viewingDate !== todayKey()
-  const summaryTabs = ['today', 'calorie']
+  const summaryTabs   = ['today', 'calorie']
   if (isViewingPast && summaryTabs.includes(activeTab)) {
     return (
       <>
@@ -73,6 +77,8 @@ export default function App() {
     today:    <TodayPage />,
     templates:<TemplatesPage />,
     aicoach:  <AiCoachPage />,
+    coach:    <PersonalCoachPage />,
+    share:    <ShareCard />,
     weekly:   <WeeklySummaryPage />,
     history:  <HistoryPage />,
     calorie:  <CaloriePage />,
