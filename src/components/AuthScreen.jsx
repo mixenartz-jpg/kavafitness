@@ -78,9 +78,10 @@ export default function AuthScreen() {
         email,
         createdAt: new Date(),
       })
-      await auth.signOut()
-      setLoading(false)
+      // Önce verify ekranını göster, sonra çıkış yap
       setVerifyPending(true)
+      setLoading(false)
+      await auth.signOut()
     } catch (e) {
       setLoading(false)
       if (e.code === 'auth/email-already-in-use')
