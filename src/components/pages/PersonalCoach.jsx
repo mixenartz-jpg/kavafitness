@@ -206,7 +206,7 @@ ${lines.join('\n')}
       const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Bir hata oluştu, tekrar dene.'
       setMessages(prev => [...prev, { role:'assistant', text:reply }])
     } catch {
-      setMessages(prev => [...prev, { role:'assistant', text:'⚠️ Bağlantı hatası. İnternet bağlantını kontrol et.' }])
+      setMessages(prev => [...prev, { role:'assistant', text:'⚠️ Sunucuya bağlanılamadı. Tekrar dene.' }])
     }
     setLoading(false)
   }

@@ -10,14 +10,13 @@ function CoachNote({ onClick }) {
       <span style={{fontSize:13}}>⭐</span>
       <span style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>
         Daha detaylı için{' '}
-        <button onClick={onClick} style={{background:'none',border:'none',cursor:'pointer',color:'var(--accent)',fontFamily:'DM Mono,monospace',fontSize:10,textDecoration:'underline',textUnderlineOffset:2,padding:0}}>
+        <button onClick={onClick} style={{background:'none',border:'none',cursor:'pointer',color:'var(--accent)',fontFamily:'DM Mono,monospace',fontSize:10,textDecoration:'underline',padding:0}}>
           Kişisel Koç
         </button>'u dene.
       </span>
     </div>
   )
 }
-
 
 const ACTIVITIES = [
   { id:'walking',    label:'Yürüyüş',          icon:'🚶', met:3.5  },
@@ -77,7 +76,7 @@ function CreditBar({ remaining, banned, limit }) {
 
 export default function AiCoachPage() {
   const { profile, goals, foods, templates, saveTemplates, genId,
-          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, setActiveTab } = useApp()
+          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, showToast } = useApp()
 
   const [tab, setTab] = useState('chat')
 
@@ -124,13 +123,12 @@ export default function AiCoachPage() {
 
   const handleCalc = async () => {
     const kcal = calcKcal(); if (!kcal) return
-    if (!checkAndUseAiCredit('kalori hesap')) return
     const act = ACTIVITIES.find(a=>a.id===activity)
     setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
-    const prompt=`Kalori koçu: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal. Türkçe, maks 3 kısa madde. SADECE bu antrenman için yorum yap.`
+    const prompt=`Fitness koçusun. ${gender==='male'?'Erkek':'Kadın'}, ${age||'?'} yaş, ${weight}kg. Aktivite: ${act.label}, ${duration}dk, ~${kcal}kcal. Türkçe kısa yanıt (150 kelime): 1) Değerlendirme 2) 2-3 besin önerisi 3) 1-2 ipucu`
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:400}})})
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:800}})})
       const d=await r.json(); setCalcTips(d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.')
     } catch { setCalcTips('AI yanıtı alınamadı.') }
     setCalcLoad(false)
@@ -148,12 +146,18 @@ export default function AiCoachPage() {
       const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `KeroGym beslenme asistanı. SADECE beslenme/kalori/diyet konularında yardım et. Antrenman sorarlarsa Kişisel Koç'a yönlendir. Türkçe, kısa, madde madde.\n\n${p.length?`Kullanıcı: ${p.join(', ')}\n\n`:''}`
+    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
     const msg=text||chatInput.trim(); if (!msg||chatLoad) return
-    if (!checkAndUseAiCredit(msg)) return
+    // Kredi kontrolü — sadece yeterli kredi varsa devam
+    const remaining = aiRemaining()
+    if (remaining <= 0 || isAiBanned()) {
+      if (isAiBanned()) showToast('🚫 Bugün AI özelliklerinden yararlanamazsın.', 'error')
+      else showToast(`⏳ Günlük ${AI_DAILY_LIMIT} AI hakkını kullandın. Yarın tekrar dene.`, 'error')
+      return
+    }
     const newMsgs=[...messages,{role:'user',text:msg}]
     setMessages(newMsgs); setChatInput(''); setChatLoad(true)
     const ctx=buildCtx()
@@ -164,34 +168,40 @@ export default function AiCoachPage() {
     ]
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:700}})})
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:4096}})})
       const d=await r.json()
-      setMessages(prev=>[...prev,{role:'assistant',text:d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.'}])
-    } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası.'}]) }
+      const reply = d?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (reply) {
+        checkAndUseAiCredit('chat') // sadece başarılı yanıtta kredi tüket
+        setMessages(prev=>[...prev,{role:'assistant',text:reply}])
+      } else {
+        setMessages(prev=>[...prev,{role:'assistant',text:'Yanıt alınamadı, tekrar dene.'}])
+      }
+    } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası, tekrar dene.'}]) }
     setChatLoad(false)
   }
 
   const generatePlan = async () => {
     if (!profile) return
-    if (!checkAndUseAiCredit('antrenman planı')) return
     setPlanLoad(true); setPlanResult(null); setPlanSaved(false)
     const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
     const levelMap={beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
     const sportMap={gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
     const sports=profile.sportTypes?.map(s=>sportMap[s]||s).join(', ')||'Gym'
-    const prompt=`SADECE antrenman programı ver, beslenme önerisi ekleme. ${planDays} günlük haftalık program:
+    const prompt=`Kişisel antrenörsün. ${planDays} günlük haftalık antrenman programı oluştur.
 Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg
 Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${planFocus?` | Odak: ${planFocus}`:''}
 Sadece JSON:
 {"program_adi":"...","haftalik_plan":[{"gun":"Pazartesi","odak":"Göğüs","egzersizler":[{"isim":"Bench Press","set":4,"tekrar":"8-10"}],"sure_dk":60,"notlar":"..."}],"genel_notlar":"...","beslenme_ozeti":"..."}`
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:700}})})
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:4096}})})
       const d=await r.json()
       let raw=(d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
       let parsed=null; try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
+      if (parsed && !parsed.error) checkAndUseAiCredit('plan') // sadece başarılıda tüket
       setPlanResult(parsed||{error:'Plan oluşturulamadı.'})
-    } catch { setPlanResult({error:'⚠️ Bağlantı hatası.'}) }
+    } catch { setPlanResult({error:'⚠️ Bağlantı hatası, tekrar dene.'}) }
     setPlanLoad(false)
   }
 
@@ -203,12 +213,11 @@ Sadece JSON:
 
   const analyzeDiet = async () => {
     if (!foods?.length) return
-    if (!checkAndUseAiCredit('diyet analizi')) return
     setDietLoad(true); setDietResult(null)
     const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
     const list=foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
     const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
-    const prompt=`SADECE bugünkü yemekleri analiz et, antrenman önerisi verme.
+    const prompt=`Beslenme uzmanısın. Bugünkü yemekleri analiz et.
 Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
 Yemekler:\n${list}
 Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
@@ -220,9 +229,12 @@ Türkçe analiz:
 Eksiksiz yaz.`
     try {
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:500}})})
-      const d=await r.json(); setDietResult(d?.candidates?.[0]?.content?.parts?.[0]?.text||'Analiz alınamadı.')
-    } catch { setDietResult('⚠️ Bağlantı hatası.') }
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:2048}})})
+      const d=await r.json()
+      const result = d?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (result) { checkAndUseAiCredit('diyet'); setDietResult(result) }
+      else setDietResult('Analiz alınamadı, tekrar dene.')
+    } catch { setDietResult('⚠️ Bağlantı hatası, tekrar dene.') }
     setDietLoad(false)
   }
 
@@ -298,8 +310,7 @@ Eksiksiz yaz.`
               </button>
             </div>
           </div>
-          <CoachNote onClick={()=>setActiveTab('coach')}/>
-          {messages.length>1&&<div style={{textAlign:'right',marginTop:4}}><button onClick={()=>setMessages([{role:'assistant',text:'👋 Merhaba! Beslenme ve diyet konusunda yardımcı olmak için buradayım.'}])} style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',textDecoration:'underline'}}>Sohbeti Temizle</button></div>}
+          {messages.length>1&&<div style={{textAlign:'right'}}><button onClick={()=>setMessages([{role:'assistant',text:'👋 Merhaba! Beslenme ve diyet konusunda yardımcı olmak için buradayım.'}])} style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',textDecoration:'underline'}}>Sohbeti Temizle</button></div>}
         </>
       )}
 
@@ -378,7 +389,6 @@ Eksiksiz yaz.`
             </div>
           )}
           {planResult?.error&&<div style={{background:'rgba(255,71,71,.08)',border:'1px solid rgba(255,71,71,.2)',borderRadius:10,padding:'12px 14px',fontFamily:'DM Mono,monospace',fontSize:12,color:'var(--red)'}}>{planResult.error}</div>}
-          {planResult&&!planResult.error&&<CoachNote onClick={()=>setActiveTab('coach')}/>}
         </>
       )}
 
@@ -413,7 +423,7 @@ Eksiksiz yaz.`
                 <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--green)'}}>AI DİYET ANALİZİ</div>
               </div>
               {dietLoad?<div style={{display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12}}><span className="spinner"/>Analiz ediliyor...</div>
-                :<><div style={{fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{dietResult}</div><CoachNote onClick={()=>setActiveTab('coach')}/></> }
+                :<div style={{fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{dietResult}</div>}
             </div>
           )}
         </>
@@ -472,7 +482,7 @@ Eksiksiz yaz.`
                   <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2}}>AI KOÇ ÖNERİSİ</div>
                 </div>
                 {calcLoad?<div style={{display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12}}><span className="spinner"/>Düşünüyor...</div>
-                  :calcTips&&<><div style={{fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{calcTips}</div><CoachNote onClick={()=>setActiveTab('coach')}/></>}
+                  :calcTips&&<div style={{fontSize:13,color:'var(--text-dim)',lineHeight:1.9,fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap'}}>{calcTips}</div>}
               </div>
             </div>
           )}

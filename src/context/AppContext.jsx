@@ -22,7 +22,7 @@ const ls = {
 const fbSet = (ref, data) => setDoc(ref, data).catch(console.error)
 
 // ── AI HARIÇ günlük 5 hak (Kişisel Koç bu sistemin dışında) ──
-export const AI_DAILY_LIMIT = 5
+export const AI_DAILY_LIMIT = 10
 
 // ── Uygunsuz içerik kelime listesi ──
 const BANNED = [
