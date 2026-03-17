@@ -43,15 +43,17 @@ export default function SettingsPage() {
   const [tab, setTab] = useState('profile')
 
   // Hesap yönetimi state
-  const [currentUsername, setCurrentUsername]   = useState('')
-  const [newUsername, setNewUsername]           = useState('')
-  const [newEmail, setNewEmail]                 = useState('')
-  const [currentPw, setCurrentPw]               = useState('')
-  const [newPw, setNewPw]                       = useState('')
-  const [newPwConfirm, setNewPwConfirm]         = useState('')
-  const [deleteConfirmPw, setDeleteConfirmPw]   = useState('')
-  const [accountLoading, setAccountLoading]     = useState(false)
+  const [currentUsername, setCurrentUsername] = useState('')
+  const [newUsername, setNewUsername]         = useState('')
+  const [newEmail, setNewEmail]               = useState('')
+  const [emailPw, setEmailPw]                 = useState('')
+  const [currentPw, setCurrentPw]             = useState('')
+  const [newPw, setNewPw]                     = useState('')
+  const [newPwConfirm, setNewPwConfirm]       = useState('')
+  const [deleteConfirmPw, setDeleteConfirmPw] = useState('')
+  const [accountLoading, setAccountLoading]   = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [usernameLastChanged, setUsernameLastChanged] = useState(null)
   const [form, setForm] = useState({
     goal:       profile?.goal || '',
     sportTypes: profile?.sportTypes || [],
@@ -74,11 +76,14 @@ export default function SettingsPage() {
     ...p, [key]: p[key].includes(val) ? p[key].filter(v=>v!==val) : [...p[key], val]
   }))
 
-  // Mevcut kullanıcı adını yükle
+  // Kullanıcı adını ve cooldown tarihini yükle
   useState(() => {
     if (!uid) return
     getDoc(doc(db, 'users', uid)).then(s => {
-      if (s.exists()) setCurrentUsername(s.data().username || '')
+      if (s.exists()) {
+        setCurrentUsername(s.data().username || '')
+        setUsernameLastChanged(s.data().usernameLastChanged || null)
+      }
     })
   })
 
@@ -87,21 +92,38 @@ export default function SettingsPage() {
     await reauthenticateWithCredential(user, credential)
   }
 
+  // Kullanıcı adı cooldown kontrolü (2 gün)
+  const getUsernameCooldownInfo = () => {
+    if (!usernameLastChanged) return { canChange: true, hoursLeft: 0 }
+    const last = new Date(usernameLastChanged)
+    const now = new Date()
+    const diffHours = (now - last) / (1000 * 60 * 60)
+    if (diffHours >= 48) return { canChange: true, hoursLeft: 0 }
+    const hoursLeft = Math.ceil(48 - diffHours)
+    return { canChange: false, hoursLeft }
+  }
+
   // ── Kullanıcı adı değiştir ──
   const handleUsernameChange = async () => {
+    const { canChange, hoursLeft } = getUsernameCooldownInfo()
+    if (!canChange) return showToast(`Kullanıcı adını ${hoursLeft} saat sonra değiştirebilirsin.`, 'error')
     if (!newUsername.trim()) return showToast('Yeni kullanıcı adı girin!', 'error')
     if (!/^[a-z0-9_]+$/.test(newUsername)) return showToast('Sadece küçük harf, rakam ve _ kullanılabilir.', 'error')
+    if (newUsername.length < 2) return showToast('En az 2 karakter olmalı.', 'error')
     if (newUsername === currentUsername) return showToast('Bu zaten mevcut kullanıcı adın.', 'error')
     setAccountLoading(true)
     try {
-      // Yeni kullanıcı adı müsait mi?
       const snap = await getDoc(doc(db, 'usernames', newUsername))
       if (snap.exists()) { showToast('Bu kullanıcı adı zaten alınmış!', 'error'); setAccountLoading(false); return }
-      // Eski kaydı sil, yeni kaydı ekle
-      await deleteDoc(doc(db, 'usernames', currentUsername))
+      const now = new Date().toISOString()
+      // Yeni username kaydı oluştur
       await setDoc(doc(db, 'usernames', newUsername), { uid, email: user.email, createdAt: new Date() })
-      await setDoc(doc(db, 'users', uid), { username: newUsername, email: user.email }, { merge: true })
+      // Eski username kaydını sil
+      if (currentUsername) await deleteDoc(doc(db, 'usernames', currentUsername))
+      // User dokümanını güncelle
+      await setDoc(doc(db, 'users', uid), { username: newUsername, usernameLastChanged: now }, { merge: true })
       setCurrentUsername(newUsername)
+      setUsernameLastChanged(now)
       setNewUsername('')
       showToast('Kullanıcı adı güncellendi ✓')
     } catch (e) { showToast('Hata: ' + e.message, 'error') }
@@ -111,14 +133,12 @@ export default function SettingsPage() {
   // ── Email değiştir ──
   const handleEmailChange = async () => {
     if (!newEmail.includes('@')) return showToast('Geçerli bir e-posta girin!', 'error')
-    if (!currentPw) return showToast('Mevcut şifrenizi girin!', 'error')
+    if (!emailPw) return showToast('Mevcut şifrenizi girin!', 'error')
     setAccountLoading(true)
     try {
-      await reauth(currentPw)
+      await reauth(emailPw)
       await verifyBeforeUpdateEmail(user, newEmail)
-      await setDoc(doc(db, 'usernames', currentUsername), { uid, email: newEmail }, { merge: true })
-      await setDoc(doc(db, 'users', uid), { email: newEmail }, { merge: true })
-      setNewEmail(''); setCurrentPw('')
+      setNewEmail(''); setEmailPw('')
       showToast('Doğrulama maili gönderildi! Yeni adresinizi onaylayın.', 'success')
     } catch (e) {
       if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
@@ -145,8 +165,7 @@ export default function SettingsPage() {
     } catch (e) {
       if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
         showToast('Mevcut şifre hatalı!', 'error')
-      else
-        showToast('Hata: ' + e.message, 'error')
+      else showToast('Hata: ' + e.message, 'error')
     }
     setAccountLoading(false)
   }
@@ -157,19 +176,16 @@ export default function SettingsPage() {
     setAccountLoading(true)
     try {
       await reauth(deleteConfirmPw)
-      // Firestore verilerini sil
       const fitdataRef = collection(db, 'users', uid, 'fitdata')
       const fitSnap = await getDocs(fitdataRef)
       await Promise.all(fitSnap.docs.map(d => deleteDoc(d.ref)))
       await deleteDoc(doc(db, 'users', uid))
-      await deleteDoc(doc(db, 'usernames', currentUsername))
-      // Firebase Auth kullanıcısını sil
+      if (currentUsername) await deleteDoc(doc(db, 'usernames', currentUsername))
       await deleteUser(user)
     } catch (e) {
       if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
         showToast('Şifre hatalı!', 'error')
-      else
-        showToast('Hata: ' + e.message, 'error')
+      else showToast('Hata: ' + e.message, 'error')
       setAccountLoading(false)
     }
   }
@@ -396,7 +412,9 @@ export default function SettingsPage() {
       )}
 
       {/* ══════════ HESAP TAB ══════════ */}
-      {tab === 'account' && (
+      {tab === 'account' && (() => {
+        const { canChange, hoursLeft } = getUsernameCooldownInfo()
+        return (
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
 
           {/* Mevcut hesap bilgisi */}
@@ -417,17 +435,23 @@ export default function SettingsPage() {
           {/* Kullanıcı adı değiştir */}
           <div className="card" style={{ padding:'18px 20px' }}>
             <div className="section-title">KULLANICI ADI DEĞİŞTİR</div>
+            {!canChange && (
+              <div style={{ background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.25)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontFamily:'DM Mono,monospace', fontSize:10, color:'#ff8c47', lineHeight:1.7 }}>
+                ⏳ Kullanıcı adını <b>{hoursLeft} saat</b> sonra tekrar değiştirebilirsin. (Her 2 günde 1 değişim)
+              </div>
+            )}
             <div className="form-group" style={{ marginBottom:12 }}>
               <span className="flabel">Yeni Kullanıcı Adı</span>
               <input type="text" value={newUsername}
                 onChange={e => setNewUsername(e.target.value.toLowerCase())}
-                placeholder="yeni_kullanici_adi" maxLength={20} />
+                placeholder="yeni_kullanici_adi" maxLength={20}
+                disabled={!canChange} style={{ opacity: canChange ? 1 : 0.5 }} />
               <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
-                2-20 karakter · küçük harf, rakam, _
+                2-20 karakter · küçük harf, rakam, _ · 2 günde 1 değişim
               </span>
             </div>
-            <button className="btn btn-primary" style={{ width:'100%' }}
-              onClick={handleUsernameChange} disabled={accountLoading}>
+            <button className="btn btn-primary" style={{ width:'100%', opacity: canChange ? 1 : 0.4, cursor: canChange ? 'pointer' : 'not-allowed' }}
+              onClick={handleUsernameChange} disabled={accountLoading || !canChange}>
               {accountLoading ? <><span className="spinner" style={{ width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8 }} />Güncelleniyor...</> : '✓ Kullanıcı Adını Güncelle'}
             </button>
           </div>
@@ -444,7 +468,7 @@ export default function SettingsPage() {
             </div>
             <div className="form-group" style={{ marginBottom:12 }}>
               <span className="flabel">Mevcut Şifre (Doğrulama için)</span>
-              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="••••••••" />
+              <input type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} placeholder="••••••••" />
             </div>
             <button className="btn btn-primary" style={{ width:'100%' }}
               onClick={handleEmailChange} disabled={accountLoading}>
@@ -478,7 +502,7 @@ export default function SettingsPage() {
           <div className="card" style={{ padding:'18px 20px', border:'1px solid rgba(255,71,71,.2)' }}>
             <div className="section-title" style={{ color:'var(--red)' }}>HESABI SİL</div>
             <div style={{ background:'rgba(255,71,71,.07)', border:'1px solid rgba(255,71,71,.2)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--red)', lineHeight:1.7 }}>
-              ⚠️ Bu işlem geri alınamaz! Tüm verileriniz (antrenmanlar, kalori kayıtları, ölçümler) kalıcı olarak silinecek.
+              ⚠️ Bu işlem geri alınamaz! Tüm verileriniz kalıcı olarak silinecek.
             </div>
             {!showDeleteConfirm ? (
               <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost"
@@ -506,7 +530,8 @@ export default function SettingsPage() {
           </div>
 
         </div>
-      )}
+        )
+      })()}
 
       {/* HEDEFLER TAB */}
       {tab === 'goals' && (
