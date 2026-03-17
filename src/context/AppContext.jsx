@@ -47,7 +47,7 @@ export function AppProvider({ children }) {
   const [profile, setProfile] = useState(null)
 
   // Active tab & viewing date
-  const [activeTab,   setActiveTab]   = useState('today')
+  const [activeTab,   setActiveTab]   = useState('home')
   const [viewingDate, setViewingDate] = useState(todayKey())
 
   // Toast
