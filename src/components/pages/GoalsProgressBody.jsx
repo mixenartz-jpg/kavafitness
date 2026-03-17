@@ -6,7 +6,7 @@ import { Chart, registerables } from 'chart.js'
 Chart.register(...registerables)
 
 export function GoalsPage() {
-  const { goals, profile, foods } = useApp()
+  const { goals, profile, foods, water, saveWater } = useApp()
 
   const totals = foods.reduce((t, f) => ({
     kcal: t.kcal + (+f.kcal || 0), protein: t.protein + (+f.protein || 0),
@@ -21,6 +21,13 @@ export function GoalsPage() {
   ]
 
   const GOAL_LABELS = { lose:'Kilo Ver', maintain:'Kilo Koru', gain:'Kilo Al', cut:'Yag Yak' }
+  const WATER_GOAL = 2500 // ml
+  const waterPct   = Math.min(100, Math.round((water / WATER_GOAL) * 100))
+  const waterColor = waterPct >= 100 ? 'var(--green)' : waterPct >= 60 ? '#47c8ff' : '#47c8ff'
+
+  const addWater = (ml) => saveWater(Math.min(water + ml, 9999))
+  const resetWater = () => saveWater(0)
+
   const LEVEL_LABELS = { beginner:'Yeni Baslayan', intermediate:'Orta', advanced:'İleri' }
 
   return (
@@ -63,6 +70,65 @@ export function GoalsPage() {
             </div>
           )
         })}
+      </div>
+
+      {/* Su Takibi */}
+      <div className="section-title" style={{ marginTop:8 }}>SU TAKİBİ 💧</div>
+      <div className="card" style={{ padding:'20px 22px', marginBottom:20 }}>
+        {/* Progress */}
+        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:10 }}>
+          <div>
+            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:48, lineHeight:1, color:'#47c8ff' }}>
+              {water} <span style={{ fontSize:18, color:'var(--text-muted)' }}>ml</span>
+            </div>
+            <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', marginTop:2 }}>
+              Hedef: {WATER_GOAL} ml / gün
+            </div>
+          </div>
+          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:28, color: waterPct>=100?'var(--green)':'#47c8ff' }}>
+            {waterPct}%
+          </div>
+        </div>
+        {/* Bar */}
+        <div style={{ background:'var(--surface3)', borderRadius:20, height:10, overflow:'hidden', marginBottom:16 }}>
+          <div style={{
+            height:'100%', borderRadius:20, width:`${waterPct}%`,
+            background: waterPct>=100
+              ? 'linear-gradient(90deg,#47ff8a,#47c8ff)'
+              : 'linear-gradient(90deg,#47c8ff88,#47c8ff)',
+            transition:'width .5s ease',
+          }} />
+        </div>
+        {/* Ekle butonları */}
+        <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
+          {[150, 200, 300, 500].map(ml => (
+            <button key={ml} onClick={() => addWater(ml)} style={{
+              flex:1, minWidth:60, padding:'10px 4px', borderRadius:8,
+              border:'1px solid rgba(71,200,255,.25)',
+              background:'rgba(71,200,255,.07)',
+              color:'#47c8ff', fontFamily:'Bebas Neue,sans-serif',
+              fontSize:14, letterSpacing:1, cursor:'pointer',
+              transition:'all .15s',
+            }}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(71,200,255,.15)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(71,200,255,.07)'}
+            >+{ml}ml</button>
+          ))}
+        </div>
+        {/* Durum mesajı */}
+        <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.6, marginBottom:10 }}>
+          {waterPct >= 100
+            ? '🎉 Günlük su hedefinizi tamamladınız!'
+            : waterPct >= 60
+            ? `💧 İyi gidiyorsunuz! ${WATER_GOAL - water} ml daha içmeyi unutma.`
+            : `⚠️ Günde en az ${WATER_GOAL} ml su içmeyi hedefleyin. Şimdiye kadar ${water} ml içildi.`
+          }
+        </div>
+        <button onClick={resetWater} style={{
+          background:'none', border:'none', cursor:'pointer',
+          fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace',
+          textDecoration:'underline', textUnderlineOffset:2,
+        }}>Sıfırla</button>
       </div>
 
       {!profile && (

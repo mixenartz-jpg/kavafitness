@@ -46,6 +46,9 @@ export function AppProvider({ children }) {
   // User Profile
   const [profile, setProfile] = useState(null)
 
+  // Water tracking
+  const [water, setWater] = useState(0)
+
   // Active tab & viewing date
   const [activeTab,   setActiveTab]   = useState('home')
   const [viewingDate, setViewingDate] = useState(todayKey())
@@ -82,6 +85,8 @@ export function AppProvider({ children }) {
     ls.set(userId, 'fittrack_templates',   t.data ?? [])
     const p = await get(doc(userRef, 'fitdata', 'profile'), null)
     if (p) ls.set(userId, 'fittrack_profile', p)
+    const w = await get(doc(userRef, 'fitdata', 'water'), { date: todayKey(), ml: 0 })
+    ls.set(userId, 'fittrack_water', w)
   }
 
   // ── Init state from localStorage ──
@@ -118,19 +123,20 @@ export function AppProvider({ children }) {
     setBody(ls.get(userId, 'fittrack_body', []))
     setTemplates(ls.get(userId, 'fittrack_templates', []))
     setProfile(ls.get(userId, 'fittrack_profile', null))
+
+    // Water — günlük sıfırla
+    let waterData = ls.get(userId, 'fittrack_water', { date: today, ml: 0 })
+    if (waterData.date !== today) {
+      waterData = { date: today, ml: 0 }
+      ls.set(userId, 'fittrack_water', waterData)
+    }
+    setWater(waterData.ml)
   }, [])
 
   // ── Auth observer ──
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
-        // Email doğrulanmamışsa uygulamaya alma — ama signOut çağırma!
-        // (Kayıt sırasında Firestore yazma işlemleri henüz devam ediyor olabilir)
-        if (!u.emailVerified) {
-          setUser(null); setUid(null)
-          setLoading(false)
-          return
-        }
         setUser(u); setUid(u.uid)
         await pullFirestore(u.uid)
         initState(u.uid)
@@ -216,6 +222,13 @@ export function AppProvider({ children }) {
     fbSet(doc(db, 'users', uid, 'fitdata', 'body'), { data: b })
   }, [uid])
 
+  const saveWater = useCallback((ml) => {
+    const data = { date: todayKey(), ml }
+    setWater(ml)
+    ls.set(uid, 'fittrack_water', data)
+    fbSet(doc(db, 'users', uid, 'fitdata', 'water'), data)
+  }, [uid])
+
   return (
     <AppContext.Provider value={{
       user, uid, loading,
@@ -230,6 +243,7 @@ export function AppProvider({ children }) {
       saveWorkoutNote, getWorkoutNote,
       viewingDate, setViewingDate,
       activeTab, setActiveTab,
+      water, saveWater,
       showToast, toast,
       genId, todayKey,
     }}>
