@@ -16,14 +16,14 @@ import TemplatesPage from './components/pages/Templates'
 import SettingsPage from './components/pages/Settings'
 import AccountPage from './components/pages/AccountPage'
 import Onboarding from './components/Onboarding'
+import DaySummaryPage from './components/pages/DaySummary'
 
 export default function App() {
-  const { user, loading, activeTab, profile, uid } = useApp()
+  const { user, loading, activeTab, profile, uid, viewingDate, todayKey } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     if (user && uid && profile === null) {
-      // Profile null means never filled = show onboarding
       const key = `onboarding_shown_${uid}`
       if (!localStorage.getItem(key)) {
         setShowOnboarding(true)
@@ -53,6 +53,20 @@ export default function App() {
   }
 
   if (!user) return <AuthScreen />
+
+  // Geçmiş bir gün seçiliyse ve spor/kalori tabındaysa → DaySummary göster
+  const isViewingPast = viewingDate !== todayKey()
+  const summaryTabs = ['today', 'calorie']
+  if (isViewingPast && summaryTabs.includes(activeTab)) {
+    return (
+      <>
+        {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+        <Header />
+        <DaySummaryPage />
+        <Toast />
+      </>
+    )
+  }
 
   const pages = {
     home:     <HomePage />,
