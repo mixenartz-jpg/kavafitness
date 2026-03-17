@@ -179,6 +179,8 @@ export function AppProvider({ children }) {
     const data = ls.get(uid, 'fittrack_data', { date: todayKey(), exercises: [] })
     return data.note || ''
   }, [uid])
+
+  const saveBody = useCallback((b) => {
     setBody(b)
     ls.set(uid, 'fittrack_body', b)
     fbSet(doc(db, 'users', uid, 'fitdata', 'body'), { data: b })
