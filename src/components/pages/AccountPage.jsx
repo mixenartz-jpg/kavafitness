@@ -80,6 +80,18 @@ export default function AccountPage() {
     try {
       await reauth(emailPw)
       await verifyBeforeUpdateEmail(user, newEmail)
+      // Firestore'da yeni emaili kaydet, eski emaili yedekte tut
+      // Login sırasında her ikisi de denenecek
+      await setDoc(doc(db, 'usernames', currentUsername), {
+        uid,
+        email: newEmail,
+        oldEmail: user.email,  // doğrulanana kadar eski email yedekte
+        createdAt: new Date(),
+      })
+      await setDoc(doc(db, 'users', uid), {
+        email: newEmail,
+        oldEmail: user.email,
+      }, { merge: true })
       setNewEmail(''); setEmailPw('')
       showToast('Doğrulama maili gönderildi! Yeni adresinizi onaylayın.')
     } catch (e) {
