@@ -7,6 +7,38 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore'
 
+// ── Yardımcı componentler — DIŞARIDA tanımlı (re-mount önlemek için) ──
+function Section({ title, color, children }) {
+  return (
+    <div className="card" style={{ padding:'20px 22px', border: color ? `1px solid ${color}` : undefined }}>
+      <div className="section-title" style={{ color: color ? 'var(--red)' : undefined }}>{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function Btn({ onClick, disabled, loading, children, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={danger ? undefined : 'btn btn-primary'}
+      style={danger ? {
+        width:'100%', padding:12, borderRadius:8,
+        border:'1px solid var(--red)', background:'rgba(255,71,71,.1)',
+        color:'var(--red)', cursor: (disabled || loading) ? 'not-allowed' : 'pointer',
+        fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2,
+        opacity: (disabled || loading) ? .5 : 1,
+      } : { width:'100%' }}
+    >
+      {loading
+        ? <><span className="spinner" style={{ width:14, height:14, borderTopColor: danger ? 'var(--red)' : '#0a0a0a', marginRight:8 }} />Bekleyin...</>
+        : children
+      }
+    </button>
+  )
+}
+
 export default function AccountPage() {
   const { user, uid, showToast } = useApp()
 
@@ -144,33 +176,6 @@ export default function AccountPage() {
 
   const { canChange, hoursLeft } = getCooldownInfo()
 
-  const Section = ({ title, color, children }) => (
-    <div className="card" style={{ padding:'20px 22px', border: color ? `1px solid ${color}` : undefined }}>
-      <div className="section-title" style={{ color: color ? 'var(--red)' : undefined }}>{title}</div>
-      {children}
-    </div>
-  )
-
-  const Btn = ({ onClick, disabled, children, danger }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled || accountLoading}
-      className={danger ? undefined : 'btn btn-primary'}
-      style={danger ? {
-        width:'100%', padding:12, borderRadius:8,
-        border:'1px solid var(--red)', background:'rgba(255,71,71,.1)',
-        color:'var(--red)', cursor:'pointer',
-        fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2,
-        opacity: accountLoading ? .5 : 1,
-      } : { width:'100%' }}
-    >
-      {accountLoading
-        ? <><span className="spinner" style={{ width:14, height:14, borderTopColor: danger ? 'var(--red)' : '#0a0a0a', marginRight:8 }} />Bekleyin...</>
-        : children
-      }
-    </button>
-  )
-
   return (
     <div className="page animate-fade" style={{ maxWidth:600 }}>
 
@@ -227,7 +232,7 @@ export default function AccountPage() {
               2-20 karakter · küçük harf, rakam, _ · 2 günde 1 değişim
             </span>
           </div>
-          <Btn onClick={handleUsernameChange} disabled={!canChange}>
+          <Btn onClick={handleUsernameChange} disabled={!canChange} loading={accountLoading}>
             ✓ Kullanıcı Adını Güncelle
           </Btn>
         </Section>
@@ -245,7 +250,7 @@ export default function AccountPage() {
             <span className="flabel">Mevcut Şifre (Doğrulama için)</span>
             <input type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} placeholder="••••••••" />
           </div>
-          <Btn onClick={handleEmailChange}>📧 Doğrulama Maili Gönder</Btn>
+          <Btn onClick={handleEmailChange} loading={accountLoading}>📧 Doğrulama Maili Gönder</Btn>
         </Section>
 
         {/* ── Şifre ── */}
@@ -263,7 +268,7 @@ export default function AccountPage() {
             <input type="password" value={newPwConfirm} onChange={e => setNewPwConfirm(e.target.value)} placeholder="••••••••"
               onKeyDown={e => e.key === 'Enter' && handlePasswordChange()} />
           </div>
-          <Btn onClick={handlePasswordChange}>🔑 Şifreyi Güncelle</Btn>
+          <Btn onClick={handlePasswordChange} loading={accountLoading}>🔑 Şifreyi Güncelle</Btn>
         </Section>
 
         {/* ── Hesap Sil ── */}
@@ -285,7 +290,7 @@ export default function AccountPage() {
                   placeholder="Şifreniz" autoFocus />
               </div>
               <div style={{ display:'flex', gap:8 }}>
-                <Btn onClick={handleDeleteAccount} danger>⚠️ HESABI SİL</Btn>
+                <Btn onClick={handleDeleteAccount} danger loading={accountLoading}>⚠️ HESABI SİL</Btn>
                 <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmPw('') }}
                   className="btn btn-ghost">İptal</button>
               </div>
