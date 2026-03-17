@@ -16,10 +16,10 @@ export default function AuthScreen() {
   const [error, setError]     = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [verifyPending, setVerifyPending] = useState(false)
+  const [verifyBanner, setVerifyBanner] = useState(false)
 
   const reset = () => { setError(''); setSuccess('') }
-  const switchMode = (m) => { reset(); setMode(m) }
+  const switchMode = (m) => { reset(); setMode(m); if (m !== 'login') setVerifyBanner(false) }
 
   // ── Giriş ──
   const handleLogin = async () => {
@@ -39,7 +39,7 @@ export default function AuthScreen() {
       if (!cred.user.emailVerified) {
         await auth.signOut()
         setLoading(false)
-        setError('📧 Lütfen mail adresinizi doğrulayın. Gelen kutusu ve spam klasörünü kontrol edin.')
+        setError('EMAIL_NOT_VERIFIED')
         return
       }
     } catch (e) {
@@ -77,10 +77,12 @@ export default function AuthScreen() {
         email,
         createdAt: new Date(),
       })
-      // Önce verify ekranını göster, sonra çıkış yap
-      setVerifyPending(true)
+      // Kayıt başarılı → Login ekranına yönlendir, banner göster
       setLoading(false)
       await auth.signOut()
+      setVerifyBanner(true)
+      setMode('login')
+      setPassword('')
     } catch (e) {
       setLoading(false)
       if (e.code === 'auth/email-already-in-use')
@@ -139,39 +141,48 @@ export default function AuthScreen() {
           Spor & Beslenme Takip Uygulaması
         </div>
 
-        {/* E-posta doğrulama bekleme ekranı */}
-        {verifyPending ? (
-          <div style={{ textAlign:'center', padding:'8px 0' }}>
-            <div style={{ fontSize:48, marginBottom:16 }}>📧</div>
-            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3, marginBottom:10 }}>
-              MAİL ADRESİNİZİ DOĞRULAYIN
-            </div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.8, marginBottom:16 }}>
-              <b style={{ color:'var(--accent)' }}>{email}</b> adresine doğrulama maili gönderdik.
-              <br />Maildeki linke tıkladıktan sonra giriş yapabilirsin.
-            </div>
-            <div style={{
-              background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.2)',
-              borderRadius:8, padding:'12px 14px', marginBottom:20,
-              display:'flex', alignItems:'center', gap:10,
-            }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>📬</span>
-              <div style={{ textAlign:'left' }}>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:2 }}>
-                  LÜTFEN MAİL ADRESİNİZİ DOĞRULAYIN
-                </div>
-                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
-                  ⚠️ LÜTFEN SPAM KLASÖRÜNÜ KONTROL EDİN
-                </div>
+        {/* Gmail doğrulama banner'ı — kayıt sonrası */}
+        {verifyBanner && mode === 'login' && (
+          <div style={{
+            background:'rgba(71,200,255,.07)', border:'1px solid rgba(71,200,255,.25)',
+            borderRadius:10, padding:'12px 14px', marginBottom:16,
+            display:'flex', alignItems:'flex-start', gap:10,
+          }}>
+            <span style={{ fontSize:20, flexShrink:0, marginTop:1 }}>📧</span>
+            <div>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2, color:'#47c8ff', marginBottom:3 }}>
+                GMAİLİNİZİ DOĞRULAYIN
+              </div>
+              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.7 }}>
+                <b style={{ color:'#47c8ff' }}>{email}</b> adresine doğrulama maili gönderdik.<br />
+                Maildeki linke tıkladıktan sonra giriş yapabilirsin.<br />
+                <span style={{ color:'#ff8c47' }}>⚠️ Spam klasörünü de kontrol et!</span>
               </div>
             </div>
-            <button onClick={() => { setVerifyPending(false); setMode('login'); setEmail(''); setPassword('') }}
-              className="btn btn-primary" style={{ width:'100%', padding:12 }}>
-              Giriş Ekranına Dön
-            </button>
           </div>
-        ) : (
-          <>
+        )}
+
+        {/* E-posta doğrulanmamış uyarısı */}
+        {error === 'EMAIL_NOT_VERIFIED' && (
+          <div style={{
+            background:'rgba(255,71,71,.1)', border:'1px solid rgba(255,71,71,.35)',
+            borderRadius:10, padding:'12px 14px', marginBottom:16,
+            display:'flex', alignItems:'flex-start', gap:10,
+          }}>
+            <span style={{ fontSize:20, flexShrink:0, marginTop:1 }}>⛔</span>
+            <div>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2, color:'var(--red)', marginBottom:3 }}>
+                LÜTFEN GMAİL'İNİZİ DOĞRULAYINIZ
+              </div>
+              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.7 }}>
+                Hesabınıza giriş yapmadan önce e-posta adresinizi doğrulamanız gerekmektedir.<br />
+                <span style={{ color:'#ff8c47' }}>⚠️ Spam klasörünü de kontrol etmeyi unutma!</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <>
             {/* Tabs */}
             {mode !== 'forgot' && (
               <div style={{ display:'flex', background:'var(--surface2)', borderRadius:8, padding:3, marginBottom:22 }}>
@@ -300,7 +311,6 @@ export default function AuthScreen() {
               </a>
             </div>
           </>
-        )}
       </div>
     </div>
   )
