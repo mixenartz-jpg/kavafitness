@@ -139,8 +139,8 @@ export default function AuthScreen() {
           Spor & Beslenme Takip Uygulaması
         </div>
 
-        {/* Hesap sıfırlama notu */}
-        {!verifyPending && (
+        {/* Hesap sıfırlama notu — sadece login modunda */}
+        {!verifyPending && mode === 'login' && (
           <div style={{
             background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.25)',
             borderRadius:10, padding:'10px 14px', marginBottom:20,
@@ -171,10 +171,18 @@ export default function AuthScreen() {
             </div>
             <div style={{
               background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.2)',
-              borderRadius:8, padding:'10px 14px', marginBottom:20,
-              fontSize:11, color:'#ff8c47', fontFamily:'DM Mono,monospace',
+              borderRadius:8, padding:'12px 14px', marginBottom:20,
+              display:'flex', alignItems:'center', gap:10,
             }}>
-              ⚠️ SPAM / GEREKSIZ KLASÖRÜNÜ KONTROL EDİNİZ
+              <span style={{ fontSize:18, flexShrink:0 }}>📬</span>
+              <div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:2 }}>
+                  LÜTFİ GMAİLİNİZİ DOĞRULAYIN
+                </div>
+                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
+                  SPAM KLASÖRÜNÜ KONTROL EDİN
+                </div>
+              </div>
             </div>
             <button onClick={() => { setVerifyPending(false); setMode('login'); setEmail(''); setPassword('') }}
               className="btn btn-primary" style={{ width:'100%', padding:12, marginBottom:10 }}>
