@@ -214,7 +214,7 @@ export default function TodayPage() {
           {/* Dinlenme süresi ayarı */}
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, padding:'8px 12px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
             <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', flexShrink:0 }}>⏱ Set arası dinlenme:</span>
-            <div style={{ display:'flex', gap:4', flex:1 }}>
+            <div style={{ display:'flex', gap:4, flex:1 }}>
               {[60, 90, 120, 180].map(s => (
                 <button key={s} onClick={() => setRestSeconds(s)} style={{ flex:1, padding:'4px 0', borderRadius:6, border:`1px solid ${restSeconds===s?'rgba(232,255,71,.4)':'var(--border)'}`, background:restSeconds===s?'rgba(232,255,71,.08)':'transparent', color:restSeconds===s?'var(--accent)':'var(--text-muted)', fontFamily:'Bebas Neue,sans-serif', fontSize:12, cursor:'pointer', letterSpacing:1 }}>
                   {s}s
