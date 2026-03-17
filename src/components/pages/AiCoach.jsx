@@ -3,20 +3,31 @@ import { useApp } from '../../context/AppContext'
 
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 
-// ── Kişisel Koç Dipnotu ──
-function CoachNote({ onClick }) {
-  return (
-    <div style={{ display:'flex',alignItems:'center',gap:7,padding:'7px 11px',marginTop:10,background:'rgba(232,255,71,.04)',border:'1px solid rgba(232,255,71,.1)',borderRadius:7 }}>
-      <span style={{fontSize:13}}>⭐</span>
-      <span style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>
-        Daha detaylı için{' '}
-        <button onClick={onClick} style={{background:'none',border:'none',cursor:'pointer',color:'var(--accent)',fontFamily:'DM Mono,monospace',fontSize:10,textDecoration:'underline',padding:0}}>
-          Kişisel Koç
-        </button>'u dene.
-      </span>
-    </div>
-  )
+// ── Model Fallback Zinciri ──
+const MODELS = [
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+]
+
+async function geminiCall(contents, generationConfig = {}) {
+  for (const model of MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ contents, generationConfig: { temperature:.7, maxOutputTokens:600, ...generationConfig } }) }
+      )
+      if (!res.ok) continue
+      const data = await res.json()
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (text) return text
+    } catch { continue }
+  }
+  return null
 }
+
 
 const ACTIVITIES = [
   { id:'walking',    label:'Yürüyüş',          icon:'🚶', met:3.5  },
@@ -76,7 +87,7 @@ function CreditBar({ remaining, banned, limit }) {
 
 export default function AiCoachPage() {
   const { profile, goals, foods, templates, saveTemplates, genId,
-          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, showToast } = useApp()
+          checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT } = useApp()
 
   const [tab, setTab] = useState('chat')
 
@@ -123,14 +134,14 @@ export default function AiCoachPage() {
 
   const handleCalc = async () => {
     const kcal = calcKcal(); if (!kcal) return
+    if (!checkAndUseAiCredit('kalori hesap')) return
     const act = ACTIVITIES.find(a=>a.id===activity)
     setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
     const prompt=`Fitness koçusun. ${gender==='male'?'Erkek':'Kadın'}, ${age||'?'} yaş, ${weight}kg. Aktivite: ${act.label}, ${duration}dk, ~${kcal}kcal. Türkçe kısa yanıt (150 kelime): 1) Değerlendirme 2) 2-3 besin önerisi 3) 1-2 ipucu`
     try {
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:800}})})
-      const d=await r.json(); setCalcTips(d?.candidates?.[0]?.content?.parts?.[0]?.text||'Yanıt alınamadı.')
-    } catch { setCalcTips('AI yanıtı alınamadı.') }
+      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:400})
+      setCalcTips(reply || 'Yanıt alınamadı, tekrar dene.')
+    } catch { setCalcTips('Bağlantı hatası, tekrar dene.') }
     setCalcLoad(false)
   }
 
@@ -151,13 +162,7 @@ export default function AiCoachPage() {
 
   const sendMessage = async (text) => {
     const msg=text||chatInput.trim(); if (!msg||chatLoad) return
-    // Kredi kontrolü — sadece yeterli kredi varsa devam
-    const remaining = aiRemaining()
-    if (remaining <= 0 || isAiBanned()) {
-      if (isAiBanned()) showToast('🚫 Bugün AI özelliklerinden yararlanamazsın.', 'error')
-      else showToast(`⏳ Günlük ${AI_DAILY_LIMIT} AI hakkını kullandın. Yarın tekrar dene.`, 'error')
-      return
-    }
+    if (!checkAndUseAiCredit(msg)) return
     const newMsgs=[...messages,{role:'user',text:msg}]
     setMessages(newMsgs); setChatInput(''); setChatLoad(true)
     const ctx=buildCtx()
@@ -167,12 +172,9 @@ export default function AiCoachPage() {
       ...newMsgs.map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text}]})),
     ]
     try {
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{temperature:.7,maxOutputTokens:4096}})})
-      const d=await r.json()
-      const reply = d?.candidates?.[0]?.content?.parts?.[0]?.text
+      const reply = await geminiCall(contents, {maxOutputTokens:600})
       if (reply) {
-        checkAndUseAiCredit('chat') // sadece başarılı yanıtta kredi tüket
+        checkAndUseAiCredit('chat')
         setMessages(prev=>[...prev,{role:'assistant',text:reply}])
       } else {
         setMessages(prev=>[...prev,{role:'assistant',text:'Yanıt alınamadı, tekrar dene.'}])
@@ -183,6 +185,7 @@ export default function AiCoachPage() {
 
   const generatePlan = async () => {
     if (!profile) return
+    if (!checkAndUseAiCredit('antrenman planı')) return
     setPlanLoad(true); setPlanResult(null); setPlanSaved(false)
     const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
     const levelMap={beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
@@ -194,14 +197,11 @@ Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fi
 Sadece JSON:
 {"program_adi":"...","haftalik_plan":[{"gun":"Pazartesi","odak":"Göğüs","egzersizler":[{"isim":"Bench Press","set":4,"tekrar":"8-10"}],"sure_dk":60,"notlar":"..."}],"genel_notlar":"...","beslenme_ozeti":"..."}`
     try {
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:4096}})})
-      const d=await r.json()
-      let raw=(d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+      const rawText = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:1200})
+      let raw=(rawText||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
       let parsed=null; try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
-      if (parsed && !parsed.error) checkAndUseAiCredit('plan') // sadece başarılıda tüket
       setPlanResult(parsed||{error:'Plan oluşturulamadı.'})
-    } catch { setPlanResult({error:'⚠️ Bağlantı hatası, tekrar dene.'}) }
+    } catch { setPlanResult({error:'⚠️ Bağlantı hatası.'}) }
     setPlanLoad(false)
   }
 
@@ -213,6 +213,7 @@ Sadece JSON:
 
   const analyzeDiet = async () => {
     if (!foods?.length) return
+    if (!checkAndUseAiCredit('diyet analizi')) return
     setDietLoad(true); setDietResult(null)
     const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
     const list=foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
@@ -228,13 +229,10 @@ Türkçe analiz:
 4. 💡 GENEL TAVSİYE (1-2 cümle)
 Eksiksiz yaz.`
     try {
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+      const dietText = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:500})
         {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.7,maxOutputTokens:2048}})})
-      const d=await r.json()
-      const result = d?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (result) { checkAndUseAiCredit('diyet'); setDietResult(result) }
-      else setDietResult('Analiz alınamadı, tekrar dene.')
-    } catch { setDietResult('⚠️ Bağlantı hatası, tekrar dene.') }
+      const d=await r.json(); setDietResult(d?.candidates?.[0]?.content?.parts?.[0]?.text||'Analiz alınamadı.')
+    } catch { setDietResult('⚠️ Bağlantı hatası.') }
     setDietLoad(false)
   }
 

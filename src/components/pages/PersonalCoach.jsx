@@ -162,7 +162,7 @@ export default function PersonalCoachPage() {
     const last7 = []
     for (let i=1; i<=7; i++) {
       const d = new Date(); d.setDate(d.getDate()-i)
-      const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      const dk = d.toISOString().slice(0,10)
       const exs = exArchive[dk] || []
       if (exs.length > 0) last7.push(`${dk}: ${exs.length} egz`)
     }
@@ -196,18 +196,30 @@ ${lines.join('\n')}
       ...newMsgs.map(m => ({ role: m.role==='user'?'user':'model', parts:[{ text:m.text }] })),
     ]
 
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents, generationConfig:{ temperature:.85, maxOutputTokens:4096 } }) }
-      )
-      const data = await res.json()
-      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Bir hata oluştu, tekrar dene.'
-      setMessages(prev => [...prev, { role:'assistant', text:reply }])
-    } catch {
-      setMessages(prev => [...prev, { role:'assistant', text:'⚠️ Sunucuya bağlanılamadı. Tekrar dene.' }])
+    const MODELS = [
+      'gemini-3.1-flash-lite-preview',
+      'gemini-3-flash-preview',
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+    ]
+    let reply = null
+    for (const model of MODELS) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ contents, generationConfig:{ temperature:.85, maxOutputTokens:2048 } }) }
+        )
+        if (!res.ok) continue
+        const data = await res.json()
+        reply = data?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (reply) break
+      } catch { continue }
     }
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      text: reply || '⚠️ Şu an yanıt alınamadı, lütfen tekrar dene.'
+    }])
     setLoading(false)
   }
 
