@@ -14,6 +14,7 @@ import DownloadPage from './components/pages/DownloadPage'
 import WeeklySummaryPage from './components/pages/WeeklySummary'
 import TemplatesPage from './components/pages/Templates'
 import SettingsPage from './components/pages/Settings'
+import AccountPage from './components/pages/AccountPage'
 import Onboarding from './components/Onboarding'
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
     progress: <ProgressPage />,
     body:     <BodyPage />,
     settings: <SettingsPage />,
+    account:  <AccountPage />,
     recognize:<RecognizePage />,
     download: <DownloadPage />,
   }

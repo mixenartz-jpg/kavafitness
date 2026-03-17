@@ -6,6 +6,7 @@ const SECTIONS = [
     color: 'var(--text-muted)',
     items: [
       { id:'home',     label:'ANA MENU',         icon:'🏠', desc:'Uygulama hakkinda' },
+      { id:'account',  label:'HESABIM',           icon:'👤', desc:'Profil, email, şifre, hesap sil' },
       { id:'settings', label:'AYARLAR',           icon:'⚙',  desc:'Profil & hedefler & olculer' },
       { id:'download', label:'UYGULAMAYI INDIR',  icon:'⬇',  desc:'Telefona ekle' },
     ]

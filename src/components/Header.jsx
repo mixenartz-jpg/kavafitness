@@ -134,7 +134,7 @@ export default function Header() {
             <span className="hide-mobile">Geri Bildirim</span>
           </a>
 
-          <button onClick={() => setShowModal(true)} style={{
+          <button onClick={() => setActiveTab('account')} style={{
             display:'flex', alignItems:'center', gap:5, padding:'5px 10px',
             borderRadius:20, background:'var(--surface2)', border:'1px solid var(--border)',
             color:'var(--text)', fontSize:11, cursor:'pointer', fontFamily:'DM Mono,monospace', whiteSpace:'nowrap',
