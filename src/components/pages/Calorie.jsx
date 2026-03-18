@@ -2,7 +2,11 @@ import { useState, useRef } from 'react'
 import { useApp } from '../../context/AppContext'
 
 const GEMINI_KEY  = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
-const FOOD_MODELS = ['gemini-3.1-flash-lite-preview','gemini-3-flash-preview','gemini-2.5-flash','gemini-2.5-flash-lite']
+const FOOD_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+]
 
 const FOOD_DB = [
   { cat:'🍖 Et & Tavuk', name:'Tavuk Göğsü (Haşlama)',   kcal:165, protein:31, fat:4,  carb:0  },
@@ -292,48 +296,74 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
   const analyzeFridge = async () => {
     if (!fridgeInput.trim()) return
     setFridgeLoading(true); setFridgeResult(null)
+
     const profileInfo = profile
       ? `Kullanıcı: ${profile.gender === 'male' ? 'Erkek' : 'Kadın'}, ${profile.weight || '?'}kg, Hedef: ${profile.goal === 'lose' ? 'Kilo vermek' : profile.goal === 'gain' ? 'Kilo almak' : 'Fit kalmak'}`
       : ''
-    const prompt = `Sen sporcu beslenmesi uzmanı bir şefsin. Kullanıcının elindeki malzemeleri kullanarak en optimal sporcu öğününü tarif et.
+
+    const prompt = `Sporcu beslenmesi uzmanı bir şefsin. Verilen malzemelerle en optimal sporcu öğününü tarif et.
 ${profileInfo}
-Elindeki malzemeler: "${fridgeInput}"
+Malzemeler: "${fridgeInput}"
 
-ÖNEMLİ: SADECE geçerli JSON döndür, başka HİÇBİR ŞEY yazma, markdown kullanma:
-{"meal_name":"Yemek Adı","description":"1-2 cümle","ingredients_used":["Malzeme 1"],"steps":["Adım 1","Adım 2"],"total":{"kcal":450,"protein":35,"fat":12,"carb":40},"prep_time":"10 dk","tip":"Neden iyi kombinasyon"}`
+Yanıtını SADECE aşağıdaki JSON formatında ver, başka hiçbir şey ekleme:
+{"meal_name":"Öğün Adı","description":"Kısa açıklama","ingredients_used":["malzeme1","malzeme2"],"steps":["adım1","adım2","adım3"],"total":{"kcal":400,"protein":30,"fat":10,"carb":35},"prep_time":"10 dk","tip":"Sporcu notu"}`
 
-    const FRIDGE_MODELS = [
-      'gemini-2.5-flash-preview-05-20',
+    // Çalışan gerçek model isimleri
+    const MODELS_TO_TRY = [
       'gemini-2.0-flash',
       'gemini-1.5-flash',
+      'gemini-1.5-flash-8b',
     ]
+
     let parsed = null
 
-    for (const model of FRIDGE_MODELS) {
+    for (const model of MODELS_TO_TRY) {
       try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 15000) // 15sn timeout
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-          { method:'POST', headers:{'Content-Type':'application/json'},
-            signal: controller.signal,
-            body: JSON.stringify({ contents:[{ parts:[{ text:prompt }] }], generationConfig:{ temperature:.6, maxOutputTokens:1000 } }) }
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.5, maxOutputTokens: 1200 },
+            }),
+          }
         )
-        clearTimeout(timeout)
-        if (!res.ok) continue
+        if (!res.ok) {
+          console.warn(`Fridge model ${model} failed: ${res.status}`)
+          continue
+        }
         const data = await res.json()
         let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim()
-        raw = raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
-        const s = raw.indexOf('{'); const e = raw.lastIndexOf('}')
-        if (s !== -1 && e !== -1) raw = raw.slice(s, e + 1)
-        try { parsed = JSON.parse(raw) } catch { parsed = null }
-        if (parsed?.meal_name && parsed?.total) break
-        parsed = null
-      } catch { continue }
+
+        // JSON bloğunu temizle
+        raw = raw.replace(/^```(?:json)?[\r\n]*/i, '').replace(/[\r\n]*```\s*$/,'').trim()
+
+        // İlk { ile son } arasını kes
+        const start = raw.indexOf('{')
+        const end   = raw.lastIndexOf('}')
+        if (start === -1 || end === -1 || end <= start) continue
+        raw = raw.slice(start, end + 1)
+
+        try {
+          const candidate = JSON.parse(raw)
+          if (candidate?.meal_name && candidate?.total?.kcal !== undefined) {
+            parsed = candidate
+            break
+          }
+        } catch { /* JSON parse başarısız, sonraki modele geç */ }
+      } catch (err) {
+        console.warn(`Fridge fetch error (${model}):`, err)
+        continue
+      }
     }
 
-    if (!parsed) showToast('Tarif oluşturulamadı, tekrar dene.', 'error')
-    else setFridgeResult(parsed)
+    if (!parsed) {
+      showToast('Tarif oluşturulamadı. Malzemeleri biraz daha detaylı yaz ve tekrar dene.', 'error')
+    } else {
+      setFridgeResult(parsed)
+    }
     setFridgeLoading(false)
   }
 

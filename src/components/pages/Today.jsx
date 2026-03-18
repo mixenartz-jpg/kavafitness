@@ -4,6 +4,38 @@ import { useApp } from '../../context/AppContext'
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview']
 
+// ── Egzersiz Autocomplete Listesi ──
+const EXERCISE_LIST = [
+  'Bench Press','İncline Bench Press','Decline Bench Press','Dumbbell Fly','Cable Crossover','Chest Dip','Push Up','İncline Dumbbell Press','Dumbbell Press',
+  'Deadlift','Barbell Row','Lat Pulldown','Seated Cable Row','Pull-Up','Chin-Up','T-Bar Row','Dumbbell Row','Face Pull','Rack Pull','Sumo Deadlift',
+  'Overhead Press','Barbell Overhead Press','Dumbbell Shoulder Press','Lateral Raise','Front Raise','Rear Delt Fly','Shrug','Arnold Press',
+  'Squat','Front Squat','Hack Squat','Leg Press','Romanian Deadlift','Leg Curl','Leg Extension','Hip Thrust','Lunge','Bulgarian Split Squat','Calf Raise','Stiff-Leg Deadlift',
+  'Bicep Curl','Barbell Curl','Hammer Curl','Preacher Curl','Concentration Curl','Cable Curl',
+  'Tricep Extension','Skull Crusher','Tricep Pushdown','Overhead Tricep Extension','Dip','Close Grip Bench Press',
+  'Plank','Crunch','Sit-Up','Leg Raise','Cable Crunch','Russian Twist','Ab Wheel','Hanging Leg Raise',
+  'Koşu Bandı','Bisiklet','Kürek Makinesi','Elliptical','Battle Rope','Box Jump','Burpee','Kettlebell Swing','Farmers Walk',
+]
+
+function getExSuggestions(query, exArchive, exercises) {
+  if (!query || query.length < 1) return []
+  const q = query.toLowerCase()
+  const fromHistory = new Set()
+  exercises.forEach(e => fromHistory.add(e.name))
+  Object.values(exArchive || {}).forEach(day => day.forEach(e => fromHistory.add(e.name)))
+  const all = [...new Set([...fromHistory, ...EXERCISE_LIST])]
+  return all
+    .filter(name => name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      const aH = fromHistory.has(a) ? 0 : 1
+      const bH = fromHistory.has(b) ? 0 : 1
+      if (aH !== bH) return aH - bH
+      const aS = a.toLowerCase().startsWith(q) ? 0 : 1
+      const bS = b.toLowerCase().startsWith(q) ? 0 : 1
+      return aS - bS
+    })
+    .slice(0, 7)
+}
+
 const YT_DB = {
   'bench press':['dbl8xMcCHAY','SCVCLChPQEY','gRVjAtPip0Y'],
   'squat':['1oed_0gr9o4','nEQQle9-0NA','UXJrBgI2RxA'],
@@ -99,6 +131,8 @@ export default function TodayPage() {
 
   const [showForm, setShowForm]           = useState(false)
   const [newName, setNewName]             = useState('')
+  const [suggestions, setSuggestions]     = useState([])
+  const [showSuggest, setShowSuggest]     = useState(false)
   const [openCards, setOpenCards]         = useState({})
   const [showNote, setShowNote]           = useState(false)
   const [note, setNote]                   = useState(() => getWorkoutNote ? getWorkoutNote() : '')
@@ -110,11 +144,12 @@ export default function TodayPage() {
   const totalSets = () => viewExs.reduce((s, e) => s + e.sets.length, 0)
   const maxWeight = () => { let m = 0; viewExs.forEach(ex => ex.sets.forEach(st => { if (+st.weight > m) m = +st.weight })); return m }
 
-  const addExercise = () => {
-    if (!newName.trim()) return showToast('Egzersiz adi girin!', 'error')
-    saveExercises([...exercises, { id: genId(), name: newName.trim(), sets: [], open: true }])
-    setNewName(''); setShowForm(false)
-    showToast(`${newName} eklendi`)
+  const addExercise = (nameOverride) => {
+    const n = (nameOverride || newName).trim()
+    if (!n) return showToast('Egzersiz adi girin!', 'error')
+    saveExercises([...exercises, { id: genId(), name: n, sets: [], open: true }])
+    setNewName(''); setShowForm(false); setSuggestions([]); setShowSuggest(false)
+    showToast(`${n} eklendi`)
   }
 
   const removeExercise = (id) => { saveExercises(exercises.filter(e => e.id !== id)); showToast('Egzersiz silindi') }
@@ -311,16 +346,82 @@ export default function TodayPage() {
       {showForm && (
         <div className="card animate-fade" style={{ padding:20, marginBottom:16 }}>
           <div className="section-title">YENİ EGZERSİZ</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-end' }}>
-            <div className="form-group">
-              <span className="flabel">Egzersiz Adi</span>
-              <input type="text" value={newName} placeholder="örn. Bench Press, Squat..."
-                onChange={e=>setNewName(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&addExercise()} autoFocus />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-start' }}>
+            <div className="form-group" style={{ position:'relative' }}>
+              <span className="flabel">Egzersiz Adı</span>
+              <input
+                type="text"
+                value={newName}
+                placeholder="örn. Bench Press, Squat..."
+                onChange={e => {
+                  const v = e.target.value
+                  setNewName(v)
+                  const s = getExSuggestions(v, exArchive, exercises)
+                  setSuggestions(s)
+                  setShowSuggest(s.length > 0 && v.length > 0)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { addExercise(); return }
+                  if (e.key === 'Escape') setShowSuggest(false)
+                  if (e.key === 'ArrowDown' && suggestions.length > 0) {
+                    e.preventDefault()
+                    const first = document.querySelector('.ex-suggest-item')
+                    first?.focus()
+                  }
+                }}
+                onBlur={() => setTimeout(() => setShowSuggest(false), 180)}
+                autoFocus
+              />
+              {/* Autocomplete dropdown */}
+              {showSuggest && suggestions.length > 0 && (
+                <div style={{
+                  position:'absolute', top:'100%', left:0, right:0, zIndex:100,
+                  background:'var(--surface)', border:'1px solid rgba(232,255,71,.25)',
+                  borderRadius:'0 0 12px 12px', overflow:'hidden',
+                  boxShadow:'0 8px 30px rgba(0,0,0,.5)',
+                }}>
+                  {suggestions.map((s, i) => {
+                    const isHistory = exercises.some(e => e.name === s) ||
+                      Object.values(exArchive || {}).some(day => day.some(e => e.name === s))
+                    return (
+                      <div
+                        key={i}
+                        className="ex-suggest-item"
+                        tabIndex={0}
+                        onMouseDown={() => { addExercise(s) }}
+                        onKeyDown={e => { if (e.key === 'Enter') addExercise(s) }}
+                        style={{
+                          padding:'10px 14px', cursor:'pointer',
+                          display:'flex', alignItems:'center', gap:10,
+                          borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                          transition:'background .1s',
+                          background:'transparent',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,255,71,.06)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span style={{ fontSize:16 }}>🏋️</span>
+                        <span style={{ flex:1, fontFamily:'Inter,sans-serif', fontSize:13, color:'var(--text)' }}>
+                          {/* Eşleşen kısmı vurgula */}
+                          {s.toLowerCase().startsWith(newName.toLowerCase())
+                            ? <><strong style={{ color:'var(--accent)' }}>{s.slice(0, newName.length)}</strong>{s.slice(newName.length)}</>
+                            : s
+                          }
+                        </span>
+                        {isHistory && (
+                          <span style={{ fontFamily:'Space Mono,monospace', fontSize:8, color:'var(--accent)', background:'rgba(232,255,71,.1)', border:'1px solid rgba(232,255,71,.2)', borderRadius:10, padding:'1px 6px', flexShrink:0 }}>
+                            geçmiş
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button className="btn btn-primary" onClick={addExercise}>Ekle</button>
-              <button className="btn btn-ghost" onClick={()=>setShowForm(false)}>Iptal</button>
+            <div style={{ display:'flex', gap:8, paddingTop:20 }}>
+              <button className="btn btn-primary" onClick={() => addExercise()}>Ekle</button>
+              <button className="btn btn-ghost" onClick={() => { setShowForm(false); setSuggestions([]); setShowSuggest(false) }}>İptal</button>
             </div>
           </div>
         </div>
