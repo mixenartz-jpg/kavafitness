@@ -34,10 +34,11 @@ const MORE_SECTIONS = [
     label: 'DİĞER',
     color: 'var(--text-muted)',
     items: [
-      { id:'settings',  icon:'⚙️',  label:'Ayarlar'          },
-      { id:'share',     icon:'📤',  label:'Paylaş'           },
-      { id:'recognize', icon:'📷',  label:'Egzersiz Tanıma'  },
-      { id:'download',  icon:'⬇️',  label:'Uygulamayı İndir' },
+      { id:'achievements', icon:'🏅', label:'Başarılar'        },
+      { id:'settings',     icon:'⚙️',  label:'Ayarlar'         },
+      { id:'share',        icon:'📤', label:'Paylaş'           },
+      { id:'recognize',    icon:'📷', label:'Egzersiz Tanıma'  },
+      { id:'download',     icon:'⬇️', label:'Uygulamayı İndir' },
     ],
   },
 ]

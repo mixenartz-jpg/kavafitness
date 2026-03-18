@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useApp } from '../../context/AppContext'
+import { useApp, PERSONA_UNLOCKS } from '../../context/AppContext'
 
 const GKEY        = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const COACH_PASS  = 'kerembaba12358'
@@ -163,7 +163,7 @@ function LockScreen({ onUnlock }) {
 
 // ── Ana Koç Sayfası ──
 export default function PersonalCoachPage() {
-  const { profile, goals, foods, exercises, exArchive, body, streak, calArch, todayKey } = useApp()
+  const { profile, goals, foods, exercises, exArchive, body, streak, calArch, todayKey, totalXP, setActiveTab } = useApp()
 
   const [unlocked, setUnlocked] = useState(() => !!localStorage.getItem(PASS_KEY))
   const [persona,  setPersona]  = useState(() => localStorage.getItem(PERSONA_KEY) || 'balanced')
@@ -405,23 +405,30 @@ ${lines.join('\n')}
             🎭 Mod
           </button>
           {showPersonaMenu && (
-            <div style={{ position:'absolute', right:0, top:'110%', zIndex:50, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', width:220, boxShadow:'0 8px 32px rgba(0,0,0,.5)' }} className="animate-fade">
-              {PERSONAS.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => changePersona(p.id)}
-                  style={{ padding:'11px 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:10, background: persona === p.id ? 'rgba(232,255,71,.06)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,.04)', transition:'background .1s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
-                  onMouseLeave={e => e.currentTarget.style.background = persona === p.id ? 'rgba(232,255,71,.06)' : 'transparent'}
-                >
-                  <span style={{ fontSize:18 }}>{p.icon}</span>
-                  <div>
-                    <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:1.5, color: persona === p.id ? 'var(--accent)' : 'var(--text)' }}>{p.label}</div>
-                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:1 }}>{p.desc}</div>
+            <div style={{ position:'absolute', right:0, top:'110%', zIndex:50, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', width:240, boxShadow:'0 8px 32px rgba(0,0,0,.5)' }} className="animate-fade">
+              {PERSONAS.map(p => {
+                const unlockReq = PERSONA_UNLOCKS[p.id]
+                const isLocked  = unlockReq && totalXP < unlockReq.xpRequired
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => isLocked ? setActiveTab('achievements') : changePersona(p.id)}
+                    style={{ padding:'11px 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:10, background: persona === p.id ? 'rgba(232,255,71,.06)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,.04)', transition:'background .1s', opacity: isLocked ? .6 : 1 }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                    onMouseLeave={e => e.currentTarget.style.background = persona === p.id ? 'rgba(232,255,71,.06)' : 'transparent'}
+                  >
+                    <span style={{ fontSize:18, filter: isLocked ? 'grayscale(1)' : 'none' }}>{p.icon}</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:1.5, color: persona === p.id ? 'var(--accent)' : isLocked ? 'var(--text-muted)' : 'var(--text)' }}>{p.label}</div>
+                      <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color: isLocked ? 'var(--red)' : 'var(--text-muted)', marginTop:1 }}>
+                        {isLocked ? `🔒 ${unlockReq.xpRequired.toLocaleString()} XP gerekli` : p.desc}
+                      </div>
+                    </div>
+                    {persona === p.id && !isLocked && <span style={{ marginLeft:'auto', color:'var(--accent)', fontSize:12 }}>✓</span>}
+                    {isLocked && <span style={{ fontSize:12 }}>🔒</span>}
                   </div>
-                  {persona === p.id && <span style={{ marginLeft:'auto', color:'var(--accent)', fontSize:12 }}>✓</span>}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

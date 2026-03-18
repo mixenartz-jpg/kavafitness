@@ -136,7 +136,7 @@ export default function TodayPage() {
     exercises, saveExercises, exArchive,
     viewingDate, setViewingDate, showToast, genId, todayKey,
     templates, saveWorkoutNote, getWorkoutNote, profile,
-    streak,
+    streak, checkAndShowPR, awardWorkoutXP,
   } = useApp()
 
   const isToday = viewingDate === todayKey()
@@ -176,8 +176,13 @@ export default function TodayPage() {
 
   const addSet = (exId, reps, weight) => {
     if (!reps && !weight) return showToast('Tekrar veya agirlik girin!', 'error')
-    saveExercises(exercises.map(e => e.id === exId ? { ...e, sets: [...e.sets, { reps: +reps||0, weight: +weight||0 }] } : e))
-    // Set sonrası dinlenme sayacı başlat
+    const updated = exercises.map(e => e.id === exId ? { ...e, sets: [...e.sets, { reps: +reps||0, weight: +weight||0 }] } : e)
+    saveExercises(updated)
+    // Set sonrası XP kazandır ve dinlenme sayacı başlat
+    if (awardWorkoutXP) {
+      const totalSets = updated.reduce((s, e) => s + e.sets.length, 0)
+      awardWorkoutXP(updated.filter(e => e.sets.length > 0).length, totalSets)
+    }
     setRestTimer({ exId, seconds: restSeconds })
   }
   const removeSet = (exId, sIdx) => saveExercises(exercises.map(e => e.id === exId ? { ...e, sets: e.sets.filter((_,i)=>i!==sIdx) } : e))

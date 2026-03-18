@@ -24,6 +24,82 @@ const fbSet = (ref, data) => setDoc(ref, data).catch(console.error)
 // ── AI HARIÇ günlük 5 hak (Kişisel Koç bu sistemin dışında) ──
 export const AI_DAILY_LIMIT = 10
 
+// ══════════════════════════════════════════════
+// ── XP SİSTEMİ ──
+// ══════════════════════════════════════════════
+export const XP_REWARDS = {
+  SET_ADDED:        10,   // Her set ekleme
+  EXERCISE_DONE:    25,   // Egzersiz tamamlama
+  WORKOUT_COMPLETE: 100,  // Günlük antrenman tamamlama (1+ egzersiz)
+  MACRO_75:         30,   // Kalori hedefinin %75'ine ulaşma
+  MACRO_100:        75,   // Kalori hedefinin %100'üne ulaşma
+  PROTEIN_GOAL:     50,   // Protein hedefi tamamlama
+  WATER_GOAL:       20,   // Su hedefi tamamlama
+  STREAK_BONUS:     50,   // Her 7 günlük seri
+  PR_BONUS:         150,  // Kişisel rekor
+  BODY_LOG:         15,   // Vücut ölçümü ekleme
+}
+
+export const XP_LEVELS = [
+  { level:1,  minXP:0,     title:'Yeni Başlayan',  icon:'🌱' },
+  { level:2,  minXP:200,   title:'Sporcu',          icon:'💪' },
+  { level:3,  minXP:500,   title:'Azimli',          icon:'🔥' },
+  { level:4,  minXP:1000,  title:'Güçlü',           icon:'⚡' },
+  { level:5,  minXP:2000,  title:'Elit',            icon:'🏆' },
+  { level:6,  minXP:3500,  title:'Şampiyon',        icon:'👑' },
+  { level:7,  minXP:5500,  title:'Efsane',          icon:'🌟' },
+  { level:8,  minXP:8000,  title:'Ölümsüz',         icon:'⚔️' },
+]
+
+export function getXpLevel(xp) {
+  let current = XP_LEVELS[0]
+  for (const l of XP_LEVELS) { if (xp >= l.minXP) current = l }
+  const idx = XP_LEVELS.indexOf(current)
+  const next = XP_LEVELS[idx + 1] || null
+  const progress = next
+    ? Math.round(((xp - current.minXP) / (next.minXP - current.minXP)) * 100)
+    : 100
+  return { ...current, next, progress, xp }
+}
+
+// XP ile unlocklanabilen persona'lar
+export const PERSONA_UNLOCKS = {
+  philosopher: { xpRequired: 500,  label:'Felsefi Koç',       icon:'🏛️' },
+  drill:       { xpRequired: 1000, label:'Drill Sergeant',    icon:'🪖' },
+  analytical:  { xpRequired: 2000, label:'Analitik Koç',      icon:'📊' },
+}
+
+// ══════════════════════════════════════════════
+// ── ROZET SİSTEMİ ──
+// ══════════════════════════════════════════════
+export const BADGE_DEFINITIONS = [
+  // Streak rozetleri
+  { id:'streak_3',   icon:'⚡', name:'Momentum',      desc:'3 günlük seri',             check: (d) => d.streak >= 3   },
+  { id:'streak_7',   icon:'🔥', name:'Yanıyor',       desc:'7 günlük seri',             check: (d) => d.streak >= 7   },
+  { id:'streak_14',  icon:'💎', name:'Elmas',         desc:'14 günlük seri',            check: (d) => d.streak >= 14  },
+  { id:'streak_30',  icon:'🏆', name:'İnsan Makinesi',desc:'30 günlük seri',            check: (d) => d.streak >= 30  },
+  { id:'streak_60',  icon:'👑', name:'Efsane',        desc:'60 günlük seri',            check: (d) => d.streak >= 60  },
+  // Ağırlık rozetleri
+  { id:'lift_60',    icon:'🌱', name:'Başlangıç',     desc:'60kg kaldır',               check: (d) => d.allTimeMaxWeight >= 60  },
+  { id:'lift_80',    icon:'💪', name:'Güçleniyorum',  desc:'80kg kaldır',               check: (d) => d.allTimeMaxWeight >= 80  },
+  { id:'lift_100',   icon:'💯', name:'Triple Digit',  desc:'100kg kaldır',              check: (d) => d.allTimeMaxWeight >= 100 },
+  { id:'lift_120',   icon:'🦁', name:'Aslan',         desc:'120kg kaldır',              check: (d) => d.allTimeMaxWeight >= 120 },
+  { id:'lift_140',   icon:'🐉', name:'Ejderha',       desc:'140kg kaldır',              check: (d) => d.allTimeMaxWeight >= 140 },
+  // Antrenman sayısı
+  { id:'workouts_10',  icon:'🎯', name:'İlk 10',      desc:'10 antrenman tamamla',      check: (d) => d.totalWorkouts >= 10  },
+  { id:'workouts_50',  icon:'🏅', name:'Elli',         desc:'50 antrenman tamamla',      check: (d) => d.totalWorkouts >= 50  },
+  { id:'workouts_100', icon:'🎖️', name:'Yüzlük',      desc:'100 antrenman tamamla',     check: (d) => d.totalWorkouts >= 100 },
+  // PR rozetleri
+  { id:'pr_first',   icon:'🥇', name:'İlk Rekor',     desc:'İlk kişisel rekorunu kır',  check: (d) => d.totalPRs >= 1  },
+  { id:'pr_10',      icon:'🏆', name:'Rekor Kırıcı',  desc:'10 kişisel rekor kır',      check: (d) => d.totalPRs >= 10 },
+  // Kalori / Makro
+  { id:'macro_week', icon:'🥗', name:'Beslenme Ustası',desc:'7 gün üst üste makro tamamla', check: (d) => d.macroStreakDays >= 7 },
+  // XP
+  { id:'xp_500',     icon:'⚡', name:'Enerjik',       desc:'500 XP kazan',              check: (d) => d.totalXP >= 500  },
+  { id:'xp_2000',    icon:'🌟', name:'Yıldız',        desc:'2000 XP kazan',             check: (d) => d.totalXP >= 2000 },
+  { id:'xp_5000',    icon:'🔱', name:'Tanrı Modu',    desc:'5000 XP kazan',             check: (d) => d.totalXP >= 5000 },
+]
+
 // ── Uygunsuz içerik kelime listesi ──
 const BANNED = [
   'siktir','orospu','götveren','piç','amk','bok','oç','göt',
@@ -93,6 +169,12 @@ export function AppProvider({ children }) {
   const [viewingDate, setViewingDate] = useState(todayKey())
   const [toast,       setToast]       = useState(null)
   const [prAlert,     setPrAlert]     = useState(null)
+
+  // ── XP & Rozet state ──
+  const [totalXP,    setTotalXP]    = useState(0)
+  const [earnedBadges, setEarnedBadges] = useState([])   // kazanılan rozet id'leri
+  const [xpPopup,    setXpPopup]    = useState(null)     // { amount, reason }
+  const [badgePopup, setBadgePopup] = useState(null)     // badge objesi
 
   const streak = calcStreak(exercises, exArchive)
 
@@ -213,6 +295,10 @@ export function AppProvider({ children }) {
     const au=ls.get(userId,'ai_usage',{date:'',used:0,banned:false})
     setAiUsage(au.date===today ? au : {date:today,used:0,banned:false})
 
+    // XP & Rozetleri yükle
+    setTotalXP(ls.get(userId,'kerogym_xp', 0))
+    setEarnedBadges(ls.get(userId,'kerogym_badges', []))
+
     const t=localStorage.getItem('kerogym_theme')||'dark'
     _setTheme(t); document.documentElement.setAttribute('data-theme',t)
   }, [])
@@ -318,8 +404,96 @@ export function AppProvider({ children }) {
       setPrAlert({name:exName,weight:newWeight})
       sendNotif('🏆 Yeni Rekor!',`${exName}: ${newWeight}kg — kişisel rekor!`)
       setTimeout(()=>setPrAlert(null), 4000)
+      // PR = XP bonus
+      earnXP(XP_REWARDS.PR_BONUS, 'Kişisel Rekor! 🏆')
     }
   }, [exArchive, exercises, sendNotif])
+
+  // ── XP Kazanma ──
+  const earnXP = useCallback((amount, reason = '') => {
+    if (!uid) return
+    setTotalXP(prev => {
+      const newXP = prev + amount
+      ls.set(uid, 'kerogym_xp', newXP)
+      // XP popup göster
+      setXpPopup({ amount, reason })
+      setTimeout(() => setXpPopup(null), 2200)
+      return newXP
+    })
+  }, [uid])
+
+  // ── Rozet Kontrolü ──
+  const checkBadges = useCallback((overrideData = {}) => {
+    if (!uid) return
+    const current = ls.get(uid, 'kerogym_badges', [])
+
+    // Tüm zaman max ağırlık
+    let allTimeMaxWeight = 0
+    Object.values(exArchive).forEach(day =>
+      day.forEach(ex => ex.sets.forEach(s => { if (+s.weight > allTimeMaxWeight) allTimeMaxWeight = +s.weight }))
+    )
+    exercises.forEach(ex => ex.sets.forEach(s => { if (+s.weight > allTimeMaxWeight) allTimeMaxWeight = +s.weight }))
+
+    // Toplam antrenman günü sayısı
+    const totalWorkouts = Object.values(exArchive).filter(day => day.length > 0).length
+      + (exercises.length > 0 ? 1 : 0)
+
+    // Toplam XP
+    const currentXP = ls.get(uid, 'kerogym_xp', 0)
+
+    const checkData = {
+      streak,
+      allTimeMaxWeight,
+      totalWorkouts,
+      totalPRs:     ls.get(uid, 'kerogym_total_prs', 0),
+      macroStreakDays: ls.get(uid, 'kerogym_macro_streak', 0),
+      totalXP:      currentXP,
+      ...overrideData,
+    }
+
+    const newlyEarned = []
+    for (const badge of BADGE_DEFINITIONS) {
+      if (!current.includes(badge.id) && badge.check(checkData)) {
+        newlyEarned.push(badge)
+      }
+    }
+
+    if (newlyEarned.length > 0) {
+      const updated = [...current, ...newlyEarned.map(b => b.id)]
+      ls.set(uid, 'kerogym_badges', updated)
+      setEarnedBadges(updated)
+      // İlk rozeti popup olarak göster
+      setBadgePopup(newlyEarned[0])
+      setTimeout(() => setBadgePopup(null), 4000)
+      // Her rozet için XP bonus
+      newlyEarned.forEach(() => earnXP(50, 'Rozet Kazanıldı! 🏅'))
+      sendNotif('🏅 Yeni Rozet!', `${newlyEarned[0].icon} ${newlyEarned[0].name} rozeti kazandın!`)
+    }
+  }, [uid, streak, exArchive, exercises, earnXP, sendNotif])
+
+  // ── Antrenman tamamlanınca XP ──
+  const awardWorkoutXP = useCallback((exCount, setCount) => {
+    if (!uid || exCount === 0) return
+    earnXP(XP_REWARDS.WORKOUT_COMPLETE + setCount * XP_REWARDS.SET_ADDED, `${exCount} egzersiz tamamlandı`)
+    // Streak bonusu
+    if (streak > 0 && streak % 7 === 0) earnXP(XP_REWARDS.STREAK_BONUS, `${streak} günlük seri!`)
+    checkBadges()
+  }, [uid, streak, earnXP, checkBadges])
+
+  // ── Makro tamamlanınca XP (Calorie/Goals sayfalarından çağrılır) ──
+  const checkMacroXP = useCallback((totals, goalData) => {
+    if (!uid || !goalData) return
+    const today = todayKey()
+    const lastCheck = ls.get(uid, 'kerogym_macro_check', '')
+    if (lastCheck === today) return  // Günde 1 kez
+    const kcalPct = goalData.kcal > 0 ? totals.kcal / goalData.kcal : 0
+    const protPct = goalData.protein > 0 ? totals.protein / goalData.protein : 0
+    if (kcalPct >= 1.0) earnXP(XP_REWARDS.MACRO_100, 'Kalori hedefi tamamlandı!')
+    else if (kcalPct >= 0.75) earnXP(XP_REWARDS.MACRO_75, 'Kalori hedefinin %75\'i')
+    if (protPct >= 1.0) earnXP(XP_REWARDS.PROTEIN_GOAL, 'Protein hedefi tamamlandı!')
+    ls.set(uid, 'kerogym_macro_check', today)
+    checkBadges()
+  }, [uid, earnXP, checkBadges])
 
   return (
     <AppContext.Provider value={{
@@ -345,6 +519,11 @@ export function AppProvider({ children }) {
       activeTab, setActiveTab,
       showToast, toast,
       genId, todayKey,
+      // XP & Rozet sistemi
+      totalXP, earnXP, awardWorkoutXP, checkMacroXP, checkBadges,
+      earnedBadges, xpPopup, badgePopup,
+      getXpLevel: () => getXpLevel(totalXP),
+      PERSONA_UNLOCKS, BADGE_DEFINITIONS,
     }}>
       {children}
     </AppContext.Provider>

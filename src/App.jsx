@@ -21,9 +21,10 @@ import AccountPage from './components/pages/AccountPage'
 import Onboarding from './components/Onboarding'
 import DaySummaryPage from './components/pages/DaySummary'
 import BottomNav from './components/BottomNav'
+import AchievementsPage from './components/pages/Achievements'
 
 export default function App() {
-  const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme } = useApp()
+  const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme, xpPopup, badgePopup } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Tema uygula
@@ -94,6 +95,7 @@ export default function App() {
     account:  <AccountPage />,
     recognize:<RecognizePage />,
     foodrecognize:<FoodRecognizePage />,
+    achievements:<AchievementsPage />,
     download: <DownloadPage />,
   }
 
@@ -106,6 +108,27 @@ export default function App() {
       </div>
       <BottomNav />
       <Toast />
+
+      {/* XP Popup */}
+      {xpPopup && (
+        <div className="xp-popup">
+          <span style={{ fontSize:18 }}>⚡</span>
+          <div>
+            <div className="xp-popup-amount">+{xpPopup.amount} XP</div>
+            {xpPopup.reason && <div className="xp-popup-label">{xpPopup.reason}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Rozet Popup */}
+      {badgePopup && (
+        <div className="badge-popup">
+          <div style={{ fontSize:44, marginBottom:8 }}>{badgePopup.icon}</div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--accent)', letterSpacing:3, marginBottom:4 }}>YENİ ROZET</div>
+          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:2, marginBottom:4 }}>{badgePopup.name}</div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>{badgePopup.desc}</div>
+        </div>
+      )}
     </>
   )
 }
