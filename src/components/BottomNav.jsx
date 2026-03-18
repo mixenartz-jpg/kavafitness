@@ -36,7 +36,6 @@ const MORE_SECTIONS = [
     items: [
       { id:'achievements', icon:'🏅', label:'Başarılar'        },
       { id:'settings',     icon:'⚙️',  label:'Ayarlar'         },
-      { id:'admin',        icon:'🔐', label:'Admin'            },
       { id:'share',        icon:'📤', label:'Paylaş'           },
       { id:'recognize',    icon:'📷', label:'Egzersiz Tanıma'  },
       { id:'download',     icon:'⬇️', label:'Uygulamayı İndir' },
