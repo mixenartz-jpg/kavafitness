@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react'
-import { auth, db } from '../firebase'
-import { signOut } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { useEffect } from 'react'
 import { useApp } from '../context/AppContext'
-import NavTabs from './NavTabs'
+
 
 const DAYS = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt']
 
@@ -43,25 +40,9 @@ const getDailyQuote = () => {
   return QUOTES[day % QUOTES.length]
 }
 
-function stringToColor(str) {
-  const colors = ['#e8ff47','#47c8ff','#47ff8a','#ff8c47','#ff47c8','#c847ff']
-  let h = 0; for (let i=0;i<str.length;i++) h=str.charCodeAt(i)+((h<<5)-h)
-  return colors[Math.abs(h)%colors.length]
-}
 
 export default function Header() {
-  // ✅ FIX: context'teki todayKey kullanılıyor — timezone tutarlılığı sağlandı
   const { user, exercises, exArchive, viewingDate, setViewingDate, setActiveTab, todayKey } = useApp()
-  const [username, setUsername] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  useEffect(() => {
-    if (!user) return
-    getDoc(doc(db, 'users', user.uid)).then(s => {
-      if (s.exists()) setUsername(s.data().username || '')
-    })
-  }, [user])
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
@@ -77,9 +58,6 @@ export default function Header() {
 
   return (
     <>
-      {/* Sidebar */}
-      <NavTabs open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       {/* ── TOP BAR ── */}
       <header style={{
         position:'sticky', top:0, zIndex:100,
@@ -89,38 +67,19 @@ export default function Header() {
         display:'flex', alignItems:'center', justifyContent:'space-between',
         height:56, gap:8, overflow:'hidden',
       }}>
-        {/* Left: Hamburger + Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{
-              background:'var(--surface2)', border:'1px solid var(--border)',
-              color:'var(--text)', width:36, height:36, borderRadius:9,
-              cursor:'pointer', display:'flex', flexDirection:'column',
-              alignItems:'center', justifyContent:'center', gap:5,
-              transition:'all .15s', flexShrink:0, padding:0,
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <span style={{ display:'block', width:16, height:1.5, background:'var(--text)', borderRadius:2 }} />
-            <span style={{ display:'block', width:12, height:1.5, background:'var(--accent)', borderRadius:2 }} />
-            <span style={{ display:'block', width:16, height:1.5, background:'var(--text)', borderRadius:2 }} />
-          </button>
-
-          <div onClick={() => setActiveTab('home')}
-            style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-            <img src="/logo-sm.png" alt="KeroGym" style={{ height:30, width:'auto' }} />
-            <div style={{
-              fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3,
-              color:'var(--accent)', textShadow:'0 0 20px rgba(232,255,71,.3)', whiteSpace:'nowrap',
-            }}>
-              KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
-            </div>
+        {/* Logo */}
+        <div onClick={() => setActiveTab('home')}
+          style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+          <img src="/logo-sm.png" alt="KeroGym" style={{ height:30, width:'auto' }} />
+          <div style={{
+            fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3,
+            color:'var(--accent)', textShadow:'0 0 20px rgba(232,255,71,.3)', whiteSpace:'nowrap',
+          }}>
+            KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
           </div>
         </div>
 
-        {/* Right buttons */}
+        {/* Right: Geri Bildirim */}
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
           <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
             style={{
@@ -133,22 +92,6 @@ export default function Header() {
             </svg>
             <span className="hide-mobile">Geri Bildirim</span>
           </a>
-
-          <button onClick={() => setActiveTab('account')} style={{
-            display:'flex', alignItems:'center', gap:5, padding:'5px 10px',
-            borderRadius:20, background:'var(--surface2)', border:'1px solid var(--border)',
-            color:'var(--text)', fontSize:11, cursor:'pointer', fontFamily:'DM Mono,monospace', whiteSpace:'nowrap',
-          }}>
-            <div style={{
-              width:20, height:20, borderRadius:'50%', flexShrink:0,
-              background: username ? stringToColor(username) : 'var(--accent)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontFamily:'Bebas Neue,sans-serif', fontSize:11, color:'#0a0a0a',
-            }}>
-              {username ? username[0].toUpperCase() : '?'}
-            </div>
-            <span className="hide-mobile">{username || 'Profil'}</span>
-          </button>
         </div>
       </header>
 
@@ -207,36 +150,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Profile Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setShowModal(false)}>
-          <div className="modal-box" style={{ maxWidth:320 }}>
-            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3, marginBottom:16 }}>👤 PROFİL</div>
-            <div style={{
-              display:'flex', alignItems:'center', gap:14,
-              background:'var(--surface2)', border:'1px solid var(--border)',
-              borderRadius:12, padding:16, marginBottom:20,
-            }}>
-              <div style={{
-                width:48, height:48, borderRadius:'50%', flexShrink:0,
-                background: username ? stringToColor(username) : 'var(--accent)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontFamily:'Bebas Neue,sans-serif', fontSize:22, color:'#0a0a0a',
-              }}>
-                {username ? username[0].toUpperCase() : '?'}
-              </div>
-              <div>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:1 }}>{username}</div>
-                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>@{username}</div>
-              </div>
-            </div>
-            <button className="btn btn-ghost" style={{ width:'100%', borderColor:'rgba(255,71,71,.3)', color:'var(--red)' }}
-              onClick={() => { signOut(auth); setShowModal(false) }}>
-              🚪 Çıkış Yap
-            </button>
-          </div>
-        </div>
-      )}
+
     </>
   )
 }

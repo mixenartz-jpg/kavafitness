@@ -19,6 +19,7 @@ import SettingsPage from './components/pages/Settings'
 import AccountPage from './components/pages/AccountPage'
 import Onboarding from './components/Onboarding'
 import DaySummaryPage from './components/pages/DaySummary'
+import BottomNav from './components/BottomNav'
 
 export default function App() {
   const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme } = useApp()
@@ -66,7 +67,10 @@ export default function App() {
       <>
         {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
         <Header />
-        <DaySummaryPage />
+        <div style={{ paddingBottom: 72 }}>
+          <DaySummaryPage />
+        </div>
+        <BottomNav />
         <Toast />
       </>
     )
@@ -95,7 +99,10 @@ export default function App() {
     <>
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Header />
-      {pages[activeTab] ?? <TodayPage />}
+      <div style={{ paddingBottom: 72 }}>
+        {pages[activeTab] ?? <TodayPage />}
+      </div>
+      <BottomNav />
       <Toast />
     </>
   )
