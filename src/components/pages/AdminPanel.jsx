@@ -1,24 +1,39 @@
 import { useState, useEffect } from 'react'
-import { db } from '../../firebase'
-import { auth } from '../../firebase'
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, writeBatch } from 'firebase/firestore'
+import { db, auth } from '../../firebase'
+import { useApp } from '../../context/AppContext'
+import {
+  doc, collection, getDocs, deleteDoc, setDoc,
+  serverTimestamp, query, orderBy, limit,
+} from 'firebase/firestore'
 
-// Admin UID'leri — Firebase Console'dan ekleyebilirsin
-// Bu UID'ler Firestore rules'da kontrol edilecek
-const ADMIN_UIDS = [''] // Firebase Console > Authentication'dan kendi UID'ini buraya ekle
-
+// ─────────────────────────────────────────────
+// Admin şifresi
+// ─────────────────────────────────────────────
 const ADMIN_PASS = 'kerogym_admin_2025'
 const ADMIN_KEY  = 'kerogym_admin_unlocked'
 
+// Duyurular admin'in kendi users/{uid}/announcements/ altına yazılır.
+// Announcement.jsx, bu UID'den okur → Firestore rules gerekmez.
+// İlk girişte UID localStorage'a kaydedilir, Announcement.jsx da aynı key'i okur.
+export const ADMIN_UID_KEY = 'kerogym_admin_uid'
+
 // ── Şifre Ekranı ──
 function AdminLock({ onUnlock }) {
-  const [pw, setPw]     = useState('')
-  const [err, setErr]   = useState(false)
+  const [pw, setPw]       = useState('')
+  const [err, setErr]     = useState(false)
   const [shake, setShake] = useState(false)
 
   const tryUnlock = () => {
-    if (pw === ADMIN_PASS) { localStorage.setItem(ADMIN_KEY, '1'); onUnlock() }
-    else { setErr(true); setShake(true); setPw(''); setTimeout(() => setShake(false), 500) }
+    if (pw === ADMIN_PASS) {
+      // UID'i kaydet — Announcement bu key'den okuyacak
+      const uid = auth.currentUser?.uid
+      if (uid) localStorage.setItem(ADMIN_UID_KEY, uid)
+      localStorage.setItem(ADMIN_KEY, '1')
+      onUnlock()
+    } else {
+      setErr(true); setShake(true); setPw('')
+      setTimeout(() => setShake(false), 500)
+    }
   }
 
   return (
@@ -44,7 +59,8 @@ function AdminLock({ onUnlock }) {
           />
           {err && <span style={{ fontSize:10, color:'var(--red)', fontFamily:'Space Mono,monospace', marginTop:4, display:'block' }}>❌ Yanlış şifre</span>}
         </div>
-        <button className="btn btn-primary" onClick={tryUnlock} style={{ width:'100%', padding:12, background:'var(--red)', color:'#fff' }}>
+        <button className="btn btn-primary" onClick={tryUnlock}
+          style={{ width:'100%', padding:12, background:'var(--red)', color:'#fff' }}>
           Giriş Yap
         </button>
       </div>
@@ -53,49 +69,55 @@ function AdminLock({ onUnlock }) {
   )
 }
 
-export default function AdminPanelPage() {
-  const [unlocked, setUnlocked] = useState(() => !!localStorage.getItem(ADMIN_KEY))
-  const [tab, setTab]           = useState('broadcast')
+// ── Yardımcılar ──
+function getAdminRef(uid) {
+  return collection(db, 'users', uid, 'announcements')
+}
+function getDocRef(uid, id) {
+  return doc(db, 'users', uid, 'announcements', id)
+}
 
-  // Broadcast state
+const TYPE_COLORS = {
+  info:    { bg:'rgba(71,200,255,.1)',  border:'rgba(71,200,255,.3)',  text:'#47c8ff',        icon:'ℹ️' },
+  success: { bg:'rgba(71,255,138,.1)',  border:'rgba(71,255,138,.3)',  text:'var(--green)',   icon:'✅' },
+  warning: { bg:'rgba(255,140,71,.1)',  border:'rgba(255,140,71,.3)',  text:'#ff8c47',        icon:'⚠️' },
+  promo:   { bg:'rgba(232,255,71,.1)',  border:'rgba(232,255,71,.3)',  text:'var(--accent)',  icon:'🎉' },
+}
+
+export default function AdminPanelPage() {
+  const { uid: adminUid } = useApp()  // auth.currentUser yerine context'ten — her zaman güvenli
+  const [unlocked, setUnlocked] = useState(() => !!localStorage.getItem(ADMIN_KEY))
+  const [tab,      setTab]      = useState('broadcast')
   const [title,   setTitle]   = useState('')
   const [body,    setBody]    = useState('')
-  const [type,    setType]    = useState('info')   // info | success | warning | promo
+  const [type,    setType]    = useState('info')
   const [sending, setSending] = useState(false)
   const [sent,    setSent]    = useState(false)
 
-  // Mesaj geçmişi
-  const [history, setHistory]   = useState([])
+  const [history,  setHistory]  = useState([])
   const [loadingH, setLoadingH] = useState(false)
 
-  // Kullanıcı listesi
   const [users,    setUsers]    = useState([])
   const [loadingU, setLoadingU] = useState(false)
-  const [userStats, setUserStats] = useState(null)
+  const [userStats,setUserStats]= useState(null)
 
   useEffect(() => {
-    if (!unlocked) return
+    if (!unlocked || !adminUid) return
     loadHistory()
     loadUsers()
-  }, [unlocked])
+  }, [unlocked, adminUid])
 
   const loadHistory = async () => {
+    if (!adminUid) return
     setLoadingH(true)
     try {
-      // Önce global koleksiyonu dene, olmadıysa admin user altından oku
-      const uid = auth.currentUser?.uid
-      let snap
-      try {
-        const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20))
-        snap = await getDocs(q)
-      } catch {
-        if (uid) {
-          const q2 = query(collection(db, 'users', uid, 'announcements'), orderBy('createdAt', 'desc'), limit(20))
-          snap = await getDocs(q2)
-        }
-      }
-      setHistory(snap ? snap.docs.map(d => ({ id: d.id, ...d.data() })) : [])
-    } catch { setHistory([]) }
+      const q    = query(getAdminRef(adminUid), orderBy('createdAt', 'desc'), limit(30))
+      const snap = await getDocs(q)
+      setHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch (e) {
+      console.error('loadHistory:', e)
+      setHistory([])
+    }
     setLoadingH(false)
   }
 
@@ -105,78 +127,49 @@ export default function AdminPanelPage() {
       const snap = await getDocs(collection(db, 'users'))
       const list = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
       setUsers(list)
-      // Basit istatistikler
-      setUserStats({
-        total: list.length,
-        withUsername: list.filter(u => u.username).length,
-      })
+      setUserStats({ total: list.length, withUsername: list.filter(u => u.username).length })
     } catch { setUsers([]) }
     setLoadingU(false)
   }
 
   const sendBroadcast = async () => {
-    if (!title.trim() || !body.trim()) return
+    if (!title.trim() || !body.trim() || !adminUid) return
     setSending(true); setSent(false)
-    const uid = auth.currentUser?.uid
-    const msgData = {
-      title: title.trim(),
-      body:  body.trim(),
-      type,
-      createdAt: serverTimestamp(),
-      active: true,
-    }
     try {
-      // Global koleksiyona yazmayı dene (rules izin veriyorsa)
-      try {
-        await addDoc(collection(db, 'announcements'), msgData)
-      } catch {
-        // Fallback: admin kullanıcısının kendi altına yaz
-        // Announcement.jsx bu path'i de okuyacak
-        if (uid) {
-          await addDoc(collection(db, 'users', uid, 'announcements'), msgData)
-          // Tüm kullanıcılara ulaşmak için admin'in genel duyuru doc'unu güncelle
-          await setDoc(doc(db, 'users', uid, 'fitdata', 'latestAnnouncement'), msgData)
-        } else {
-          throw new Error('Giriş yapılmamış')
-        }
-      }
+      // Benzersiz ID oluştur
+      const id  = `ann_${Date.now()}`
+      const ref = getDocRef(adminUid, id)
+      await setDoc(ref, {
+        title:     title.trim(),
+        body:      body.trim(),
+        type,
+        createdAt: serverTimestamp(),
+        active:    true,
+      })
       setSent(true)
       setTitle(''); setBody('')
       await loadHistory()
       setTimeout(() => setSent(false), 3000)
-    } catch (e) { alert('Hata: ' + e.message) }
+    } catch (e) {
+      alert('Hata: ' + e.message)
+      console.error(e)
+    }
     setSending(false)
   }
 
   const deleteMsg = async (id) => {
-    if (!window.confirm('Bu duyuruyu sil?')) return
-    const uid = auth.currentUser?.uid
-    try {
-      await deleteDoc(doc(db, 'announcements', id))
-    } catch {
-      if (uid) await deleteDoc(doc(db, 'users', uid, 'announcements', id))
-    }
+    if (!adminUid || !window.confirm('Bu duyuruyu sil?')) return
+    try { await deleteDoc(getDocRef(adminUid, id)) } catch (e) { alert(e.message) }
     await loadHistory()
   }
 
   const toggleActive = async (id, current) => {
-    const uid = auth.currentUser?.uid
-    try {
-      await setDoc(doc(db, 'announcements', id), { active: !current }, { merge: true })
-    } catch {
-      if (uid) await setDoc(doc(db, 'users', uid, 'announcements', id), { active: !current }, { merge: true })
-    }
+    if (!adminUid) return
+    try { await setDoc(getDocRef(adminUid, id), { active: !current }, { merge: true }) } catch (e) { alert(e.message) }
     await loadHistory()
   }
 
   if (!unlocked) return <AdminLock onUnlock={() => setUnlocked(true)} />
-
-  const TYPE_COLORS = {
-    info:    { bg:'rgba(71,200,255,.1)', border:'rgba(71,200,255,.3)', text:'#47c8ff', icon:'ℹ️' },
-    success: { bg:'rgba(71,255,138,.1)', border:'rgba(71,255,138,.3)', text:'var(--green)', icon:'✅' },
-    warning: { bg:'rgba(255,140,71,.1)', border:'rgba(255,140,71,.3)', text:'#ff8c47', icon:'⚠️' },
-    promo:   { bg:'rgba(232,255,71,.1)', border:'rgba(232,255,71,.3)', text:'var(--accent)', icon:'🎉' },
-  }
 
   const tabStyle = (id) => ({
     flex:1, padding:'9px 4px', border:'none', cursor:'pointer',
@@ -191,12 +184,12 @@ export default function AdminPanelPage() {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
         <div>
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:26, letterSpacing:3, color:'var(--red)' }}>ADMİN PANELİ</div>
-          <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:2 }}>KeroGym Yönetim Paneli</div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:2 }}>
+            {adminUid ? `UID: ${adminUid.slice(0,12)}...` : 'UID alınamadı'}
+          </div>
         </div>
-        <button
-          onClick={() => { localStorage.removeItem(ADMIN_KEY); setUnlocked(false) }}
-          style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}
-        >
+        <button onClick={() => { localStorage.removeItem(ADMIN_KEY); setUnlocked(false) }}
+          style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}>
           Kilitle
         </button>
       </div>
@@ -205,9 +198,9 @@ export default function AdminPanelPage() {
       {userStats && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:20 }}>
           {[
-            { label:'Toplam Kullanıcı', val: userStats.total,         icon:'👥', color:'var(--accent)' },
-            { label:'Kullanıcı Adlı',   val: userStats.withUsername,  icon:'✅', color:'var(--green)'  },
-            { label:'Aktif Duyuru',     val: history.filter(h=>h.active).length, icon:'📢', color:'#ff8c47' },
+            { label:'Toplam Kullanıcı', val: userStats.total,        icon:'👥', color:'var(--accent)' },
+            { label:'Kullanıcı Adlı',  val: userStats.withUsername,  icon:'✅', color:'var(--green)'  },
+            { label:'Aktif Duyuru',    val: history.filter(h=>h.active).length, icon:'📢', color:'#ff8c47' },
           ].map(({ label, val, icon, color }) => (
             <div key={label} className="card" style={{ padding:'14px', textAlign:'center' }}>
               <div style={{ fontSize:20, marginBottom:4 }}>{icon}</div>
@@ -231,20 +224,15 @@ export default function AdminPanelPage() {
           <div className="card" style={{ padding:'22px 24px', marginBottom:16 }}>
             <div className="section-title">YENİ DUYURU</div>
 
-            {/* Tip seçici */}
             <div className="form-group" style={{ marginBottom:14 }}>
               <span className="flabel">Duyuru Tipi</span>
               <div style={{ display:'flex', gap:8 }}>
                 {Object.entries(TYPE_COLORS).map(([id, c]) => (
-                  <div
-                    key={id}
-                    onClick={() => setType(id)}
-                    style={{
-                      flex:1, padding:'8px 4px', borderRadius:8, cursor:'pointer', textAlign:'center',
-                      background: type === id ? c.bg : 'var(--surface2)',
-                      border: `1px solid ${type === id ? c.border : 'var(--border)'}`,
-                    }}
-                  >
+                  <div key={id} onClick={() => setType(id)} style={{
+                    flex:1, padding:'8px 4px', borderRadius:8, cursor:'pointer', textAlign:'center',
+                    background: type === id ? c.bg : 'var(--surface2)',
+                    border: `1px solid ${type === id ? c.border : 'var(--border)'}`,
+                  }}>
                     <div style={{ fontSize:16, marginBottom:2 }}>{c.icon}</div>
                     <div style={{ fontFamily:'Space Mono,monospace', fontSize:8, color: type === id ? c.text : 'var(--text-muted)', textTransform:'uppercase' }}>{id}</div>
                   </div>
@@ -258,15 +246,14 @@ export default function AdminPanelPage() {
             </div>
             <div className="form-group" style={{ marginBottom:16 }}>
               <span className="flabel">Mesaj</span>
-              <textarea
-                value={body} onChange={e => setBody(e.target.value)}
-                placeholder="Duyuru içeriği... (HTML desteklenmez)"
+              <textarea value={body} onChange={e => setBody(e.target.value)}
+                placeholder="Duyuru içeriği..."
                 rows={4}
                 style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', fontSize:13, padding:'10px 12px', outline:'none', resize:'vertical', fontFamily:'Inter,sans-serif', lineHeight:1.6, width:'100%' }}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                onFocus={e => e.target.style.borderColor='var(--accent)'}
+                onBlur={e => e.target.style.borderColor='var(--border)'}
               />
-              <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>{body.length}/500 karakter</span>
+              <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>{body.length}/500</span>
             </div>
 
             {/* Önizleme */}
@@ -276,23 +263,19 @@ export default function AdminPanelPage() {
                 <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
                   <span style={{ fontSize:20 }}>{TYPE_COLORS[type].icon}</span>
                   <div>
-                    <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:2, color: TYPE_COLORS[type].text, marginBottom:4 }}>{title || 'Başlık...'}</div>
-                    <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'var(--text-dim)', lineHeight:1.7 }}>{body || 'Mesaj içeriği...'}</div>
+                    <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:2, color:TYPE_COLORS[type].text, marginBottom:4 }}>{title || 'Başlık...'}</div>
+                    <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'var(--text-dim)', lineHeight:1.7 }}>{body || 'Mesaj...'}</div>
                   </div>
                 </div>
               </div>
             )}
 
-            <button
-              className="btn btn-primary"
-              onClick={sendBroadcast}
+            <button className="btn btn-primary" onClick={sendBroadcast}
               disabled={!title.trim() || !body.trim() || sending}
-              style={{ width:'100%', padding:13, opacity: (!title.trim() || !body.trim() || sending) ? .4 : 1 }}
-            >
+              style={{ width:'100%', padding:13, opacity:(!title.trim()||!body.trim()||sending)?.4:1 }}>
               {sending
                 ? <><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Gönderiliyor...</>
-                : sent ? '✅ Duyuru Gönderildi!' : '📢 Tüm Kullanıcılara Gönder'
-              }
+                : sent ? '✅ Gönderildi!' : '📢 Tüm Kullanıcılara Gönder'}
             </button>
           </div>
         </div>
@@ -301,6 +284,7 @@ export default function AdminPanelPage() {
       {/* ── GEÇMİŞ ── */}
       {tab === 'history' && (
         <div className="animate-fade">
+          <button onClick={loadHistory} className="btn btn-ghost" style={{ marginBottom:12, fontSize:11 }}>↺ Yenile</button>
           {loadingH
             ? <div style={{ textAlign:'center', padding:'32px 0' }}><span className="spinner"/></div>
             : history.length === 0
@@ -313,19 +297,20 @@ export default function AdminPanelPage() {
                       <div style={{ flex:1 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
                           <span style={{ fontSize:16 }}>{c.icon}</span>
-                          <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:1.5, color: c.text }}>{msg.title}</span>
-                          <span style={{ fontFamily:'Space Mono,monospace', fontSize:8, padding:'2px 6px', borderRadius:10, background: msg.active ? 'rgba(71,255,138,.1)' : 'var(--surface3)', color: msg.active ? 'var(--green)' : 'var(--text-muted)', border:`1px solid ${msg.active ? 'rgba(71,255,138,.25)' : 'var(--border)'}` }}>
+                          <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:1.5, color:c.text }}>{msg.title}</span>
+                          <span style={{ fontFamily:'Space Mono,monospace', fontSize:8, padding:'2px 6px', borderRadius:10,
+                            background: msg.active ? 'rgba(71,255,138,.1)' : 'var(--surface3)',
+                            color: msg.active ? 'var(--green)' : 'var(--text-muted)',
+                            border:`1px solid ${msg.active?'rgba(71,255,138,.25)':'var(--border)'}` }}>
                             {msg.active ? 'AKTİF' : 'PASİF'}
                           </span>
                         </div>
                         <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'var(--text-muted)', lineHeight:1.6 }}>{msg.body}</div>
                       </div>
                       <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                        <button
-                          onClick={() => toggleActive(msg.id, msg.active)}
-                          style={{ padding:'5px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface2)', color:'var(--text-muted)', cursor:'pointer', fontFamily:'Space Mono,monospace', fontSize:9 }}
-                        >
-                          {msg.active ? 'Pasif Yap' : 'Aktif Yap'}
+                        <button onClick={() => toggleActive(msg.id, msg.active)}
+                          style={{ padding:'5px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface2)', color:'var(--text-muted)', cursor:'pointer', fontFamily:'Space Mono,monospace', fontSize:9 }}>
+                          {msg.active ? 'Pasif' : 'Aktif'}
                         </button>
                         <button className="btn btn-danger" onClick={() => deleteMsg(msg.id)} style={{ fontSize:12, padding:'5px 9px' }}>✕</button>
                       </div>
@@ -353,16 +338,12 @@ export default function AdminPanelPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.slice(0,50).map((u, i) => (
+                    {users.slice(0,50).map(u => (
                       <tr key={u.uid}>
-                        <td style={{ padding:'9px 14px', fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:1, borderBottom:'1px solid rgba(255,255,255,.03)', color:'var(--accent)' }}>
-                          @{u.username || '—'}
-                        </td>
-                        <td style={{ padding:'9px 14px', fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,.03)' }}>
-                          {u.email || '—'}
-                        </td>
+                        <td style={{ padding:'9px 14px', fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:1, borderBottom:'1px solid rgba(255,255,255,.03)', color:'var(--accent)' }}>@{u.username||'—'}</td>
+                        <td style={{ padding:'9px 14px', fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,.03)' }}>{u.email||'—'}</td>
                         <td style={{ padding:'9px 14px', fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,.03)' }}>
-                          {u.createdAt?.seconds ? new Date(u.createdAt.seconds * 1000).toLocaleDateString('tr-TR') : '—'}
+                          {u.createdAt?.seconds ? new Date(u.createdAt.seconds*1000).toLocaleDateString('tr-TR') : '—'}
                         </td>
                       </tr>
                     ))}
@@ -370,7 +351,7 @@ export default function AdminPanelPage() {
                 </table>
                 {users.length > 50 && (
                   <div style={{ padding:'10px 14px', fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', textAlign:'center' }}>
-                    +{users.length - 50} daha kullanıcı (ilk 50 gösteriliyor)
+                    +{users.length-50} daha
                   </div>
                 )}
               </div>

@@ -121,7 +121,7 @@ export default function TodayPage() {
     exercises, saveExercises, exArchive,
     viewingDate, setViewingDate, showToast, genId, todayKey,
     templates, saveWorkoutNote, getWorkoutNote, profile,
-    streak,
+    streak, checkAndShowPR, awardWorkoutXP, earnXP,
   } = useApp()
 
   const isToday = viewingDate === todayKey()
@@ -161,8 +161,18 @@ export default function TodayPage() {
 
   const addSet = (exId, reps, weight) => {
     if (!reps && !weight) return showToast('Tekrar veya agirlik girin!', 'error')
-    saveExercises(exercises.map(e => e.id === exId ? { ...e, sets: [...e.sets, { reps: +reps||0, weight: +weight||0 }] } : e))
-    // Set sonrası dinlenme sayacı başlat
+    const updated = exercises.map(e => e.id === exId
+      ? { ...e, sets: [...e.sets, { reps: +reps||0, weight: +weight||0 }] }
+      : e
+    )
+    saveExercises(updated)
+    // Her set +10 XP (basit, güvenilir)
+    if (earnXP) earnXP(10, 'Set tamamlandı 💪')
+    // PR kontrolü
+    if (checkAndShowPR && weight > 0) {
+      const exName = exercises.find(e => e.id === exId)?.name || ''
+      if (exName) checkAndShowPR(exName, +weight)
+    }
     setRestTimer({ exId, seconds: restSeconds })
   }
   const removeSet = (exId, sIdx) => saveExercises(exercises.map(e => e.id === exId ? { ...e, sets: e.sets.filter((_,i)=>i!==sIdx) } : e))
@@ -665,16 +675,24 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
   "pr_status": "Bu egzersizde PR'ın 82.5kg. Bugün 80kg ile devam et."
 }`
 
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.6,maxOutputTokens:600}})
-      })
-      const data = await res.json()
-      let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
-      let parsed=null; try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
-      setAiData(parsed)
-    } catch { setAiData(null) }
+    const AI_MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash', 'gemini-2.0-flash']
+    let parsed = null
+    for (const model of AI_MODELS) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.6,maxOutputTokens:800}})
+        })
+        if (!res.ok) continue
+        const data = await res.json()
+        let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+        const s = raw.indexOf('{'); const e = raw.lastIndexOf('}')
+        if (s !== -1 && e !== -1) raw = raw.slice(s, e+1)
+        try { parsed = JSON.parse(raw) } catch { parsed = null }
+        if (parsed) break
+      } catch { continue }
+    }
+    setAiData(parsed)
     setAiLoading(false)
   }
 
