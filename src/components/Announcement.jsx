@@ -25,24 +25,20 @@ export default function Announcement() {
       )
       const snap = await getDocs(q)
       if (snap.empty) return
-
       const msg = { id: snap.docs[0].id, ...snap.docs[0].data() }
-
-      // Görülmüş mü?
       const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')
       if (seen.includes(msg.id)) return
-
       setAnnouncement(msg)
       setVisible(true)
-    } catch { /* sessiz hata */ }
+    } catch (e) {
+      console.warn('Announcement fetch:', e.message)
+    }
   }
 
   const close = () => {
     if (!announcement) return
     const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')
-    if (!seen.includes(announcement.id)) {
-      localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, announcement.id]))
-    }
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, announcement.id]))
     setVisible(false)
   }
 
@@ -58,8 +54,7 @@ export default function Announcement() {
 
   return (
     <div style={{
-      position:'fixed', inset:0,
-      background:'rgba(0,0,0,.75)', backdropFilter:'blur(6px)',
+      position:'fixed', inset:0, background:'rgba(0,0,0,.75)', backdropFilter:'blur(6px)',
       zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center',
       padding:20, animation:'fadeIn .3s ease',
     }}>
@@ -69,48 +64,25 @@ export default function Announcement() {
         position:'relative', animation:'slideDown .35s ease',
         boxShadow:'0 20px 60px rgba(0,0,0,.6)',
       }}>
-        {/* Kapat */}
         <button onClick={close} style={{
-          position:'absolute', top:12, right:12,
-          background:'var(--surface2)', border:'1px solid var(--border)',
-          color:'var(--text-muted)', width:28, height:28, borderRadius:7,
-          cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center',
+          position:'absolute', top:12, right:12, background:'var(--surface2)',
+          border:'1px solid var(--border)', color:'var(--text-muted)',
+          width:28, height:28, borderRadius:7, cursor:'pointer', fontSize:13,
+          display:'flex', alignItems:'center', justifyContent:'center',
         }}>✕</button>
 
-        {/* Başlık */}
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-          <div style={{
-            width:36, height:36, borderRadius:10, flexShrink:0,
-            background:`${style.border}30`,
-            border:`1px solid ${style.border}`,
-            display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
-          }}>{style.icon}</div>
-          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:3, color:style.accent }}>
-            {announcement.title}
-          </div>
+          <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:`${style.border}30`, border:`1px solid ${style.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>{style.icon}</div>
+          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:3, color:style.accent }}>{announcement.title}</div>
         </div>
 
-        {/* İçerik */}
-        <div style={{
-          background:'var(--surface2)', border:'1px solid var(--border)',
-          borderRadius:10, padding:'14px 16px', marginBottom:18,
-        }}>
-          <p style={{ fontSize:13, lineHeight:1.8, fontFamily:'Inter,sans-serif', color:'var(--text)', margin:0 }}>
-            {announcement.body}
-          </p>
+        <div style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:18 }}>
+          <p style={{ fontSize:13, lineHeight:1.8, fontFamily:'Inter,sans-serif', color:'var(--text)', margin:0 }}>{announcement.body}</p>
         </div>
 
-        {/* Alt */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
-            — <span style={{ color:style.accent }}>KeroGym</span>
-          </div>
-          <button onClick={close} className="btn btn-primary" style={{
-            padding:'8px 18px', fontSize:12,
-            fontFamily:'Bebas Neue,sans-serif', letterSpacing:2,
-          }}>
-            TAMAM 👍
-          </button>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>— <span style={{ color:style.accent }}>KeroGym</span></div>
+          <button onClick={close} className="btn btn-primary" style={{ padding:'8px 18px', fontSize:12, fontFamily:'Bebas Neue,sans-serif', letterSpacing:2 }}>TAMAM 👍</button>
         </div>
       </div>
     </div>

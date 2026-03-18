@@ -135,17 +135,19 @@ export default function AdminPanelPage() {
   const sendBroadcast = async () => {
     if (!title.trim() || !body.trim() || !adminUid) return
     setSending(true); setSent(false)
+    const id      = `ann_${Date.now()}`
+    const msgData = {
+      title:     title.trim(),
+      body:      body.trim(),
+      type,
+      createdAt: serverTimestamp(),
+      active:    true,
+    }
     try {
-      // Benzersiz ID oluştur
-      const id  = `ann_${Date.now()}`
-      const ref = getDocRef(adminUid, id)
-      await setDoc(ref, {
-        title:     title.trim(),
-        body:      body.trim(),
-        type,
-        createdAt: serverTimestamp(),
-        active:    true,
-      })
+      // 1. Admin'in kendi path'ine yaz (geçmiş için)
+      await setDoc(getDocRef(adminUid, id), msgData)
+      // 2. Global announcements'a da yaz — tüm kullanıcılar görsün
+      await setDoc(doc(db, 'announcements', id), msgData)
       setSent(true)
       setTitle(''); setBody('')
       await loadHistory()
