@@ -142,6 +142,7 @@ export default function PersonalCoachPage() {
       if (profile.goal)  lines.push(`Hedef: ${goalMap[profile.goal]}`)
       if (profile.level) lines.push(`Seviye: ${levelMap[profile.level]}`)
       if (profile.tdee)  lines.push(`TDEE: ~${profile.tdee} kcal/gün`)
+      if (profile.targetWeight) lines.push(`Hedef kilo: ${profile.targetWeight}kg`)
     }
 
     lines.push(`Günlük makro hedef: ${goals.kcal}kcal, ${goals.protein}g P, ${goals.fat}g Y, ${goals.carb}g K`)
@@ -212,8 +213,12 @@ ${lines.join('\n')}
         )
         if (!res.ok) continue
         const data = await res.json()
-        reply = data?.candidates?.[0]?.content?.parts?.[0]?.text
-        if (reply) break
+        const cand = data?.candidates?.[0]
+        reply = cand?.content?.parts?.[0]?.text
+        // finish_reason MAX_TOKENS: yanıt kesilmiş, sonraki modeli dene
+        if (reply && cand?.finishReason !== 'MAX_TOKENS') break
+        if (reply && model === MODELS[MODELS.length - 1]) break // son model, yine de kullan
+        if (reply && cand?.finishReason === 'MAX_TOKENS') { reply = null; continue }
       } catch { continue }
     }
     setMessages(prev => [...prev, {

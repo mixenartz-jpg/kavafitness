@@ -41,7 +41,7 @@ export default function Onboarding({ onComplete }) {
   const [form, setForm] = useState({
     goal: '', sportTypes: [], level: '', trainDays: [],
     gender: 'male', age: '', weight: '', height: '',
-    waist: '', activity: '1.55',
+    waist: '', activity: '1.55', targetWeight: '',
   })
 
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }))
@@ -241,6 +241,38 @@ export default function Onboarding({ onComplete }) {
                 </select>
               </div>
             </div>
+
+            {/* YENİ: Hedef kilo — sadece ilgili hedeflerde göster */}
+            {(form.goal === 'lose' || form.goal === 'gain' || form.goal === 'cut') && (
+              <div className="form-group">
+                <span className="flabel">
+                  Hedef Kilo (kg)
+                  <span style={{ color:'var(--text-muted)', fontSize:9, marginLeft:6, fontWeight:400 }}>
+                    — {form.goal === 'lose' ? 'olmak istediğin kilo' : form.goal === 'gain' ? 'hedeflediğin kilo' : 'cut sonrası hedef kilo'}
+                  </span>
+                </span>
+                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                  <input
+                    type="number"
+                    value={form.targetWeight}
+                    onChange={e => set('targetWeight', e.target.value)}
+                    placeholder={form.weight ? String(Math.round(+form.weight * (form.goal === 'lose' || form.goal === 'cut' ? 0.9 : 1.1))) : '70'}
+                    style={{ flex:1 }}
+                  />
+                  {form.weight && form.targetWeight && (
+                    <div style={{
+                      fontFamily:'DM Mono,monospace', fontSize:11,
+                      color: form.goal === 'lose' || form.goal === 'cut' ? 'var(--green)' : 'var(--accent)',
+                      background:'var(--surface2)', border:'1px solid var(--border)',
+                      borderRadius:8, padding:'8px 12px', whiteSpace:'nowrap', flexShrink:0,
+                    }}>
+                      {form.goal === 'lose' || form.goal === 'cut' ? '↓' : '↑'}
+                      {Math.abs(+form.targetWeight - +form.weight).toFixed(1)} kg
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* TDEE preview */}
             {form.weight && form.height && form.age && (

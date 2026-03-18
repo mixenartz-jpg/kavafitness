@@ -39,16 +39,17 @@ export default function SettingsPage() {
 
   const [tab, setTab] = useState('profile')
   const [form, setForm] = useState({
-    goal:       profile?.goal || '',
-    sportTypes: profile?.sportTypes || [],
-    level:      profile?.level || '',
-    trainDays:  profile?.trainDays || [],
-    gender:     profile?.gender || 'male',
-    age:        profile?.age || '',
-    weight:     profile?.weight || '',
-    height:     profile?.height || '',
-    waist:      profile?.waist || '',
-    activity:   profile?.activity || '1.55',
+    goal:         profile?.goal || '',
+    sportTypes:   profile?.sportTypes || [],
+    level:        profile?.level || '',
+    trainDays:    profile?.trainDays || [],
+    gender:       profile?.gender || 'male',
+    age:          profile?.age || '',
+    weight:       profile?.weight || '',
+    height:       profile?.height || '',
+    waist:        profile?.waist || '',
+    activity:     profile?.activity || '1.55',
+    targetWeight: profile?.targetWeight || '',   // YENİ: Hedef kilo
   })
   const [goalDraft, setGoalDraft] = useState(goals)
   const [bodyForm, setBodyForm]   = useState({
@@ -108,6 +109,7 @@ export default function SettingsPage() {
     if (level) tips.push(`Seviye: ${level.icon} ${level.label}`)
     if (profile.trainDays?.length) tips.push(`Haftada ${profile.trainDays.length} gün antrenman`)
     if (profile.tdee) tips.push(`Günlük kalori ihtiyacın: ~${profile.tdee} kcal`)
+    if (profile.targetWeight) tips.push(`🎯 Hedef kilo: ${profile.targetWeight} kg`)
     return tips
   }
 
@@ -235,6 +237,40 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
+
+            {/* YENİ: Hedef kilo — sadece kilo ver/al/yağ yak seçilince göster */}
+            {(form.goal === 'lose' || form.goal === 'gain' || form.goal === 'cut') && (
+              <div style={{ marginTop: 10 }}>
+                <div className="form-group">
+                  <span className="flabel">
+                    Hedef Kilo (kg)
+                    <span style={{ color: 'var(--text-muted)', fontSize: 9, marginLeft: 6, fontWeight: 400 }}>
+                      — {form.goal === 'lose' ? 'ulaşmak istediğin kilo' : form.goal === 'gain' ? 'hedeflediğin kilo' : 'cut sonrası hedef kilo'}
+                    </span>
+                  </span>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      value={form.targetWeight}
+                      onChange={e => set('targetWeight', e.target.value)}
+                      placeholder={form.weight ? String(Math.round(+form.weight * (form.goal === 'lose' ? 0.9 : 1.1))) : '70'}
+                      style={{ flex: 1 }}
+                    />
+                    {form.weight && form.targetWeight && (
+                      <div style={{
+                        fontFamily: 'DM Mono,monospace', fontSize: 11,
+                        color: form.goal === 'lose' || form.goal === 'cut' ? 'var(--green)' : 'var(--accent)',
+                        background: 'var(--surface2)', border: '1px solid var(--border)',
+                        borderRadius: 8, padding: '8px 12px', whiteSpace: 'nowrap', flexShrink: 0,
+                      }}>
+                        {form.goal === 'lose' || form.goal === 'cut' ? '↓' : '↑'}
+                        {Math.abs(+form.targetWeight - +form.weight).toFixed(1)} kg
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Antrenman günleri */}

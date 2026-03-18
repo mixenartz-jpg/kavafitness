@@ -25,18 +25,24 @@ const MODELS = [
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
 ]
+
+// FIX: maxOutputTokens varsayılanı 600→1200, finish_reason kontrolü eklendi
 async function geminiCall(contents, cfg = {}) {
   for (const model of MODELS) {
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
         { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents, generationConfig:{ temperature:.7, maxOutputTokens:600, ...cfg } }) }
+          body: JSON.stringify({ contents, generationConfig:{ temperature:.7, maxOutputTokens:1200, ...cfg } }) }
       )
       if (!res.ok) continue
       const d = await res.json()
-      const t = d?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (t) return t
+      const cand = d?.candidates?.[0]
+      const t = cand?.content?.parts?.[0]?.text
+      // finish_reason MAX_TOKENS ise model kesintiye uğramış demektir — sonraki modele geç
+      if (t && cand?.finishReason !== 'MAX_TOKENS') return t
+      // Kesilen yanıtı yine de döndür (son model ise)
+      if (t && model === MODELS[MODELS.length - 1]) return t
     } catch { continue }
   }
   return null
@@ -151,9 +157,10 @@ export default function AiCoachPage() {
     if (isAiBanned() || aiRemaining() <= 0) { showToast('⏳ Günlük AI hakkın doldu.', 'error'); return }
     const act = ACTIVITIES.find(a=>a.id===activity)
     setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
-    const prompt=`Kalori koçu: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal. Türkçe, maks 3 kısa madde. SADECE bu antrenman için yorum yap.`
+    // FIX: kalori koç token'ı 400→600
+    const prompt=`Kalori koçu: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal. Türkçe, maks 3 kısa madde. SADECE bu antrenman için yorum yap. Yanıtını tamamla.`
     try {
-      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:400})
+      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:600})
       if (reply) { checkAndUseAiCredit('kalori'); setCalcTips(reply) }
       else setCalcTips('Yanıt alınamadı, tekrar dene.')
     } catch { setCalcTips('Bağlantı hatası, tekrar dene.') }
@@ -165,6 +172,7 @@ export default function AiCoachPage() {
     if (profile) {
       p.push(`${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg, ${profile.height||'?'}cm`)
       if (profile.goal) p.push(`Hedef: ${profile.goal==='lose'?'Kilo ver':profile.goal==='gain'?'Kilo al':profile.goal==='cut'?'Yağ yak':'Koru'}`)
+      if (profile.targetWeight) p.push(`Hedef kilo: ${profile.targetWeight}kg`)
       if (profile.tdee) p.push(`TDEE: ~${profile.tdee}kcal`)
     }
     if (goals) p.push(`Makro: ${goals.kcal}kcal, ${goals.protein}g P, ${goals.fat}g Y, ${goals.carb}g K`)
@@ -172,7 +180,7 @@ export default function AiCoachPage() {
       const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
+    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme, her zaman tamamla.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
@@ -187,7 +195,8 @@ export default function AiCoachPage() {
       ...newMsgs.map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text}]})),
     ]
     try {
-      const reply = await geminiCall(contents, {maxOutputTokens:600})
+      // FIX: sohbet token'ı 600→1200
+      const reply = await geminiCall(contents, {maxOutputTokens:1200})
       if (reply) { checkAndUseAiCredit('chat'); setMessages(prev=>[...prev,{role:'assistant',text:reply}]) }
       else setMessages(prev=>[...prev,{role:'assistant',text:'Yanıt alınamadı, tekrar dene.'}])
     } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası, tekrar dene.'}]) }
@@ -202,15 +211,17 @@ export default function AiCoachPage() {
     const levelMap={beginner:'Yeni Başlayan',intermediate:'Orta Seviye',advanced:'İleri Seviye'}
     const sportMap={gym:'Gym/Ağırlık',cardio:'Cardio',yoga:'Yoga',crossfit:'CrossFit',swim:'Yüzme',football:'Futbol',diet:'Diyet',mixed:'Karma'}
     const sports=profile.sportTypes?.map(s=>sportMap[s]||s).join(', ')||'Gym'
+    const targetInfo = profile.targetWeight ? ` | Hedef kilo: ${profile.targetWeight}kg` : ''
     const prompt=`Kişisel antrenörsün. ${planDays} günlük haftalık antrenman programı oluştur.
 Profil: ${profile.gender==='male'?'Erkek':'Kadın'}, ${profile.age||'?'} yaş, ${profile.weight||'?'}kg
-Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${planFocus?` | Odak: ${planFocus}`:''}
-Sadece JSON:
+Seviye: ${levelMap[profile.level]||'Orta'} | Hedef: ${goalMap[profile.goal]||'Fitness'} | Spor: ${sports}${targetInfo}${planFocus?` | Odak: ${planFocus}`:''}
+Sadece JSON, eksiksiz tamamla:
 {"program_adi":"...","haftalik_plan":[{"gun":"Pazartesi","odak":"Göğüs","egzersizler":[{"isim":"Bench Press","set":4,"tekrar":"8-10"}],"sure_dk":60,"notlar":"..."}],"genel_notlar":"...","beslenme_ozeti":"..."}`
     try {
-      const rawText = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:1500})
+      // FIX: plan token'ı 1500→2000
+      const rawText = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:2000})
       if (rawText) {
-        checkAndUseAiCredit('plan') // sadece başarılıda tüket
+        checkAndUseAiCredit('plan')
         let raw = rawText.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
         let parsed=null; try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
         setPlanResult(parsed||{error:'Plan formatı okunamadı, tekrar dene.'})
@@ -234,18 +245,19 @@ Sadece JSON:
     const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0),fat:t.fat+(+f.fat||0),carb:t.carb+(+f.carb||0)}),{kcal:0,protein:0,fat:0,carb:0})
     const list=foods.map(f=>`${f.name}: ${f.kcal}kcal, ${f.protein}g P, ${f.fat}g Y, ${f.carb}g K`).join('\n')
     const goalMap={lose:'Kilo vermek',gain:'Kilo almak',cut:'Yağ yakmak',maintain:'Kiloyu korumak'}
+    const targetInfo = profile?.targetWeight ? ` | Hedef kilo: ${profile.targetWeight}kg` : ''
     const prompt=`Beslenme uzmanısın. Bugünkü yemekleri analiz et.
-Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
+Hedef: ${goalMap[profile?.goal]||'Genel sağlık'}${targetInfo} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
 Yemekler:\n${list}
 Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
-Türkçe analiz:
+Türkçe analiz (her bölümü eksiksiz yaz):
 1. ✅ OLUMLU NOKTALAR (2-3 madde)
 2. ⚠️ EKSİK/FAZLA (2-3 madde)
 3. 🍽️ YARIN İÇİN 3 ÖĞÜN ÖNERİSİ
-4. 💡 GENEL TAVSİYE (1-2 cümle)
-Eksiksiz yaz.`
+4. 💡 GENEL TAVSİYE (1-2 cümle)`
     try {
-      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:600})
+      // FIX: diyet token'ı 600→1000
+      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:1000})
       if (reply) { checkAndUseAiCredit('diyet'); setDietResult(reply) }
       else setDietResult('Analiz alınamadı, tekrar dene.')
     } catch { setDietResult('⚠️ Bağlantı hatası, tekrar dene.') }
@@ -358,7 +370,7 @@ Eksiksiz yaz.`
                 </div>
               </div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
-                {[profile.goal&&`🎯 ${profile.goal==='lose'?'Kilo Ver':profile.goal==='gain'?'Kilo Al':profile.goal==='cut'?'Yağ Yak':'Koru'}`,profile.level&&`📊 ${profile.level==='beginner'?'Başlangıç':profile.level==='intermediate'?'Orta':'İleri'}`,profile.weight&&`⚖️ ${profile.weight}kg`].filter(Boolean).map((t,i)=>(
+                {[profile.goal&&`🎯 ${profile.goal==='lose'?'Kilo Ver':profile.goal==='gain'?'Kilo Al':profile.goal==='cut'?'Yağ Yak':'Koru'}`,profile.level&&`📊 ${profile.level==='beginner'?'Başlangıç':profile.level==='intermediate'?'Orta':'İleri'}`,profile.weight&&`⚖️ ${profile.weight}kg`,profile.targetWeight&&`🎯 Hedef: ${profile.targetWeight}kg`].filter(Boolean).map((t,i)=>(
                   <span key={i} style={{fontFamily:'DM Mono,monospace',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 10px',color:'var(--text-muted)'}}>{t}</span>
                 ))}
               </div>
