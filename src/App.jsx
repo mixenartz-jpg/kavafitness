@@ -27,35 +27,48 @@ import Announcement from './components/Announcement'
 import TourGuide from './components/TourGuide'
 
 export default function App() {
-  const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme, xpPopup, badgePopup } = useApp()
+  const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [showTour, setShowTour] = useState(false)
-
-  // Tur: ilk girişte (profil dolunca) 1 kere göster
-  useEffect(() => {
-    if (user && uid && profile) {
-      const tourKey = `tour_shown_${uid}`
-      if (!localStorage.getItem(tourKey)) {
-        setTimeout(() => setShowTour(true), 800)
-      }
-    }
-  }, [user, uid, profile])
+  const [showTour,       setShowTour]       = useState(false)
+  const [tourReady,      setTourReady]       = useState(false) // onboarding bitmeden tur açılmasın
 
   // Tema uygula
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme || 'dark')
   }, [theme])
 
+  // Onboarding kontrolü — profile null ise VE Firestore'dan da gelmediyse göster
   useEffect(() => {
-    if (user && uid && profile === null) {
-      const key = `onboarding_shown_${uid}`
-      if (!localStorage.getItem(key)) setShowOnboarding(true)
+    if (!user || !uid) return
+    if (profile === null) {
+      // profile henüz yüklenmedi (null = yok, undefined = yükleniyor farkı yok burada)
+      // Firestore pull'dan sonra profile null geliyorsa gerçekten yok demektir
+      setShowOnboarding(true)
+    } else {
+      // Profile var — onboarding gösterme
+      setShowOnboarding(false)
+      setTourReady(true)
     }
   }, [user, uid, profile])
 
+  // Tur — profile kaydedildikten SONRA, onboarding kapandıktan SONRA
+  useEffect(() => {
+    if (!tourReady || !uid || showOnboarding) return
+    const tourKey = `tour_shown_${uid}`
+    // profile.onboardingDone Firestore'da varsa tur daha önce gösterilmiş
+    if (!localStorage.getItem(tourKey) && !profile?.tourShown) {
+      const timer = setTimeout(() => setShowTour(true), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [tourReady, uid, showOnboarding])
+
   const handleOnboardingComplete = () => {
-    localStorage.setItem(`onboarding_shown_${uid}`, '1')
+    // Onboarding bitişini profile'a kaydet → Firestore'a da gidiyor
+    if (profile !== null) {
+      saveProfile({ ...(profile || {}), onboardingDone: true })
+    }
     setShowOnboarding(false)
+    setTourReady(true)
   }
 
   if (loading) {
@@ -121,6 +134,7 @@ export default function App() {
       {showTour && (
         <TourGuide onClose={() => {
           localStorage.setItem(`tour_shown_${uid}`, '1')
+          saveProfile({ ...(profile || {}), tourShown: true })
           setShowTour(false)
         }} />
       )}

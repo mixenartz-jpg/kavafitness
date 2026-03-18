@@ -4,58 +4,6 @@ import { useApp } from '../../context/AppContext'
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview']
 
-// ── Egzersiz Autocomplete Veritabanı ──
-const EXERCISE_LIST = [
-  // Göğüs
-  'Bench Press','İncline Bench Press','Decline Bench Press','Dumbbell Fly',
-  'Cable Crossover','Chest Dip','Push Up','İncline Dumbbell Press',
-  // Sırt
-  'Deadlift','Barbell Row','Lat Pulldown','Seated Cable Row','Pull-Up','Chin-Up',
-  'T-Bar Row','Dumbbell Row','Face Pull','Rack Pull',
-  // Omuz
-  'Overhead Press','Barbell Overhead Press','Dumbbell Shoulder Press',
-  'Lateral Raise','Front Raise','Rear Delt Fly','Shrug','Arnold Press',
-  // Bacak
-  'Squat','Front Squat','Hack Squat','Leg Press','Romanian Deadlift',
-  'Leg Curl','Leg Extension','Hip Thrust','Lunge','Bulgarian Split Squat',
-  'Calf Raise','Sumo Deadlift','Stiff-Leg Deadlift',
-  // Kol
-  'Bicep Curl','Barbell Curl','Hammer Curl','Preacher Curl','Concentration Curl',
-  'Tricep Extension','Skull Crusher','Tricep Pushdown','Overhead Tricep Extension','Dip',
-  // Karın / Core
-  'Plank','Crunch','Sit-Up','Leg Raise','Cable Crunch',
-  'Russian Twist','Ab Wheel','Hanging Leg Raise',
-  // Kardiyo / Diğer
-  'Koşu Bandı','Bisiklet','Kürek Makinesi','Elliptical','Battle Rope',
-  'Box Jump','Burpee','Kettlebell Swing','Farmers Walk',
-]
-
-function getExerciseSuggestions(query, exArchive, exercises) {
-  if (!query || query.length < 2) return []
-  const q = query.toLowerCase()
-  // Geçmişten benzersiz isimler topla
-  const fromHistory = new Set()
-  exercises.forEach(e => fromHistory.add(e.name))
-  Object.values(exArchive || {}).forEach(day =>
-    day.forEach(e => fromHistory.add(e.name))
-  )
-  // Hem statik listeden hem geçmişten eşleştir
-  const all = [...new Set([...fromHistory, ...EXERCISE_LIST])]
-  return all
-    .filter(name => name.toLowerCase().includes(q))
-    .sort((a, b) => {
-      // Geçmişten gelenler önce
-      const aH = fromHistory.has(a) ? 0 : 1
-      const bH = fromHistory.has(b) ? 0 : 1
-      if (aH !== bH) return aH - bH
-      // Başından eşleşenler önce
-      const aS = a.toLowerCase().startsWith(q) ? 0 : 1
-      const bS = b.toLowerCase().startsWith(q) ? 0 : 1
-      return aS - bS
-    })
-    .slice(0, 6)
-}
-
 const YT_DB = {
   'bench press':['dbl8xMcCHAY','SCVCLChPQEY','gRVjAtPip0Y'],
   'squat':['1oed_0gr9o4','nEQQle9-0NA','UXJrBgI2RxA'],
@@ -136,7 +84,7 @@ export default function TodayPage() {
     exercises, saveExercises, exArchive,
     viewingDate, setViewingDate, showToast, genId, todayKey,
     templates, saveWorkoutNote, getWorkoutNote, profile,
-    streak, checkAndShowPR, awardWorkoutXP,
+    streak,
   } = useApp()
 
   const isToday = viewingDate === todayKey()
@@ -151,8 +99,6 @@ export default function TodayPage() {
 
   const [showForm, setShowForm]           = useState(false)
   const [newName, setNewName]             = useState('')
-  const [suggestions, setSuggestions]     = useState([])   // autocomplete
-  const [showSuggest, setShowSuggest]     = useState(false) // dropdown açık mı
   const [openCards, setOpenCards]         = useState({})
   const [showNote, setShowNote]           = useState(false)
   const [note, setNote]                   = useState(() => getWorkoutNote ? getWorkoutNote() : '')
@@ -164,25 +110,19 @@ export default function TodayPage() {
   const totalSets = () => viewExs.reduce((s, e) => s + e.sets.length, 0)
   const maxWeight = () => { let m = 0; viewExs.forEach(ex => ex.sets.forEach(st => { if (+st.weight > m) m = +st.weight })); return m }
 
-  const addExercise = (name) => {
-    const n = (name || newName).trim()
-    if (!n) return showToast('Egzersiz adi girin!', 'error')
-    saveExercises([...exercises, { id: genId(), name: n, sets: [], open: true }])
-    setNewName(''); setShowForm(false); setSuggestions([]); setShowSuggest(false)
-    showToast(`${n} eklendi`)
+  const addExercise = () => {
+    if (!newName.trim()) return showToast('Egzersiz adi girin!', 'error')
+    saveExercises([...exercises, { id: genId(), name: newName.trim(), sets: [], open: true }])
+    setNewName(''); setShowForm(false)
+    showToast(`${newName} eklendi`)
   }
 
   const removeExercise = (id) => { saveExercises(exercises.filter(e => e.id !== id)); showToast('Egzersiz silindi') }
 
   const addSet = (exId, reps, weight) => {
     if (!reps && !weight) return showToast('Tekrar veya agirlik girin!', 'error')
-    const updated = exercises.map(e => e.id === exId ? { ...e, sets: [...e.sets, { reps: +reps||0, weight: +weight||0 }] } : e)
-    saveExercises(updated)
-    // Set sonrası XP kazandır ve dinlenme sayacı başlat
-    if (awardWorkoutXP) {
-      const totalSets = updated.reduce((s, e) => s + e.sets.length, 0)
-      awardWorkoutXP(updated.filter(e => e.sets.length > 0).length, totalSets)
-    }
+    saveExercises(exercises.map(e => e.id === exId ? { ...e, sets: [...e.sets, { reps: +reps||0, weight: +weight||0 }] } : e))
+    // Set sonrası dinlenme sayacı başlat
     setRestTimer({ exId, seconds: restSeconds })
   }
   const removeSet = (exId, sIdx) => saveExercises(exercises.map(e => e.id === exId ? { ...e, sets: e.sets.filter((_,i)=>i!==sIdx) } : e))
@@ -255,46 +195,91 @@ export default function TodayPage() {
       {/* Action buttons */}
       {isToday && (
         <>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:10 }}>
-            <button className="btn" onClick={() => setShowForm(v=>!v)} style={{ padding:10, background:'var(--surface)', border:'1px dashed var(--border)', color:'var(--text-muted)', justifyContent:'center', fontSize:12, transition:'all .2s' }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}>
-              + Egzersiz Ekle
+          {/* 3'lü ana buton grid */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
+
+            {/* Egzersiz Ekle */}
+            <button
+              onClick={() => setShowForm(v=>!v)}
+              style={{
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                gap:5, padding:'12px 8px', borderRadius:12, cursor:'pointer',
+                background: showForm ? 'rgba(232,255,71,.08)' : 'var(--surface)',
+                border: `1px solid ${showForm ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
+                color: showForm ? 'var(--accent)' : 'var(--text-muted)',
+                transition:'all .2s',
+              }}
+              onMouseEnter={e=>{ if(!showForm){ e.currentTarget.style.borderColor='rgba(232,255,71,.3)'; e.currentTarget.style.color='var(--accent)' }}}
+              onMouseLeave={e=>{ if(!showForm){ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}}
+            >
+              <span style={{ fontSize:20 }}>➕</span>
+              <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5 }}>Egzersiz</span>
             </button>
-            <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-              <button className="btn" onClick={() => setShowTemplates(true)} style={{ padding:10, background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text-muted)', justifyContent:'center', fontSize:12, transition:'all .2s' }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}>
-                📋 Sablon Uygula
-              </button>
-              <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', textAlign:'center', opacity:.7 }}>Sol menüden şablonlarını bulabilirsin</span>
-            </div>
-            <button className="btn" onClick={() => setShowNote(v=>!v)} style={{ padding:10, background: note ? 'rgba(232,255,71,.06)' : 'var(--surface)', border:`1px solid ${note?'rgba(232,255,71,.2)':'var(--border)'}`, color: note?'var(--accent)':'var(--text-muted)', justifyContent:'center', fontSize:12, transition:'all .2s' }}>
-              📝 {note ? 'Notu Goster' : 'Not Ekle'}
+
+            {/* Şablon Uygula */}
+            <button
+              onClick={() => setShowTemplates(true)}
+              style={{
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                gap:5, padding:'12px 8px', borderRadius:12, cursor:'pointer',
+                background:'var(--surface)', border:'1px solid var(--border)',
+                color:'var(--text-muted)', transition:'all .2s',
+              }}
+              onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(71,200,255,.4)'; e.currentTarget.style.color='var(--blue)' }}
+              onMouseLeave={e=>{ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}
+            >
+              <span style={{ fontSize:20 }}>📋</span>
+              <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5 }}>Şablon</span>
+            </button>
+
+            {/* Not Ekle */}
+            <button
+              onClick={() => setShowNote(v=>!v)}
+              style={{
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                gap:5, padding:'12px 8px', borderRadius:12, cursor:'pointer',
+                background: note ? 'rgba(232,255,71,.06)' : 'var(--surface)',
+                border: `1px solid ${note ? 'rgba(232,255,71,.2)' : 'var(--border)'}`,
+                color: note ? 'var(--accent)' : 'var(--text-muted)',
+                transition:'all .2s',
+              }}
+            >
+              <span style={{ fontSize:20 }}>📝</span>
+              <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5 }}>{note ? 'Notu Gör' : 'Not Ekle'}</span>
             </button>
           </div>
 
+          {/* Egzersiz Tanıma — daha ince, tam genişlik */}
+          <button
+            onClick={() => setShowRecognize(v=>!v)}
+            style={{
+              width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              padding:'9px 16px', borderRadius:10, cursor:'pointer',
+              background: showRecognize ? 'rgba(71,200,255,.06)' : 'var(--surface)',
+              border: `1px solid ${showRecognize ? 'rgba(71,200,255,.3)' : 'var(--border)'}`,
+              color: showRecognize ? 'var(--blue)' : 'var(--text-muted)',
+              fontFamily:'Space Mono,monospace', fontSize:11, letterSpacing:1,
+              transition:'all .2s', marginBottom:12,
+            }}
+            onMouseEnter={e=>{ if(!showRecognize){ e.currentTarget.style.borderColor='rgba(71,200,255,.3)'; e.currentTarget.style.color='var(--blue)' }}}
+            onMouseLeave={e=>{ if(!showRecognize){ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}}
+          >
+            <span style={{ fontSize:15 }}>📸</span>
+            Egzersiz Tanı — Fotoğraf yükle, AI tanısın
+          </button>
+
           {/* Dinlenme süresi ayarı */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, padding:'8px 12px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
-            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', flexShrink:0 }}>⏱ Set arası dinlenme:</span>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, padding:'8px 12px', background:'var(--surface2)', borderRadius:10, border:'1px solid var(--border)' }}>
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', flexShrink:0 }}>⏱ Dinlenme:</span>
             <div style={{ display:'flex', gap:4, flex:1 }}>
               {[60, 90, 120, 180].map(s => (
-                <button key={s} onClick={() => setRestSeconds(s)} style={{ flex:1, padding:'4px 0', borderRadius:6, border:`1px solid ${restSeconds===s?'rgba(232,255,71,.4)':'var(--border)'}`, background:restSeconds===s?'rgba(232,255,71,.08)':'transparent', color:restSeconds===s?'var(--accent)':'var(--text-muted)', fontFamily:'Bebas Neue,sans-serif', fontSize:12, cursor:'pointer', letterSpacing:1 }}>
+                <button key={s} onClick={() => setRestSeconds(s)} style={{ flex:1, padding:'5px 0', borderRadius:7, border:`1px solid ${restSeconds===s?'rgba(232,255,71,.4)':'var(--border)'}`, background:restSeconds===s?'rgba(232,255,71,.08)':'transparent', color:restSeconds===s?'var(--accent)':'var(--text-muted)', fontFamily:'Bebas Neue,sans-serif', fontSize:12, cursor:'pointer', letterSpacing:1, transition:'all .15s' }}>
                   {s}s
                 </button>
               ))}
             </div>
           </div>
         </>
-      )}
-
-      {/* Egzersiz Tanıma butonu */}
-      {isToday && (
-        <button className="btn" onClick={() => setShowRecognize(v=>!v)} style={{ width:'100%', padding:10, background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text-muted)', justifyContent:'center', fontSize:12, marginBottom:16, transition:'all .2s' }}
-          onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--blue)';e.currentTarget.style.color='var(--blue)'}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}>
-          📸 Egzersiz Tani — Fotograf yukle, AI hareketi tanisın
-        </button>
       )}
 
       {/* Antrenman Notu */}
@@ -326,65 +311,16 @@ export default function TodayPage() {
       {showForm && (
         <div className="card animate-fade" style={{ padding:20, marginBottom:16 }}>
           <div className="section-title">YENİ EGZERSİZ</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-start' }}>
-            <div className="form-group" style={{ position:'relative' }}>
-              <span className="flabel">Egzersiz Adı</span>
-              <input
-                type="text"
-                value={newName}
-                placeholder="örn. Bench Press, Squat..."
-                onChange={e => {
-                  const v = e.target.value
-                  setNewName(v)
-                  const s = getExerciseSuggestions(v, exArchive, exercises)
-                  setSuggestions(s)
-                  setShowSuggest(s.length > 0)
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { addExercise(); return }
-                  if (e.key === 'Escape') setShowSuggest(false)
-                }}
-                onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
-                autoFocus
-              />
-              {/* Autocomplete dropdown */}
-              {showSuggest && suggestions.length > 0 && (
-                <div style={{
-                  position:'absolute', top:'100%', left:0, right:0, zIndex:50,
-                  background:'var(--surface)', border:'1px solid var(--border)',
-                  borderRadius:'0 0 10px 10px', overflow:'hidden',
-                  boxShadow:'0 8px 24px rgba(0,0,0,.4)',
-                }}>
-                  {suggestions.map((s, i) => (
-                    <div
-                      key={i}
-                      onMouseDown={() => { setNewName(s); setSuggestions([]); setShowSuggest(false) }}
-                      style={{
-                        padding:'9px 14px', cursor:'pointer', fontSize:13,
-                        fontFamily:'Inter,sans-serif', color:'var(--text)',
-                        borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
-                        display:'flex', alignItems:'center', gap:10, transition:'background .1s',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <span style={{ fontSize:14 }}>🏋️</span>
-                      <span>{s}</span>
-                      {/* Geçmişten gelenler için rozet */}
-                      {(exercises.some(e => e.name === s) ||
-                        Object.values(exArchive || {}).some(day => day.some(e => e.name === s))) && (
-                        <span style={{ marginLeft:'auto', fontFamily:'Space Mono,monospace', fontSize:8, color:'var(--accent)', background:'rgba(232,255,71,.1)', borderRadius:10, padding:'1px 6px' }}>
-                          geçmiş
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-end' }}>
+            <div className="form-group">
+              <span className="flabel">Egzersiz Adi</span>
+              <input type="text" value={newName} placeholder="örn. Bench Press, Squat..."
+                onChange={e=>setNewName(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&addExercise()} autoFocus />
             </div>
-            <div style={{ display:'flex', gap:8, paddingTop:20 }}>
-              <button className="btn btn-primary" onClick={() => addExercise()}>Ekle</button>
-              <button className="btn btn-ghost" onClick={() => { setShowForm(false); setSuggestions([]); setShowSuggest(false) }}>İptal</button>
+            <div style={{ display:'flex', gap:8 }}>
+              <button className="btn btn-primary" onClick={addExercise}>Ekle</button>
+              <button className="btn btn-ghost" onClick={()=>setShowForm(false)}>Iptal</button>
             </div>
           </div>
         </div>
