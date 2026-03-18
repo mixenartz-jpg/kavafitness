@@ -4,6 +4,81 @@ import { useApp } from '../../context/AppContext'
 const GKEY        = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const COACH_PASS  = 'kerembaba12358'
 const PASS_KEY    = 'coach_unlocked'
+const PERSONA_KEY = 'coach_persona'
+
+// ── AI Kişilik Modları ──
+const PERSONAS = [
+  {
+    id: 'balanced',
+    icon: '🤖',
+    label: 'Dengeli Koç',
+    desc: 'Samimi, motive edici, pratik',
+    systemPrompt: 'Sen KeroGym Kişisel Koçu\'sun. Samimi, motive edici ve pratik ol. Türkçe konuş.',
+  },
+  {
+    id: 'philosopher',
+    icon: '🏛️',
+    label: 'Felsefi Koç',
+    desc: 'Stoa felsefesi, Marcus Aurelius tarzı',
+    systemPrompt: 'Sen Stoacı bir fitness filozofusun. Marcus Aurelius, Epiktetos ve Seneca\'dan ilham alarak konuş. Disiplin, irade ve kontrol üzerine felsefi ama pratik tavsiyeler ver. Türkçe konuş. Bahane kabul etme ama şefkatle yönlendir.',
+  },
+  {
+    id: 'drill',
+    icon: '🪖',
+    label: 'Drill Sergeant',
+    desc: 'Sert, agresif, bahane yok',
+    systemPrompt: 'Sen acımasız bir askeri kamp koçusun. Sert, direkt ve bahane kabul etmeyen bir tarzın var. Kullanıcıyı zorla, ama gerçekten faydalı ol. Türkçe konuş. Kısa ve güçlü cümleler kullan.',
+  },
+  {
+    id: 'analytical',
+    icon: '📊',
+    label: 'Analitik Koç',
+    desc: 'İstatistik, bilim, optimizasyon',
+    systemPrompt: 'Sen veri odaklı bir performans koçusun. Her önerin bilimsel araştırmalara ve istatistiklere dayansın. Sayılar, yüzdeler ve optimizasyon stratejileri kullan. Türkçe konuş. Duygusuz ama kesinlikle doğru ol.',
+  },
+]
+
+// ── Deload tespiti: son 2 haftada ağırlık düşüşü var mı? ──
+function detectDeload(exArchive) {
+  const weeks = [{}, {}]
+  const now = new Date()
+  Object.entries(exArchive || {}).forEach(([dk, day]) => {
+    const diff = Math.floor((now - new Date(dk + 'T00:00:00')) / 86400000)
+    const wIdx = diff < 7 ? 0 : diff < 14 ? 1 : -1
+    if (wIdx < 0) return
+    day.forEach(ex => {
+      const maxW = Math.max(...ex.sets.map(s => +s.weight), 0)
+      if (!weeks[wIdx][ex.name] || maxW > weeks[wIdx][ex.name]) weeks[wIdx][ex.name] = maxW
+    })
+  })
+  const drops = []
+  Object.keys(weeks[0]).forEach(name => {
+    if (weeks[1][name] && weeks[0][name] < weeks[1][name]) {
+      drops.push({ name, thisWeek: weeks[0][name], lastWeek: weeks[1][name] })
+    }
+  })
+  return drops
+}
+
+// ── Progressive Overload analizi ──
+function getProgressiveOverloadData(exArchive, exercises) {
+  const recentExs = {}
+  // Bugün
+  exercises.forEach(ex => {
+    const maxW = Math.max(...ex.sets.map(s => +s.weight), 0)
+    recentExs[ex.name] = { today: maxW, history: [] }
+  })
+  // Son 4 hafta
+  const sorted = Object.entries(exArchive || {}).sort((a,b) => b[0].localeCompare(a[0])).slice(0, 28)
+  sorted.forEach(([dk, day]) => {
+    day.forEach(ex => {
+      if (!recentExs[ex.name]) recentExs[ex.name] = { today: 0, history: [] }
+      const maxW = Math.max(...ex.sets.map(s => +s.weight), 0)
+      if (maxW > 0) recentExs[ex.name].history.push({ date: dk, weight: maxW })
+    })
+  })
+  return recentExs
+}
 
 // ── Sabah motivasyon mesajları ──
 const MORNING_MSGS = [
@@ -91,6 +166,9 @@ export default function PersonalCoachPage() {
   const { profile, goals, foods, exercises, exArchive, body, streak, calArch, todayKey } = useApp()
 
   const [unlocked, setUnlocked] = useState(() => !!localStorage.getItem(PASS_KEY))
+  const [persona,  setPersona]  = useState(() => localStorage.getItem(PERSONA_KEY) || 'balanced')
+  const [showPersonaMenu, setShowPersonaMenu] = useState(false)
+  const [deloadAlert, setDeloadAlert] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -99,10 +177,9 @@ export default function PersonalCoachPage() {
   const chatEndRef = useRef(null)
   const recognitionRef = useRef(null)
 
-  // ── İlk açılışta koç mesajı ──
+  // ── İlk açılışta koç mesajı + deload tespiti ──
   useEffect(() => {
     if (!unlocked) return
-    const today = todayKey()
     const hour  = new Date().getHours()
     const todayExs = exercises.length
     const todayKcal = Math.round(foods.reduce((s,f) => s+(+f.kcal||0), 0))
@@ -119,8 +196,22 @@ export default function PersonalCoachPage() {
     if (todayKcal > 0)   dataLines.push(`${todayKcal} kcal yedin 🍽️`)
     if (profile?.weight) dataLines.push(`Son kilo: ${body.slice(-1)[0]?.weight || profile.weight} kg ⚖️`)
 
+    // ── Çapraz analiz: protein eksikliği + antrenman düşüşü ──
+    const proteinToday = Math.round(foods.reduce((s,f) => s+(+f.protein||0), 0))
+    const proteinGoal  = profile?.tdee ? Math.round((profile.weight || 75) * 2) : 0
+    let crossAnalysis = ''
+    if (proteinGoal > 0 && proteinToday < proteinGoal * 0.7 && todayExs > 0) {
+      crossAnalysis = `\n\n⚠️ Çapraz Analiz: Bugün protein hedefinin altındasın (${proteinToday}g / ${proteinGoal}g). Antrenman yaptın ama kas onarımı için protein şart. Akşam yüksek proteinli bir öğün ekleyelim mi?`
+    }
+
+    // ── Deload tespiti ──
+    const drops = detectDeload(exArchive)
+    if (drops.length >= 2) {
+      setDeloadAlert(drops)
+    }
+
     const openingMsg = dataLines.length > 0
-      ? `${greeting}\n\nVerilerine baktım:\n${dataLines.map(l => `• ${l}`).join('\n')}\n\nSana nasıl yardımcı olabilirim?`
+      ? `${greeting}\n\nVerilerine baktım:\n${dataLines.map(l => `• ${l}`).join('\n')}${crossAnalysis}\n\nSana nasıl yardımcı olabilirim?`
       : `${greeting}\n\nBen senin kişisel KeroGym koçunum. Antrenman planı, beslenme önerisi, motivasyon veya herhangi bir fitness sorusu için buradayım. Ne sormak istersin?`
 
     setMessages([{ role:'assistant', text: openingMsg }])
@@ -173,13 +264,36 @@ export default function PersonalCoachPage() {
     const lastBody = body.slice(-1)[0]
     if (lastBody?.weight) lines.push(`Son ölçüm: ${lastBody.weight}kg ${lastBody.date}`)
 
-    return `Sen "KeroGym Kişisel Koçu"sun. Kullanıcının tüm verilerine erişimin var ve onları gerçekten tanıyorsun. Türkçe konuş, samimi ol, motive edici ve pratik ol. Yanıtlarını asla yarıda kesme.
+    // Progressive overload verileri
+    const poData = getProgressiveOverloadData(exArchive, exercises)
+    const poLines = Object.entries(poData)
+      .filter(([, v]) => v.history.length > 0)
+      .slice(0, 4)
+      .map(([name, v]) => {
+        const last = v.history[0]
+        return `${name}: en son ${last?.weight}kg (${last?.date})`
+      })
+    if (poLines.length > 0) lines.push(`Son antrenman ağırlıkları: ${poLines.join(' | ')}`)
+
+    // Persona sistem promptunu seç
+    const currentPersona = PERSONAS.find(p => p.id === persona) || PERSONAS[0]
+
+    return `${currentPersona.systemPrompt} Kullanıcının tüm verilerine erişimin var. Yanıtlarını asla yarıda kesme.
 
 Kullanıcı verileri:
 ${lines.join('\n')}
 
 `
-  }, [profile, goals, foods, exercises, exArchive, body, streak])
+  }, [profile, goals, foods, exercises, exArchive, body, streak, persona])
+
+  // ── Persona değiştir ──
+  const changePersona = (id) => {
+    setPersona(id)
+    localStorage.setItem(PERSONA_KEY, id)
+    setShowPersonaMenu(false)
+    const p = PERSONAS.find(x => x.id === id)
+    setMessages([{ role:'assistant', text: `${p.icon} Koç modu değişti: **${p.label}**\n\n${p.id === 'drill' ? 'Tamam, yumuşaklık bitti. Söyle bakalım, ne yapacağız?' : p.id === 'philosopher' ? 'Marcus Aurelius der ki: "Her şeyi olduğu gibi gör." Haydi, hangi engeli aşacağız?' : p.id === 'analytical' ? 'Veri modu aktif. Hedefini ve mevcut durumunu paylaş, optimizasyon yapalım.' : 'Merhaba! Yeni bir başlangıç. Ne sormak istersin?'}` }])
+  }
 
   // ── Mesaj gönder ──
   const sendMessage = async (text) => {
@@ -269,26 +383,81 @@ ${lines.join('\n')}
     <div className="page animate-fade" style={{ maxWidth:700 }}>
 
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:16 }}>
         <div style={{ width:52, height:52, borderRadius:16, background:'linear-gradient(135deg,rgba(232,255,71,.15),rgba(71,200,255,.1))', border:'1px solid rgba(232,255,71,.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
-          🤖
+          {PERSONAS.find(p => p.id === persona)?.icon || '🤖'}
         </div>
-        <div>
+        <div style={{ flex:1 }}>
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:24, letterSpacing:3, color:'var(--accent)' }}>
             KİŞİSEL KOÇUN
           </div>
           <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block', animation:'pulse 2s ease infinite' }}/>
-            Tüm verilerine erişimi var · Türkçe konuşur
+            {PERSONAS.find(p => p.id === persona)?.label || 'Dengeli Koç'} modu
           </div>
+        </div>
+        {/* Persona seçici */}
+        <div style={{ position:'relative' }}>
+          <button
+            onClick={() => setShowPersonaMenu(v => !v)}
+            style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', cursor:'pointer', fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:5 }}
+          >
+            🎭 Mod
+          </button>
+          {showPersonaMenu && (
+            <div style={{ position:'absolute', right:0, top:'110%', zIndex:50, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', width:220, boxShadow:'0 8px 32px rgba(0,0,0,.5)' }} className="animate-fade">
+              {PERSONAS.map(p => (
+                <div
+                  key={p.id}
+                  onClick={() => changePersona(p.id)}
+                  style={{ padding:'11px 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:10, background: persona === p.id ? 'rgba(232,255,71,.06)' : 'transparent', borderBottom:'1px solid rgba(255,255,255,.04)', transition:'background .1s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = persona === p.id ? 'rgba(232,255,71,.06)' : 'transparent'}
+                >
+                  <span style={{ fontSize:18 }}>{p.icon}</span>
+                  <div>
+                    <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:1.5, color: persona === p.id ? 'var(--accent)' : 'var(--text)' }}>{p.label}</div>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:1 }}>{p.desc}</div>
+                  </div>
+                  {persona === p.id && <span style={{ marginLeft:'auto', color:'var(--accent)', fontSize:12 }}>✓</span>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <button
           onClick={() => { localStorage.removeItem(PASS_KEY); setUnlocked(false) }}
-          style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}
+          style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}
         >
           Kilitle
         </button>
       </div>
+
+      {/* Deload uyarısı */}
+      {deloadAlert && deloadAlert.length > 0 && (
+        <div style={{ background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.3)', borderRadius:12, padding:'14px 16px', marginBottom:16 }} className="animate-fade">
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+            <span style={{ fontSize:20 }}>📉</span>
+            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2, color:'#ff8c47' }}>DELOAD HAFTA ÖNERİSİ</div>
+            <button onClick={() => setDeloadAlert(null)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:14 }}>✕</button>
+          </div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, marginBottom:10 }}>
+            Son 2 haftada şu egzersizlerde ağırlık düşüşü tespit ettim:<br/>
+            {deloadAlert.map(d => (
+              <span key={d.name} style={{ color:'#ff8c47', display:'block' }}>• {d.name}: {d.lastWeek}kg → {d.thisWeek}kg</span>
+            ))}
+          </div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, marginBottom:10 }}>
+            Vücudun toparlanma sinyali veriyor. <strong style={{ color:'#ff8c47' }}>%20 ağırlık azaltılmış bir Deload Haftası</strong> öneririm.
+          </div>
+          <button
+            onClick={() => { sendMessage('Deload haftası planı oluştur. Mevcut antrenmanlarıma göre %20 azaltılmış bir program hazırla.'); setDeloadAlert(null) }}
+            style={{ background:'rgba(255,140,71,.15)', border:'1px solid rgba(255,140,71,.3)', borderRadius:8, padding:'8px 14px', cursor:'pointer', fontFamily:'Space Mono,monospace', fontSize:10, color:'#ff8c47' }}
+          >
+            🤖 Deload Planı Oluştur
+          </button>
+        </div>
+      )}
 
       {/* Streak banner */}
       {streak >= 3 && (

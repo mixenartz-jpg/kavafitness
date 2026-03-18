@@ -112,6 +112,11 @@ export default function CaloriePage() {
   // Manual form
   const [mf, setMf] = useState({ name:'', kcal:'', protein:'', fat:'', carb:'' })
 
+  // ── Dolapta Ne Var? state ──
+  const [fridgeInput,   setFridgeInput]   = useState('')
+  const [fridgeLoading, setFridgeLoading] = useState(false)
+  const [fridgeResult,  setFridgeResult]  = useState(null)
+
   const fileRef      = useRef()
   const labelFileRef = useRef()
 
@@ -283,6 +288,59 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
     setMf({name:'',kcal:'',protein:'',fat:'',carb:''}); showToast(`${mf.name} eklendi ✓`)
   }
 
+  // ── Dolapta Ne Var? — AI tarif ve kalori tahmini ──
+  const analyzeFridge = async () => {
+    if (!fridgeInput.trim()) return
+    setFridgeLoading(true); setFridgeResult(null)
+    const profileInfo = profile
+      ? `Kullanıcı profili: ${profile.gender === 'male' ? 'Erkek' : 'Kadın'}, ${profile.weight || '?'}kg, Hedef: ${profile.goal === 'lose' ? 'Kilo vermek' : profile.goal === 'gain' ? 'Kilo almak' : 'Fit kalmak'}`
+      : ''
+    const prompt = `Sen sporcu beslenmesi uzmanı bir şefsin. Kullanıcının elindeki malzemeleri kullanarak en optimal sporcu öğününü tarif et.
+
+${profileInfo}
+Elindeki malzemeler: "${fridgeInput}"
+
+SADECE JSON döndür (başka hiçbir şey yazma):
+{
+  "meal_name": "Yemek Adı (Türkçe)",
+  "description": "Kısa tarif açıklaması (1-2 cümle)",
+  "ingredients_used": ["Malzeme 1", "Malzeme 2"],
+  "steps": ["Adım 1", "Adım 2", "Adım 3"],
+  "total": {"kcal": 450, "protein": 35, "fat": 12, "carb": 40},
+  "prep_time": "10 dk",
+  "tip": "Sporcu notu (neden bu kombinasyon iyi)"
+}`
+
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ contents:[{ parts:[{ text:prompt }] }], generationConfig:{ temperature:.7, maxOutputTokens:800 } }) }
+      )
+      const data = await res.json()
+      let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+      let parsed = null
+      try { parsed = JSON.parse(raw) } catch { const m = raw.match(/\{[\s\S]*\}/); try { parsed = m ? JSON.parse(m[0]) : null } catch {} }
+      setFridgeResult(parsed)
+    } catch { showToast('Bağlantı hatası, tekrar dene.', 'error') }
+    setFridgeLoading(false)
+  }
+
+  const addFridgeMeal = () => {
+    if (!fridgeResult?.total) return
+    const entry = {
+      id: genId(),
+      name: fridgeResult.meal_name,
+      kcal:    fridgeResult.total.kcal    || 0,
+      protein: fridgeResult.total.protein || 0,
+      fat:     fridgeResult.total.fat     || 0,
+      carb:    fridgeResult.total.carb    || 0,
+    }
+    saveFoods([...foods, entry])
+    showToast(`${entry.name} günlüğe eklendi ✓`)
+    setFridgeResult(null); setFridgeInput('')
+  }
+
   const macros = [
     { key:'kcal',    label:'KALORİ',       unit:'kcal', color:'#e8ff47' },
     { key:'protein', label:'PROTEİN',      unit:'g',    color:'#47c8ff' },
@@ -351,6 +409,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
           {tabBtn('photo',  '📷', 'FOTOĞRAF')}
           {tabBtn('label',  '🏷️', 'ETİKET OKU')}
           {tabBtn('manual', '✏️', 'MANUEL')}
+          {tabBtn('fridge', '🧑‍🍳', 'DOLAP')}
         </div>
       )}
 
@@ -555,6 +614,116 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
             ))}
           </div>
           <button className="btn btn-primary" style={{width:'100%'}} onClick={addManual}>✓ Ekle</button>
+        </div>
+      )}
+
+      {/* ══ DOLAPTA NE VAR? ══ */}
+      {isToday && tab === 'fridge' && (
+        <div className="animate-fade" style={{marginBottom:16}}>
+          {/* Açıklama kartı */}
+          <div style={{ background:'linear-gradient(135deg,rgba(71,255,138,.06),rgba(71,200,255,.04))', border:'1px solid rgba(71,255,138,.2)', borderRadius:14, padding:'16px 18px', marginBottom:16 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+              <span style={{ fontSize:22 }}>🧑‍🍳</span>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:16, letterSpacing:2, color:'var(--green)' }}>DOLAPTA NE VAR?</div>
+            </div>
+            <p style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, margin:0 }}>
+              Elindeki malzemeleri yaz — AI anında en mantıklı sporcu öğününü tarif eder, kalorisini hesaplar ve günlüğüne ekler.
+            </p>
+          </div>
+
+          <div className="card" style={{padding:18}}>
+            <div className="form-group" style={{marginBottom:14}}>
+              <span className="flabel">Elindeki malzemeler</span>
+              <textarea
+                value={fridgeInput}
+                onChange={e => setFridgeInput(e.target.value)}
+                placeholder="örn. 3 yumurta, yarım paket makarna, biraz beyaz peynir, zeytinyağı..."
+                rows={3}
+                style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', fontSize:13, padding:'10px 12px', outline:'none', resize:'none', fontFamily:'Inter,sans-serif', lineHeight:1.6, width:'100%' }}
+                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border)'}
+              />
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={analyzeFridge}
+              disabled={!fridgeInput.trim() || fridgeLoading}
+              style={{ width:'100%', padding:12, opacity: (!fridgeInput.trim() || fridgeLoading) ? .4 : 1 }}
+            >
+              {fridgeLoading
+                ? <><span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>Tarif hazırlanıyor...</>
+                : '🤖 Tarif ve Kalori Hesapla'
+              }
+            </button>
+          </div>
+
+          {/* Tarif sonucu */}
+          {fridgeResult && (
+            <div className="animate-fade card" style={{padding:'20px 22px', marginTop:14}}>
+              {/* Başlık */}
+              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14, gap:12 }}>
+                <div>
+                  <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:2, color:'var(--accent)', marginBottom:4 }}>
+                    {fridgeResult.meal_name}
+                  </div>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
+                    ⏱️ {fridgeResult.prep_time || '10 dk'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Makro grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:16, padding:'14px 0', borderTop:'1px solid var(--border)', borderBottom:'1px solid var(--border)' }}>
+                {[
+                  { label:'KALORİ',  val:fridgeResult.total?.kcal,    unit:'kcal', color:'#e8ff47' },
+                  { label:'PROTEİN', val:fridgeResult.total?.protein, unit:'g',    color:'#47c8ff' },
+                  { label:'YAĞ',     val:fridgeResult.total?.fat,     unit:'g',    color:'#ff8c47' },
+                  { label:'KARB',    val:fridgeResult.total?.carb,    unit:'g',    color:'#47ff8a' },
+                ].map(({ label, val, unit, color }) => (
+                  <div key={label} style={{ textAlign:'center' }}>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:8, color:'var(--text-muted)', marginBottom:4 }}>{label}</div>
+                    <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, color, lineHeight:1 }}>{val}</div>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:8, color:'var(--text-muted)', marginTop:2 }}>{unit}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Açıklama */}
+              {fridgeResult.description && (
+                <p style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'var(--text-muted)', lineHeight:1.7, marginBottom:14 }}>
+                  {fridgeResult.description}
+                </p>
+              )}
+
+              {/* Adımlar */}
+              {fridgeResult.steps?.length > 0 && (
+                <div style={{marginBottom:14}}>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginBottom:8 }}>YAPILIŞ</div>
+                  {fridgeResult.steps.map((step, i) => (
+                    <div key={i} style={{ display:'flex', gap:10, marginBottom:8, alignItems:'flex-start' }}>
+                      <div style={{ width:22, height:22, borderRadius:'50%', background:'rgba(232,255,71,.1)', border:'1px solid rgba(232,255,71,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Bebas Neue,sans-serif', fontSize:11, color:'var(--accent)', flexShrink:0 }}>
+                        {i+1}
+                      </div>
+                      <span style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'var(--text-dim)', lineHeight:1.6, paddingTop:2 }}>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Sporcu notu */}
+              {fridgeResult.tip && (
+                <div style={{ background:'rgba(71,255,138,.06)', border:'1px solid rgba(71,255,138,.15)', borderRadius:8, padding:'10px 12px', marginBottom:14 }}>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--green)', lineHeight:1.6 }}>
+                    💡 {fridgeResult.tip}
+                  </div>
+                </div>
+              )}
+
+              <button className="btn btn-primary" onClick={addFridgeMeal} style={{ width:'100%', padding:12 }}>
+                ➕ Günlüğe Ekle
+              </button>
+            </div>
+          )}
         </div>
       )}
 

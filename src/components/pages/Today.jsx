@@ -4,6 +4,58 @@ import { useApp } from '../../context/AppContext'
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview']
 
+// ── Egzersiz Autocomplete Veritabanı ──
+const EXERCISE_LIST = [
+  // Göğüs
+  'Bench Press','İncline Bench Press','Decline Bench Press','Dumbbell Fly',
+  'Cable Crossover','Chest Dip','Push Up','İncline Dumbbell Press',
+  // Sırt
+  'Deadlift','Barbell Row','Lat Pulldown','Seated Cable Row','Pull-Up','Chin-Up',
+  'T-Bar Row','Dumbbell Row','Face Pull','Rack Pull',
+  // Omuz
+  'Overhead Press','Barbell Overhead Press','Dumbbell Shoulder Press',
+  'Lateral Raise','Front Raise','Rear Delt Fly','Shrug','Arnold Press',
+  // Bacak
+  'Squat','Front Squat','Hack Squat','Leg Press','Romanian Deadlift',
+  'Leg Curl','Leg Extension','Hip Thrust','Lunge','Bulgarian Split Squat',
+  'Calf Raise','Sumo Deadlift','Stiff-Leg Deadlift',
+  // Kol
+  'Bicep Curl','Barbell Curl','Hammer Curl','Preacher Curl','Concentration Curl',
+  'Tricep Extension','Skull Crusher','Tricep Pushdown','Overhead Tricep Extension','Dip',
+  // Karın / Core
+  'Plank','Crunch','Sit-Up','Leg Raise','Cable Crunch',
+  'Russian Twist','Ab Wheel','Hanging Leg Raise',
+  // Kardiyo / Diğer
+  'Koşu Bandı','Bisiklet','Kürek Makinesi','Elliptical','Battle Rope',
+  'Box Jump','Burpee','Kettlebell Swing','Farmers Walk',
+]
+
+function getExerciseSuggestions(query, exArchive, exercises) {
+  if (!query || query.length < 2) return []
+  const q = query.toLowerCase()
+  // Geçmişten benzersiz isimler topla
+  const fromHistory = new Set()
+  exercises.forEach(e => fromHistory.add(e.name))
+  Object.values(exArchive || {}).forEach(day =>
+    day.forEach(e => fromHistory.add(e.name))
+  )
+  // Hem statik listeden hem geçmişten eşleştir
+  const all = [...new Set([...fromHistory, ...EXERCISE_LIST])]
+  return all
+    .filter(name => name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      // Geçmişten gelenler önce
+      const aH = fromHistory.has(a) ? 0 : 1
+      const bH = fromHistory.has(b) ? 0 : 1
+      if (aH !== bH) return aH - bH
+      // Başından eşleşenler önce
+      const aS = a.toLowerCase().startsWith(q) ? 0 : 1
+      const bS = b.toLowerCase().startsWith(q) ? 0 : 1
+      return aS - bS
+    })
+    .slice(0, 6)
+}
+
 const YT_DB = {
   'bench press':['dbl8xMcCHAY','SCVCLChPQEY','gRVjAtPip0Y'],
   'squat':['1oed_0gr9o4','nEQQle9-0NA','UXJrBgI2RxA'],
@@ -68,11 +120,11 @@ function RestTimer({ seconds, onDone }) {
       </div>
       <div style={{ flex:1 }}>
         <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color }}>DİNLENME SÜRESİ</div>
-        <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
+        <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
           {left > 0 ? `${left} saniye kaldı` : '✓ Hazırsın!'}
         </div>
       </div>
-      <button onClick={() => onDone?.()} style={{ background:'none', border:'1px solid var(--border)', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
+      <button onClick={() => onDone?.()} style={{ background:'none', border:'1px solid var(--border)', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
         Atla
       </button>
     </div>
@@ -99,6 +151,8 @@ export default function TodayPage() {
 
   const [showForm, setShowForm]           = useState(false)
   const [newName, setNewName]             = useState('')
+  const [suggestions, setSuggestions]     = useState([])   // autocomplete
+  const [showSuggest, setShowSuggest]     = useState(false) // dropdown açık mı
   const [openCards, setOpenCards]         = useState({})
   const [showNote, setShowNote]           = useState(false)
   const [note, setNote]                   = useState(() => getWorkoutNote ? getWorkoutNote() : '')
@@ -110,11 +164,12 @@ export default function TodayPage() {
   const totalSets = () => viewExs.reduce((s, e) => s + e.sets.length, 0)
   const maxWeight = () => { let m = 0; viewExs.forEach(ex => ex.sets.forEach(st => { if (+st.weight > m) m = +st.weight })); return m }
 
-  const addExercise = () => {
-    if (!newName.trim()) return showToast('Egzersiz adi girin!', 'error')
-    saveExercises([...exercises, { id: genId(), name: newName.trim(), sets: [], open: true }])
-    setNewName(''); setShowForm(false)
-    showToast(`${newName} eklendi`)
+  const addExercise = (name) => {
+    const n = (name || newName).trim()
+    if (!n) return showToast('Egzersiz adi girin!', 'error')
+    saveExercises([...exercises, { id: genId(), name: n, sets: [], open: true }])
+    setNewName(''); setShowForm(false); setSuggestions([]); setShowSuggest(false)
+    showToast(`${n} eklendi`)
   }
 
   const removeExercise = (id) => { saveExercises(exercises.filter(e => e.id !== id)); showToast('Egzersiz silindi') }
@@ -151,7 +206,7 @@ export default function TodayPage() {
           <span style={{ fontSize:24 }}>{streak >= 30 ? '🏆' : streak >= 14 ? '🔥' : streak >= 7 ? '⚡' : '🌱'}</span>
           <div>
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, color:'#ff8c47' }}>{streak} GÜNLÜK SERİ</div>
-            <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
+            <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
               {streak >= 30 ? 'Efsane seviye! Durdurulamaz!' : streak >= 14 ? 'Harika gidiyorsun, devam et!' : streak >= 7 ? 'Bir haftayı geçtin!' : 'İyi başlangıç, devam et!'}
             </div>
           </div>
@@ -167,7 +222,7 @@ export default function TodayPage() {
         ].map(({ label, val, unit }) => (
           <div key={label} className="card" style={{ padding:18, position:'relative', overflow:'hidden' }}>
             <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background: val>0?'var(--accent)':'transparent', transform:val>0?'scaleX(1)':'scaleX(0)', transition:'transform .4s ease', transformOrigin:'left' }} />
-            <div style={{ fontSize:10, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:7, fontFamily:'DM Mono,monospace' }}>{label}</div>
+            <div style={{ fontSize:10, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:7, fontFamily:'Space Mono,monospace' }}>{label}</div>
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:38, lineHeight:1 }}>
               {val} <span style={{ fontSize:14, color:'var(--text-muted)' }}>{unit}</span>
             </div>
@@ -177,7 +232,7 @@ export default function TodayPage() {
 
       {/* Past banner */}
       {!isToday && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, background:'rgba(71,200,255,.06)', border:'1px solid rgba(71,200,255,.2)', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:12, color:'var(--blue)', fontFamily:'DM Mono,monospace' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, background:'rgba(71,200,255,.06)', border:'1px solid rgba(71,200,255,.2)', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:12, color:'var(--blue)', fontFamily:'Space Mono,monospace' }}>
           <span>📅 {new Date(viewingDate+'T00:00:00').toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'})} goruntuleniyor</span>
           <button className="btn btn-ghost" style={{ height:28, fontSize:11, padding:'0 10px' }} onClick={() => setViewingDate(todayKey())}>Bugune Don</button>
         </div>
@@ -207,7 +262,7 @@ export default function TodayPage() {
                 onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}>
                 📋 Sablon Uygula
               </button>
-              <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', textAlign:'center', opacity:.7 }}>Sol menüden şablonlarını bulabilirsin</span>
+              <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', textAlign:'center', opacity:.7 }}>Sol menüden şablonlarını bulabilirsin</span>
             </div>
             <button className="btn" onClick={() => setShowNote(v=>!v)} style={{ padding:10, background: note ? 'rgba(232,255,71,.06)' : 'var(--surface)', border:`1px solid ${note?'rgba(232,255,71,.2)':'var(--border)'}`, color: note?'var(--accent)':'var(--text-muted)', justifyContent:'center', fontSize:12, transition:'all .2s' }}>
               📝 {note ? 'Notu Goster' : 'Not Ekle'}
@@ -216,7 +271,7 @@ export default function TodayPage() {
 
           {/* Dinlenme süresi ayarı */}
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, padding:'8px 12px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
-            <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', flexShrink:0 }}>⏱ Set arası dinlenme:</span>
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', flexShrink:0 }}>⏱ Set arası dinlenme:</span>
             <div style={{ display:'flex', gap:4, flex:1 }}>
               {[60, 90, 120, 180].map(s => (
                 <button key={s} onClick={() => setRestSeconds(s)} style={{ flex:1, padding:'4px 0', borderRadius:6, border:`1px solid ${restSeconds===s?'rgba(232,255,71,.4)':'var(--border)'}`, background:restSeconds===s?'rgba(232,255,71,.08)':'transparent', color:restSeconds===s?'var(--accent)':'var(--text-muted)', fontFamily:'Bebas Neue,sans-serif', fontSize:12, cursor:'pointer', letterSpacing:1 }}>
@@ -242,7 +297,7 @@ export default function TodayPage() {
         <div className="card animate-fade" style={{ padding:18, marginBottom:16 }}>
           <div className="section-title">ANTRENMAN NOTU</div>
           <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Bugünkü antrenman nasil gecti?"
-            style={{ width:'100%', minHeight:90, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', fontSize:13, padding:12, resize:'vertical', fontFamily:'DM Sans,sans-serif', outline:'none' }} />
+            style={{ width:'100%', minHeight:90, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', fontSize:13, padding:12, resize:'vertical', fontFamily:'Inter,sans-serif', outline:'none' }} />
           <div style={{ display:'flex', gap:8, marginTop:10 }}>
             <button className="btn btn-primary" onClick={saveNote}>Kaydet</button>
             <button className="btn btn-ghost" onClick={()=>setShowNote(false)}>Kapat</button>
@@ -254,7 +309,7 @@ export default function TodayPage() {
         <div onClick={() => setShowNote(true)} style={{ background:'rgba(232,255,71,.04)', border:'1px solid rgba(232,255,71,.15)', borderRadius:10, padding:'10px 14px', marginBottom:16, cursor:'pointer', transition:'all .2s' }}
           onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(232,255,71,.3)'}
           onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(232,255,71,.15)'}>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--accent)', marginBottom:4 }}>ANTRENMAN NOTU</div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--accent)', marginBottom:4 }}>ANTRENMAN NOTU</div>
           <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.6 }}>{note}</div>
         </div>
       )}
@@ -266,16 +321,65 @@ export default function TodayPage() {
       {showForm && (
         <div className="card animate-fade" style={{ padding:20, marginBottom:16 }}>
           <div className="section-title">YENİ EGZERSİZ</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-end' }}>
-            <div className="form-group">
-              <span className="flabel">Egzersiz Adi</span>
-              <input type="text" value={newName} placeholder="örn. Bench Press, Squat..."
-                onChange={e=>setNewName(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&addExercise()} autoFocus />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'flex-start' }}>
+            <div className="form-group" style={{ position:'relative' }}>
+              <span className="flabel">Egzersiz Adı</span>
+              <input
+                type="text"
+                value={newName}
+                placeholder="örn. Bench Press, Squat..."
+                onChange={e => {
+                  const v = e.target.value
+                  setNewName(v)
+                  const s = getExerciseSuggestions(v, exArchive, exercises)
+                  setSuggestions(s)
+                  setShowSuggest(s.length > 0)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { addExercise(); return }
+                  if (e.key === 'Escape') setShowSuggest(false)
+                }}
+                onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+                autoFocus
+              />
+              {/* Autocomplete dropdown */}
+              {showSuggest && suggestions.length > 0 && (
+                <div style={{
+                  position:'absolute', top:'100%', left:0, right:0, zIndex:50,
+                  background:'var(--surface)', border:'1px solid var(--border)',
+                  borderRadius:'0 0 10px 10px', overflow:'hidden',
+                  boxShadow:'0 8px 24px rgba(0,0,0,.4)',
+                }}>
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={i}
+                      onMouseDown={() => { setNewName(s); setSuggestions([]); setShowSuggest(false) }}
+                      style={{
+                        padding:'9px 14px', cursor:'pointer', fontSize:13,
+                        fontFamily:'Inter,sans-serif', color:'var(--text)',
+                        borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                        display:'flex', alignItems:'center', gap:10, transition:'background .1s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ fontSize:14 }}>🏋️</span>
+                      <span>{s}</span>
+                      {/* Geçmişten gelenler için rozet */}
+                      {(exercises.some(e => e.name === s) ||
+                        Object.values(exArchive || {}).some(day => day.some(e => e.name === s))) && (
+                        <span style={{ marginLeft:'auto', fontFamily:'Space Mono,monospace', fontSize:8, color:'var(--accent)', background:'rgba(232,255,71,.1)', borderRadius:10, padding:'1px 6px' }}>
+                          geçmiş
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button className="btn btn-primary" onClick={addExercise}>Ekle</button>
-              <button className="btn btn-ghost" onClick={()=>setShowForm(false)}>Iptal</button>
+            <div style={{ display:'flex', gap:8, paddingTop:20 }}>
+              <button className="btn btn-primary" onClick={() => addExercise()}>Ekle</button>
+              <button className="btn btn-ghost" onClick={() => { setShowForm(false); setSuggestions([]); setShowSuggest(false) }}>İptal</button>
             </div>
           </div>
         </div>
@@ -322,7 +426,7 @@ export default function TodayPage() {
               <button onClick={()=>setShowTemplates(false)} style={{ background:'var(--surface2)', border:'1px solid var(--border)', color:'var(--text-muted)', width:30, height:30, borderRadius:8, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
             </div>
             {templates.length === 0 ? (
-              <div style={{ textAlign:'center', padding:'24px 0', color:'var(--text-muted)', fontFamily:'DM Mono,monospace', fontSize:12 }}>Henüz sablon yok.</div>
+              <div style={{ textAlign:'center', padding:'24px 0', color:'var(--text-muted)', fontFamily:'Space Mono,monospace', fontSize:12 }}>Henüz sablon yok.</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {templates.map(tpl => (
@@ -332,9 +436,9 @@ export default function TodayPage() {
                     <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:1, marginBottom:4, color:'var(--accent)' }}>{tpl.name}</div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
                       {tpl.exercises.slice(0,4).map((ex,i) => (
-                        <span key={i} style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'2px 8px' }}>{ex}</span>
+                        <span key={i} style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'2px 8px' }}>{ex}</span>
                       ))}
-                      {tpl.exercises.length > 4 && <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>+{tpl.exercises.length-4}</span>}
+                      {tpl.exercises.length > 4 && <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>+{tpl.exercises.length-4}</span>}
                     </div>
                   </div>
                 ))}
@@ -415,7 +519,7 @@ Rules: exercise_name English lowercase, no markdown.`
         onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
         onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
         {preview?<img src={preview} alt="" style={{width:'100%',maxHeight:200,objectFit:'cover',display:'block',borderRadius:10}}/>
-          :<><div style={{fontSize:32,marginBottom:8,opacity:.5}}>📷</div><div style={{fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)'}}>Tıkla ve fotograf yukle</div></>}
+          :<><div style={{fontSize:32,marginBottom:8,opacity:.5}}>📷</div><div style={{fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--text-muted)'}}>Tıkla ve fotograf yukle</div></>}
       </div>
       <button className="btn btn-primary" onClick={analyze} disabled={!imgB64||analyzing} style={{width:'100%',opacity:(!imgB64||analyzing)?.4:1,marginBottom:12}}>
         {analyzing&&<span className="spinner" style={{width:14,height:14,borderTopColor:'#0a0a0a',marginRight:8}}/>}Egzersizi Tani
@@ -427,7 +531,7 @@ Rules: exercise_name English lowercase, no markdown.`
           {status.type==='error'&&<span>❌</span>}
           <div>
             <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:1}}>{status.title}</div>
-            <div style={{fontSize:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace'}}>{status.sub}</div>
+            <div style={{fontSize:10,color:'var(--text-muted)',fontFamily:'Space Mono,monospace'}}>{status.sub}</div>
           </div>
           {status.type==='success'&&ytData&&(
             <button className="btn btn-primary" onClick={()=>onAddExercise(ytData.exTR)} style={{marginLeft:'auto',padding:'6px 14px',fontSize:11}}>+ Ekle</button>
@@ -548,11 +652,11 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
           )}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', padding:'3px 8px', borderRadius:20, border:'1px solid var(--border)' }}>{ex.sets.length} SET</span>
+          <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', padding:'3px 8px', borderRadius:20, border:'1px solid var(--border)' }}>{ex.sets.length} SET</span>
           {!readOnly && (
             <>
               <button onClick={e=>{e.stopPropagation();getSmartSuggestion()}}
-                style={{ background: showAI?'rgba(232,255,71,.15)':'rgba(232,255,71,.08)', border:'1px solid rgba(232,255,71,.3)', color:'var(--accent)', borderRadius:6, padding:'4px 8px', cursor:'pointer', fontSize:10, fontFamily:'DM Mono,monospace', transition:'all .15s' }}
+                style={{ background: showAI?'rgba(232,255,71,.15)':'rgba(232,255,71,.08)', border:'1px solid rgba(232,255,71,.3)', color:'var(--accent)', borderRadius:6, padding:'4px 8px', cursor:'pointer', fontSize:10, fontFamily:'Space Mono,monospace', transition:'all .15s' }}
                 title="Akıllı Öneri">
                 🤖 Öneri
               </button>
@@ -575,7 +679,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
           </div>
 
           {aiLoading ? (
-            <div style={{ display:'flex', alignItems:'center', gap:8, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', fontSize:11, padding:'8px 0' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', fontSize:11, padding:'8px 0' }}>
               <span className="spinner" style={{ width:14, height:14 }} /> Verilerini analiz ediyor...
             </div>
           ) : aiData ? (
@@ -584,17 +688,17 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
               {/* Sonraki Set Önerisi */}
               {aiData.next_set && (
                 <div style={{ background:'rgba(232,255,71,.06)', border:'1px solid rgba(232,255,71,.2)', borderRadius:10, padding:'12px 14px' }}>
-                  <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--accent)', marginBottom:8 }}>SONRAKİ SET ÖNERİSİ</div>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--accent)', marginBottom:8 }}>SONRAKİ SET ÖNERİSİ</div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
                     <div style={{ display:'flex', gap:12, alignItems:'center' }}>
                       <div style={{ textAlign:'center' }}>
                         <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:32, lineHeight:1, color:'var(--accent)' }}>{aiData.next_set.weight}</div>
-                        <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>KG</div>
+                        <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>KG</div>
                       </div>
-                      <div style={{ fontFamily:'DM Mono,monospace', fontSize:16, color:'var(--text-muted)' }}>×</div>
+                      <div style={{ fontFamily:'Space Mono,monospace', fontSize:16, color:'var(--text-muted)' }}>×</div>
                       <div style={{ textAlign:'center' }}>
                         <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:32, lineHeight:1, color:'var(--accent)' }}>{aiData.next_set.reps}</div>
-                        <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>TEKRAR</div>
+                        <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)' }}>TEKRAR</div>
                       </div>
                     </div>
                     <button onClick={applySuggestion} className="btn btn-primary" style={{ fontSize:11, padding:'8px 14px', flexShrink:0 }}>
@@ -602,7 +706,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
                     </button>
                   </div>
                   {aiData.next_set.rationale && (
-                    <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', marginTop:8, fontStyle:'italic', lineHeight:1.5 }}>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', marginTop:8, fontStyle:'italic', lineHeight:1.5 }}>
                       💡 {aiData.next_set.rationale}
                     </div>
                   )}
@@ -611,7 +715,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
 
               {/* PR Durumu */}
               {aiData.pr_status && (
-                <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'#47c8ff', background:'rgba(71,200,255,.07)', border:'1px solid rgba(71,200,255,.2)', borderRadius:8, padding:'8px 12px' }}>
+                <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'#47c8ff', background:'rgba(71,200,255,.07)', border:'1px solid rgba(71,200,255,.2)', borderRadius:8, padding:'8px 12px' }}>
                   🏆 {aiData.pr_status}
                 </div>
               )}
@@ -619,7 +723,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
               {/* Form İpuçları */}
               {aiData.tips?.length > 0 && (
                 <div>
-                  <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginBottom:6 }}>FORM İPUÇLARI</div>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginBottom:6 }}>FORM İPUÇLARI</div>
                   {aiData.tips.map((t,i) => (
                     <div key={i} style={{ fontSize:12, color:'var(--text-dim)', lineHeight:1.6, marginBottom:3, display:'flex', gap:6 }}>
                       <span style={{ color:'var(--accent)', flexShrink:0 }}>•</span> {t}
@@ -631,17 +735,17 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
               {/* Alternatifler */}
               {aiData.alternatives?.length > 0 && (
                 <div>
-                  <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginBottom:6 }}>ALTERNATİF EGZERSİZLER</div>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginBottom:6 }}>ALTERNATİF EGZERSİZLER</div>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                     {aiData.alternatives.map((a,i) => (
-                      <span key={i} style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px', color:'var(--text-muted)' }}>{a}</span>
+                      <span key={i} style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px', color:'var(--text-muted)' }}>{a}</span>
                     ))}
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>Öneri alınamadı, tekrar dene.</div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>Öneri alınamadı, tekrar dene.</div>
           )}
         </div>
       )}
@@ -650,7 +754,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
       {isOpen && (
         <div style={{ padding:'12px 16px' }}>
           {ex.sets.length === 0 && (
-            <div style={{ textAlign:'center', padding:16, color:'var(--text-muted)', fontSize:11, fontFamily:'DM Mono,monospace', border:'1px dashed var(--border)', borderRadius:8, marginBottom:10 }}>
+            <div style={{ textAlign:'center', padding:16, color:'var(--text-muted)', fontSize:11, fontFamily:'Space Mono,monospace', border:'1px dashed var(--border)', borderRadius:8, marginBottom:10 }}>
               Henüz set eklenmedi
             </div>
           )}
@@ -659,7 +763,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
               <thead>
                 <tr>
                   {['#', 'Tekrar'+(prevEx?' / dün':''), 'Agirlik'+(prevEx?' / dün':''), ''].map((h,i) => (
-                    <th key={i} style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', textAlign:'left', padding:'6px 9px', borderBottom:'1px solid var(--border)' }}>{h}</th>
+                    <th key={i} style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', textAlign:'left', padding:'6px 9px', borderBottom:'1px solid var(--border)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -673,9 +777,9 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
                         <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
                           {readOnly ? <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:19 }}>{set.reps}</span>
                             : <input type="number" defaultValue={set.reps} min="1" onChange={e=>onUpdateSet(si,'reps',e.target.value)} style={{ width:72, textAlign:'center', fontFamily:'Bebas Neue,sans-serif', fontSize:19, padding:'3px 6px', background:'var(--surface3)', border:'1px solid transparent', borderRadius:6 }}/>}
-                          <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>tekrar</span>
+                          <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>tekrar</span>
                           {ps && <div style={{ display:'inline-flex', alignItems:'center', gap:3, background:'var(--surface3)', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px' }}>
-                            <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'#555', textDecoration:'line-through' }}>{ps.reps}</span>
+                            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'#555', textDecoration:'line-through' }}>{ps.reps}</span>
                             <DeltaBadge cur={set.reps} prev={ps.reps}/>
                           </div>}
                         </div>
@@ -684,9 +788,9 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
                         <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
                           {readOnly ? <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:19 }}>{set.weight}</span>
                             : <input type="number" defaultValue={set.weight} min="0" step="0.5" onChange={e=>onUpdateSet(si,'weight',e.target.value)} style={{ width:72, textAlign:'center', fontFamily:'Bebas Neue,sans-serif', fontSize:19, padding:'3px 6px', background:'var(--surface3)', border:'1px solid transparent', borderRadius:6 }}/>}
-                          <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>kg</span>
+                          <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>kg</span>
                           {ps && <div style={{ display:'inline-flex', alignItems:'center', gap:3, background:'var(--surface3)', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px' }}>
-                            <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'#555', textDecoration:'line-through' }}>{ps.weight}</span>
+                            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'#555', textDecoration:'line-through' }}>{ps.weight}</span>
                             <DeltaBadge cur={set.weight} prev={ps.weight}/>
                           </div>}
                         </div>
