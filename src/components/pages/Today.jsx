@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const MODELS = [
+  'gemini-3.1-flash-lite-preview',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',

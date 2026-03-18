@@ -92,7 +92,12 @@ Aşağıdaki başlıklar altında Türkçe, samimi rapor yaz:
 5. 💬 MOTİVASYON MESAJI (1 güçlü cümle)
 
 Eksiksiz yaz.`
-    const W_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    const W_MODELS = [
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+]
     let report = null
     for (const model of W_MODELS) {
       try {

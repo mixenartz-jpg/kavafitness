@@ -282,13 +282,25 @@ Türkçe, samimi ve motive edici cevap ver. Şu başlıklar altında yaz:
 
 Eksiksiz yaz.`
 
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.8,maxOutputTokens:2048}}) })
-      const data = await res.json()
-      setAiInsight(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz alınamadı.')
-    } catch { setAiInsight('⚠️ Bağlantı hatası.') }
+    const GPB_MODELS = [
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+]
+    let insight = null
+    for (const model of GPB_MODELS) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.8,maxOutputTokens:2048}}) })
+        if (!res.ok) continue
+        const data = await res.json()
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (text) { insight = text; break }
+      } catch { continue }
+    }
+    setAiInsight(insight || '⚠️ Analiz alınamadı, tekrar dene.')
     setAiLoading(false)
   }
 

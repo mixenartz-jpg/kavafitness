@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 
 const GEMINI_KEY  = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const FOOD_MODELS = [
+  'gemini-3.1-flash-lite-preview',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',
@@ -248,7 +249,12 @@ veya: {"is_product":false}
 
 Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa serving_g belirt).`
 
-    const LABEL_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    const LABEL_MODELS = [
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+]
     let parsed = null
 
     for (const model of LABEL_MODELS) {
@@ -316,10 +322,11 @@ Yanıtını SADECE aşağıdaki JSON formatında ver, başka hiçbir şey ekleme
 
     // Çalışan gerçek model isimleri
     const MODELS_TO_TRY = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-8b',
-    ]
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+]
 
     let parsed = null
 
