@@ -1,4 +1,4 @@
-import { getXpLevel } from '../../context/AppContext'
+import { getXpLevel } from '../context/AppContext'
 
 // ── Pixel-art karakter renk paletleri — seviyeye göre ──
 const PALETTES = [
