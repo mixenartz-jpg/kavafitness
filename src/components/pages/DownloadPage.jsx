@@ -4,7 +4,7 @@ export default function DownloadPage() {
   const [modal, setModal] = useState(null) // 'android' | 'ios' | null
   const [copied, setCopied] = useState(false)
 
-  const APP_URL = 'kerogym-new.vercel.app'
+  const APP_URL = 'kavafit.vercel.app'
 
   const detectOS = () => {
     const ua = navigator.userAgent
@@ -52,13 +52,13 @@ export default function DownloadPage() {
         }}>APP</div>
 
         <div style={{ fontSize: 48, marginBottom: 12 }}>📱</div>
-        <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, letterSpacing: 4, color: 'var(--accent)', marginBottom: 10 }}>
+        <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, letterSpacing: 4, color: 'var(--accent)', marginBottom: 10 }}>
           MOBİL UYGULAMA
         </div>
         <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 42, letterSpacing: 3, lineHeight: 1, marginBottom: 12 }}>
           TELEFONA<br /><span style={{ color: 'var(--accent)' }}>İNDİR</span>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, fontFamily: 'DM Mono,monospace' }}>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, fontFamily: 'Space Mono,monospace' }}>
           Spor & beslenme takibini cebinde tut.<br />Kurulum gerektirmez, anında çalışır.
         </p>
       </div>
@@ -78,7 +78,7 @@ export default function DownloadPage() {
           >
             <div style={{ fontSize: 32, marginBottom: 10 }}>{icon}</div>
             <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 18, letterSpacing: 2, color, marginBottom: 4 }}>{label}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'DM Mono,monospace', lineHeight: 1.5 }}>{desc}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Space Mono,monospace', lineHeight: 1.5 }}>{desc}</div>
           </div>
         ))}
       </div>
@@ -96,7 +96,7 @@ export default function DownloadPage() {
         background: 'var(--surface2)', border: '1px solid var(--border)',
         borderRadius: 10, padding: '12px 16px', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        fontFamily: 'DM Mono,monospace', fontSize: 13, color: 'var(--accent)',
+        fontFamily: 'Space Mono,monospace', fontSize: 13, color: 'var(--accent)',
         marginBottom: 8, transition: 'all .2s',
       }}
         onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
@@ -105,7 +105,7 @@ export default function DownloadPage() {
         <span>{APP_URL}</span>
         <span style={{ color: 'var(--text-muted)' }}>{copied ? '✓ Kopyalandı!' : '⎘'}</span>
       </div>
-      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'DM Mono,monospace', letterSpacing: 1 }}>
+      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Space Mono,monospace', letterSpacing: 1 }}>
         ↑ linki kopyala ve tarayıcında aç
       </div>
 
@@ -136,7 +136,7 @@ export default function DownloadPage() {
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'DM Mono,monospace', fontSize: 11,
+                  fontFamily: 'Space Mono,monospace', fontSize: 11,
                   background: modal === 'android' ? 'rgba(71,255,138,.15)' : 'rgba(71,200,255,.15)',
                   color: modal === 'android' ? 'var(--green)' : 'var(--blue)',
                 }}>

@@ -13,7 +13,7 @@ const PERSONAS = [
     icon: '🤖',
     label: 'Dengeli Koç',
     desc: 'Samimi, motive edici, pratik',
-    systemPrompt: 'Sen KeroGym Kişisel Koçu\'sun. Samimi, motive edici ve pratik ol. Türkçe konuş.',
+    systemPrompt: 'Sen KavaFit Kişisel Koçu\'sun. Samimi, motive edici ve pratik ol. Türkçe konuş.',
   },
   {
     id: 'philosopher',
@@ -212,7 +212,7 @@ export default function PersonalCoachPage() {
 
     const openingMsg = dataLines.length > 0
       ? `${greeting}\n\nVerilerine baktım:\n${dataLines.map(l => `• ${l}`).join('\n')}${crossAnalysis}\n\nSana nasıl yardımcı olabilirim?`
-      : `${greeting}\n\nBen senin kişisel KeroGym koçunum. Antrenman planı, beslenme önerisi, motivasyon veya herhangi bir fitness sorusu için buradayım. Ne sormak istersin?`
+      : `${greeting}\n\nBen senin kişisel KavaFit koçunum. Antrenman planı, beslenme önerisi, motivasyon veya herhangi bir fitness sorusu için buradayım. Ne sormak istersin?`
 
     setMessages([{ role:'assistant', text: openingMsg }])
   }, [unlocked])

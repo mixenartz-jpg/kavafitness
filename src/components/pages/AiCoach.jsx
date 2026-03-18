@@ -123,7 +123,7 @@ export default function AiCoachPage() {
   const [calcTips,   setCalcTips]   = useState(null)
 
   // Chat state
-  const [messages, setMessages] = useState([{role:'assistant',text:'👋 Merhaba! Ben KeroGym\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.'}])
+  const [messages, setMessages] = useState([{role:'assistant',text:'👋 Merhaba! Ben KavaFit\'in beslenme asistanıyım.\n\nBeslenme planı, kalori hesabı, diyet önerileri veya besin değerleri hakkında her şeyi sorabilirsin.'}])
   const [chatInput, setChatInput] = useState('')
   const [chatLoad,  setChatLoad]  = useState(false)
   const chatEnd  = useRef(null)
@@ -174,7 +174,7 @@ export default function AiCoachPage() {
       const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `Sen KeroGym beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
+    return `Sen KavaFit beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {

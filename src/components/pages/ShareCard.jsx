@@ -149,7 +149,7 @@ export default function ShareCard() {
 
     // Footer
     ctx.font='10px "Courier New",monospace'; ctx.fillStyle='#1c1c1c'
-    ctx.fillText(`kerogym.app  ·  ${new Date().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})}`,40,H-18)
+    ctx.fillText(`kavafit.app  ·  ${new Date().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})}`,40,H-18)
 
     setPreview(canvas.toDataURL('image/png'))
     setExporting(false)
@@ -158,15 +158,15 @@ export default function ShareCard() {
   const download = () => {
     if (!preview) return
     const a=document.createElement('a')
-    a.href=preview; a.download=`kerogym-${mode==='week'?'haftalik':'bugun'}-${today}.png`; a.click()
+    a.href=preview; a.download=`kavafit-${mode==='week'?'haftalik':'bugun'}-${today}.png`; a.click()
   }
 
   const share = async () => {
     if (!preview||!navigator.share) { download(); return }
     try {
       const blob=await(await fetch(preview)).blob()
-      const file=new File([blob],'kerogym-antrenman.png',{type:'image/png'})
-      await navigator.share({files:[file],title:'KeroGym Antrenman',text:`${streak>0?`🔥 ${streak} günlük seri!`:'Antrenman tamamlandı!'} #KeroGym`})
+      const file=new File([blob],'kavafit-antrenman.png',{type:'image/png'})
+      await navigator.share({files:[file],title:'KavaFit Antrenman',text:`${streak>0?`🔥 ${streak} günlük seri!`:'Antrenman tamamlandı!'} #KavaFit`})
     } catch { download() }
   }
 
@@ -176,7 +176,7 @@ export default function ShareCard() {
       <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:26, letterSpacing:4, color:'var(--accent)', marginBottom:4 }}>
         PAYLAŞIM KARTI
       </div>
-      <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', marginBottom:24 }}>
+      <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', marginBottom:24 }}>
         Antrenmanını sosyal medyada paylaş
       </div>
 
@@ -235,7 +235,7 @@ export default function ShareCard() {
               {label:'Streak',     val:`${streak} gün 🔥`,              color:'#ff8c47'},
             ].map(({label,val,color}) => (
               <div key={label} className="card" style={{ padding:'14px 16px' }}>
-                <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', letterSpacing:2, marginBottom:5 }}>{label}</div>
+                <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', letterSpacing:2, marginBottom:5 }}>{label}</div>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, color }}>{val}</div>
               </div>
             ))}
@@ -248,9 +248,9 @@ export default function ShareCard() {
               {label:'Max Ağırlık',val:todayMax,         unit:'kg',   color:'#47ff8a'},
             ].map(({label,val,unit,color}) => (
               <div key={label} className="card" style={{ padding:'14px 12px', textAlign:'center' }}>
-                <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', letterSpacing:2, marginBottom:5 }}>{label}</div>
+                <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', letterSpacing:2, marginBottom:5 }}>{label}</div>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:24, color, lineHeight:1 }}>{val}</div>
-                <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:4 }}>{unit}</div>
+                <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:4 }}>{unit}</div>
               </div>
             ))}
           </div>

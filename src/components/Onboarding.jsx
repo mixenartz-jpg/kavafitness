@@ -121,7 +121,7 @@ export default function Onboarding({ onComplete }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
           <img src="/logo-sm.png" alt="" style={{ height: 28, width: 'auto' }} />
           <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 18, letterSpacing: 3, color: 'var(--accent)' }}>
-            KERO<span style={{ color: 'var(--text-muted)' }}>GYM</span>
+            KAVA<span style={{ color: 'var(--text-muted)' }}>GYM</span>
           </div>
         </div>
 

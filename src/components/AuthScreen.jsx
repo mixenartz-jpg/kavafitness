@@ -144,12 +144,12 @@ export default function AuthScreen() {
 
         {/* Logo */}
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:6 }}>
-          <img src="/logo.png" alt="KeroGym" style={{ height:52, width:'auto' }} />
+          <img src="/logo.png" alt="KavaFit" style={{ height:52, width:'auto' }} />
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:34, letterSpacing:4, color:'var(--accent)' }}>
-            KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
+            KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
           </div>
         </div>
-        <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginBottom:16 }}>
+        <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginBottom:16 }}>
           Spor & Beslenme Takip Uygulaması
         </div>
 
@@ -160,7 +160,7 @@ export default function AuthScreen() {
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3, marginBottom:10 }}>
               MAİL ADRESİNİZİ DOĞRULAYIN
             </div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.8, marginBottom:16 }}>
+            <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', lineHeight:1.8, marginBottom:16 }}>
               <b style={{ color:'var(--accent)' }}>{email}</b> adresine doğrulama maili gönderdik.
               <br />Maildeki linke tıkladıktan sonra giriş yapabilirsin.
             </div>
@@ -174,10 +174,10 @@ export default function AuthScreen() {
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:4 }}>
                   LÜTFEN MAİL ADRESİNİZİ DOĞRULAYIN
                 </div>
-                <div style={{ fontSize:11, color:'#ff8c47', fontFamily:'DM Mono,monospace', fontWeight:'bold' }}>
+                <div style={{ fontSize:11, color:'#ff8c47', fontFamily:'Space Mono,monospace', fontWeight:'bold' }}>
                   ⚠️ SPAM / GEREKSIZ KLASÖRÜNÜ KONTROL EDİN!
                 </div>
-                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:3 }}>
+                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginTop:3 }}>
                   Mail bazen spam'e düşebilir, mutlaka kontrol et.
                 </div>
               </div>
@@ -208,10 +208,10 @@ export default function AuthScreen() {
             {mode === 'forgot' && (
               <div style={{ marginBottom:20 }}>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, marginBottom:6 }}>🔑 ŞİFREMİ UNUTTUM</div>
-                <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', lineHeight:1.6, marginBottom:8 }}>
+                <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', lineHeight:1.6, marginBottom:8 }}>
                   Kullanıcı adını gir, kayıtlı e-postana sıfırlama bağlantısı göndereceğiz.
                 </div>
-                <div style={{ background:'rgba(255,140,71,.12)', border:'2px solid rgba(255,140,71,.4)', borderRadius:7, padding:'10px 14px', fontFamily:'DM Mono,monospace' }}>
+                <div style={{ background:'rgba(255,140,71,.12)', border:'2px solid rgba(255,140,71,.4)', borderRadius:7, padding:'10px 14px', fontFamily:'Space Mono,monospace' }}>
                   <div style={{ fontSize:12, color:'#ff8c47', fontWeight:'bold', marginBottom:2 }}>⚠️ SPAM KLASÖRÜNÜ KONTROL ET!</div>
                   <div style={{ fontSize:10, color:'var(--text-muted)' }}>Mail spam/gereksiz klasörüne düşmüş olabilir.</div>
                 </div>
@@ -221,13 +221,13 @@ export default function AuthScreen() {
             {/* Hata / Başarı */}
             {error && error !== 'EMAIL_NOT_VERIFIED' && (
               <div style={{ background:'rgba(255,71,71,.1)', border:'1px solid rgba(255,71,71,.3)', borderRadius:8,
-                padding:'10px 14px', fontSize:12, color:'var(--red)', fontFamily:'DM Mono,monospace', marginBottom:14 }}>
+                padding:'10px 14px', fontSize:12, color:'var(--red)', fontFamily:'Space Mono,monospace', marginBottom:14 }}>
                 {error}
               </div>
             )}
             {success && (
               <div style={{ background:'rgba(71,255,138,.1)', border:'1px solid rgba(71,255,138,.3)', borderRadius:8,
-                padding:'10px 14px', fontSize:12, color:'var(--green)', fontFamily:'DM Mono,monospace', marginBottom:14 }}>
+                padding:'10px 14px', fontSize:12, color:'var(--green)', fontFamily:'Space Mono,monospace', marginBottom:14 }}>
                 {success}
               </div>
             )}
@@ -240,7 +240,7 @@ export default function AuthScreen() {
                 onKeyDown={e => e.key==='Enter' && (mode==='register' ? document.getElementById('email-inp')?.focus() : document.getElementById('pw-inp')?.focus())}
                 maxLength={20} autoComplete="username" />
               {mode === 'register' && (
-                <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
+                <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>
                   2-20 karakter · harf, rakam, _
                 </span>
               )}
@@ -254,7 +254,7 @@ export default function AuthScreen() {
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key==='Enter' && document.getElementById('pw-inp')?.focus()}
                   autoComplete="email" />
-                <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
+                <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>
                   Doğrulama ve şifre sıfırlama için kullanılır
                 </span>
               </div>
@@ -269,7 +269,7 @@ export default function AuthScreen() {
                   onKeyDown={e => e.key==='Enter' && handleSubmit()}
                   minLength={6} autoComplete="current-password" />
                 {mode === 'register' && (
-                  <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>En az 6 karakter</span>
+                  <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>En az 6 karakter</span>
                 )}
               </div>
             )}
@@ -279,7 +279,7 @@ export default function AuthScreen() {
               <div style={{ textAlign:'right', marginBottom:14 }}>
                 <button onClick={() => switchMode('forgot')} style={{
                   background:'none', border:'none', cursor:'pointer',
-                  fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace',
+                  fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace',
                   textDecoration:'underline', textUnderlineOffset:2,
                 }}>Şifremi unuttum</button>
               </div>
@@ -309,11 +309,11 @@ export default function AuthScreen() {
               {mode === 'forgot' && (
                 <button onClick={() => switchMode('login')} style={{
                   background:'none', border:'none', cursor:'pointer',
-                  fontSize:12, color:'var(--text-muted)', fontFamily:'DM Mono,monospace',
+                  fontSize:12, color:'var(--text-muted)', fontFamily:'Space Mono,monospace',
                 }}>← Giriş ekranına dön</button>
               )}
               <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
-                style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'none', opacity:.6 }}>
+                style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'none', opacity:.6 }}>
                 Sorun mu var? @slmbnmixo
               </a>
             </div>

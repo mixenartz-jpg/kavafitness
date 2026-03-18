@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 const TOUR_STEPS = [
   {
     id: 'welcome',
-    title: '👋 KeroGym\'e Hoş Geldin!',
+    title: '👋 KavaFit\'e Hoş Geldin!',
     desc: 'Sana birkaç adımda uygulamayı tanıtalım. İstediğin zaman atlayabilirsin.',
     icon: '🏋️',
     target: null,  // Genel hoş geldin — hedefsiz

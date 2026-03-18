@@ -156,10 +156,10 @@ export function AppProvider({ children }) {
   const [favFoods,  setFavFoods]  = useState([])
 
   // Tema
-  const [theme, _setTheme] = useState(() => localStorage.getItem('kerogym_theme') || 'dark')
+  const [theme, _setTheme] = useState(() => localStorage.getItem('kavafit_theme') || 'dark')
   const setTheme = useCallback((t) => {
     _setTheme(t)
-    localStorage.setItem('kerogym_theme', t)
+    localStorage.setItem('kavafit_theme', t)
     document.documentElement.setAttribute('data-theme', t)
   }, [])
 
@@ -298,10 +298,10 @@ export function AppProvider({ children }) {
     setAiUsage(au.date===today ? au : {date:today,used:0,banned:false})
 
     // XP & Rozetleri yükle
-    setTotalXP(ls.get(userId,'kerogym_xp', 0))
-    setEarnedBadges(ls.get(userId,'kerogym_badges', []))
+    setTotalXP(ls.get(userId,'kavafit_xp', 0))
+    setEarnedBadges(ls.get(userId,'kavafit_badges', []))
 
-    const t=localStorage.getItem('kerogym_theme')||'dark'
+    const t=localStorage.getItem('kavafit_theme')||'dark'
     _setTheme(t); document.documentElement.setAttribute('data-theme',t)
   }, [])
 
@@ -406,7 +406,7 @@ export function AppProvider({ children }) {
     if (!uid) return
     setTotalXP(prev => {
       const newXP = prev + amount
-      ls.set(uid, 'kerogym_xp', newXP)
+      ls.set(uid, 'kavafit_xp', newXP)
       setXpPopup({ amount, reason })
       setTimeout(() => setXpPopup(null), 2200)
       return newXP
@@ -416,7 +416,7 @@ export function AppProvider({ children }) {
   // ── Rozet Kontrolü ──
   const checkBadges = useCallback((overrideData = {}) => {
     if (!uid) return
-    const current = ls.get(uid, 'kerogym_badges', [])
+    const current = ls.get(uid, 'kavafit_badges', [])
 
     let allTimeMaxWeight = 0
     Object.values(exArchive).forEach(day =>
@@ -427,12 +427,12 @@ export function AppProvider({ children }) {
     const totalWorkouts = Object.values(exArchive).filter(day => day.length > 0).length
       + (exercises.length > 0 ? 1 : 0)
 
-    const currentXP = ls.get(uid, 'kerogym_xp', 0)
+    const currentXP = ls.get(uid, 'kavafit_xp', 0)
 
     const checkData = {
       streak, allTimeMaxWeight, totalWorkouts,
-      totalPRs:       ls.get(uid, 'kerogym_total_prs', 0),
-      macroStreakDays: ls.get(uid, 'kerogym_macro_streak', 0),
+      totalPRs:       ls.get(uid, 'kavafit_total_prs', 0),
+      macroStreakDays: ls.get(uid, 'kavafit_macro_streak', 0),
       totalXP:        currentXP,
       ...overrideData,
     }
@@ -446,7 +446,7 @@ export function AppProvider({ children }) {
 
     if (newlyEarned.length > 0) {
       const updated = [...current, ...newlyEarned.map(b => b.id)]
-      ls.set(uid, 'kerogym_badges', updated)
+      ls.set(uid, 'kavafit_badges', updated)
       setEarnedBadges(updated)
       setBadgePopup(newlyEarned[0])
       setTimeout(() => setBadgePopup(null), 4000)
@@ -477,14 +477,14 @@ export function AppProvider({ children }) {
   const checkMacroXP = useCallback((totals, goalData) => {
     if (!uid || !goalData) return
     const today = todayKey()
-    const lastCheck = ls.get(uid, 'kerogym_macro_check', '')
+    const lastCheck = ls.get(uid, 'kavafit_macro_check', '')
     if (lastCheck === today) return
     const kcalPct = goalData.kcal > 0 ? totals.kcal / goalData.kcal : 0
     const protPct = goalData.protein > 0 ? totals.protein / goalData.protein : 0
     if (kcalPct >= 1.0) earnXP(XP_REWARDS.MACRO_100, 'Kalori hedefi tamamlandı!')
     else if (kcalPct >= 0.75) earnXP(XP_REWARDS.MACRO_75, 'Kalori hedefinin %75\'i')
     if (protPct >= 1.0) earnXP(XP_REWARDS.PROTEIN_GOAL, 'Protein hedefi tamamlandı!')
-    ls.set(uid, 'kerogym_macro_check', today)
+    ls.set(uid, 'kavafit_macro_check', today)
     checkBadges()
   }, [uid, earnXP, checkBadges])
 

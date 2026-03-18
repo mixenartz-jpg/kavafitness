@@ -70,12 +70,12 @@ export default function Header() {
         {/* Logo */}
         <div onClick={() => setActiveTab('home')}
           style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-          <img src="/logo-sm.png" alt="KeroGym" style={{ height:30, width:'auto' }} />
+          <img src="/logo-sm.png" alt="KavaFit" style={{ height:30, width:'auto' }} />
           <div style={{
             fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3,
             color:'var(--accent)', textShadow:'0 0 20px rgba(232,255,71,.3)', whiteSpace:'nowrap',
           }}>
-            KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
+            KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
           </div>
         </div>
 

@@ -30,10 +30,10 @@ export default function HomePage() {
         <div style={{ position:'absolute', right:-10, top:-10, fontFamily:'Bebas Neue,sans-serif', fontSize:110, color:'rgba(232,255,71,.04)', letterSpacing:4, userSelect:'none', pointerEvents:'none', lineHeight:1 }}>GYM</div>
 
         <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:16 }}>
-          <img src="/logo.png" alt="KeroGym" style={{ height:48, width:'auto' }} />
+          <img src="/logo.png" alt="KavaFit" style={{ height:48, width:'auto' }} />
           <div>
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:34, letterSpacing:5, color:'var(--accent)', lineHeight:1 }}>
-              KERO<span style={{ color:'var(--text-muted)' }}>GYM</span>
+              KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
             </div>
             <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginTop:3 }}>
               SPOR & BESLENME TAKİP
@@ -106,7 +106,7 @@ export default function HomePage() {
           </div>
           <div style={{ flex:1 }}>
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:17, letterSpacing:2, marginBottom:2 }}>Kerem Teke</div>
-            <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', letterSpacing:1 }}>KeroGym'in yaratıcısı</div>
+            <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', letterSpacing:1 }}>KavaFit'in yaratıcısı</div>
           </div>
           <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
             style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:20, background:'linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)', color:'#fff', fontSize:10, fontWeight:600, textDecoration:'none', fontFamily:'Space Mono,monospace', flexShrink:0 }}>
@@ -120,7 +120,7 @@ export default function HomePage() {
       </div>
 
       <div style={{ textAlign:'center', paddingBottom:8, fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--border)', letterSpacing:2 }}>
-        KEROGYM v1.0 · 2025
+        KAVAFIT v1.0 · 2025
       </div>
 
     </div>
