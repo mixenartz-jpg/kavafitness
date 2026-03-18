@@ -1,130 +1,117 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { db } from '../firebase'
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 
-const ANNOUNCEMENT_ID = 'announcement_kalem_cekilisi'
-const SHOW_DAYS = 3
+const SEEN_KEY = 'kerogym_seen_announcements'
 
 export default function Announcement() {
   const { uid } = useApp()
+  const [announcement, setAnnouncement] = useState(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     if (!uid) return
-    const key = `${ANNOUNCEMENT_ID}_${uid}`
-    const stored = localStorage.getItem(key)
-    if (stored) {
-      const { closedAt } = JSON.parse(stored)
-      const daysPassed = (Date.now() - closedAt) / (1000 * 60 * 60 * 24)
-      if (daysPassed < SHOW_DAYS) return // daha 3 gün dolmadı, gösterme
-    }
-    // Hiç kapatılmamış veya 3 gün geçmiş → göster
-    const shownKey = `${ANNOUNCEMENT_ID}_shown_${uid}`
-    const alreadyClosed = localStorage.getItem(shownKey)
-    if (!alreadyClosed) setVisible(true)
+    fetchLatest()
   }, [uid])
 
+  const fetchLatest = async () => {
+    try {
+      const q = query(
+        collection(db, 'announcements'),
+        where('active', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      )
+      const snap = await getDocs(q)
+      if (snap.empty) return
+
+      const msg = { id: snap.docs[0].id, ...snap.docs[0].data() }
+
+      // Görülmüş mü?
+      const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')
+      if (seen.includes(msg.id)) return
+
+      setAnnouncement(msg)
+      setVisible(true)
+    } catch { /* sessiz hata */ }
+  }
+
   const close = () => {
-    const shownKey = `${ANNOUNCEMENT_ID}_shown_${uid}`
-    localStorage.setItem(shownKey, JSON.stringify({ closedAt: Date.now() }))
+    if (!announcement) return
+    const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')
+    if (!seen.includes(announcement.id)) {
+      localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, announcement.id]))
+    }
     setVisible(false)
   }
 
-  if (!visible) return null
+  if (!visible || !announcement) return null
+
+  const TYPE_STYLES = {
+    info:    { border:'rgba(71,200,255,.25)',  accent:'#47c8ff',       icon:'ℹ️' },
+    success: { border:'rgba(71,255,138,.25)',  accent:'var(--green)',  icon:'✅' },
+    warning: { border:'rgba(255,140,71,.25)',  accent:'#ff8c47',       icon:'⚠️' },
+    promo:   { border:'rgba(232,255,71,.25)',  accent:'var(--accent)', icon:'🎉' },
+  }
+  const style = TYPE_STYLES[announcement.type] || TYPE_STYLES.info
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,.75)',
-      backdropFilter: 'blur(6px)',
-      zIndex: 9999,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 20,
-      animation: 'fadeIn .3s ease',
+      position:'fixed', inset:0,
+      background:'rgba(0,0,0,.75)', backdropFilter:'blur(6px)',
+      zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center',
+      padding:20, animation:'fadeIn .3s ease',
     }}>
       <div style={{
-        background: 'var(--surface)',
-        border: '1px solid rgba(232,255,71,.25)',
-        borderRadius: 20,
-        padding: '32px 28px',
-        width: 'min(460px, 100%)',
-        position: 'relative',
-        animation: 'slideDown .35s ease',
-        boxShadow: '0 20px 60px rgba(0,0,0,.6), 0 0 40px rgba(232,255,71,.05)',
+        background:'var(--surface)', border:`1px solid ${style.border}`,
+        borderRadius:20, padding:'28px 26px', width:'min(440px,100%)',
+        position:'relative', animation:'slideDown .35s ease',
+        boxShadow:'0 20px 60px rgba(0,0,0,.6)',
       }}>
-
-        {/* Kapat butonu */}
+        {/* Kapat */}
         <button onClick={close} style={{
-          position: 'absolute', top: 14, right: 14,
-          background: 'var(--surface2)', border: '1px solid var(--border)',
-          color: 'var(--text-muted)', width: 30, height: 30, borderRadius: 8,
-          cursor: 'pointer', fontSize: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all .15s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = '#444' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
-        >✕</button>
+          position:'absolute', top:12, right:12,
+          background:'var(--surface2)', border:'1px solid var(--border)',
+          color:'var(--text-muted)', width:28, height:28, borderRadius:7,
+          cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center',
+        }}>✕</button>
 
         {/* Başlık */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(232,255,71,.12)', border: '1px solid rgba(232,255,71,.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18,
-          }}>📢</div>
-          <div style={{
-            fontFamily: 'Bebas Neue,sans-serif', fontSize: 22,
-            letterSpacing: 4, color: 'var(--accent)',
-          }}>DUYURU</div>
+            width:36, height:36, borderRadius:10, flexShrink:0,
+            background:`${style.border}30`,
+            border:`1px solid ${style.border}`,
+            display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
+          }}>{style.icon}</div>
+          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:3, color:style.accent }}>
+            {announcement.title}
+          </div>
         </div>
 
         {/* İçerik */}
         <div style={{
-          background: 'var(--surface2)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          padding: '18px 20px',
-          marginBottom: 20,
+          background:'var(--surface2)', border:'1px solid var(--border)',
+          borderRadius:10, padding:'14px 16px', marginBottom:18,
         }}>
-          <p style={{
-            fontSize: 14, lineHeight: 1.8,
-            fontFamily: 'DM Sans,sans-serif',
-            color: 'var(--text)',
-            marginBottom: 16,
-          }}>
-            <strong style={{ color: 'var(--accent)' }}>Murat Yıldırım Hocamızdan</strong> alacağımız
-            sponsorlukla <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(inşallah)</span>{' '}
-            <strong>kalem çekilişi</strong> yapacağız! 🎉
-          </p>
-          <p style={{
-            fontSize: 13, color: 'var(--text-muted)',
-            fontFamily: 'DM Mono,monospace', lineHeight: 1.6,
-            borderTop: '1px solid var(--border)', paddingTop: 12,
-          }}>
-            Kankalarınızla paylaşmayı unutmayınız. 🙏
+          <p style={{ fontSize:13, lineHeight:1.8, fontFamily:'Inter,sans-serif', color:'var(--text)', margin:0 }}>
+            {announcement.body}
           </p>
         </div>
 
-        {/* İmza */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 12,
-        }}>
-          <div style={{
-            fontFamily: 'DM Mono,monospace', fontSize: 11,
-            color: 'var(--text-muted)', letterSpacing: 1,
-          }}>
-            — <span style={{ color: 'var(--accent)' }}>Kerem Teke Baba</span>
+        {/* Alt */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
+            — <span style={{ color:style.accent }}>KeroGym</span>
           </div>
           <button onClick={close} className="btn btn-primary" style={{
-            padding: '8px 18px', fontSize: 12,
-            fontFamily: 'Bebas Neue,sans-serif', letterSpacing: 2,
+            padding:'8px 18px', fontSize:12,
+            fontFamily:'Bebas Neue,sans-serif', letterSpacing:2,
           }}>
             TAMAM 👍
           </button>
         </div>
-
       </div>
     </div>
   )

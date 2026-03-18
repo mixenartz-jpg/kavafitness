@@ -6,6 +6,7 @@ import {
   reauthenticateWithCredential, EmailAuthProvider, deleteUser,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore'
+import PixelAvatar from '../PixelAvatar'
 
 // ── Yardımcı componentler — DIŞARIDA tanımlı (re-mount önlemek için) ──
 function Section({ title, color, children }) {
@@ -40,7 +41,7 @@ function Btn({ onClick, disabled, loading, children, danger }) {
 }
 
 export default function AccountPage() {
-  const { user, uid, showToast } = useApp()
+  const { user, uid, showToast, totalXP, setActiveTab } = useApp()
 
   const [currentUsername, setCurrentUsername]     = useState('')
   const [newUsername, setNewUsername]             = useState('')
@@ -186,25 +187,30 @@ export default function AccountPage() {
         borderRadius:14, padding:'16px 20px', marginBottom:24,
         display:'flex', alignItems:'center', gap:20, flexWrap:'wrap',
       }}>
-        <div style={{
-          width:56, height:56, borderRadius:'50%', flexShrink:0,
-          background:'var(--accent)', display:'flex', alignItems:'center',
-          justifyContent:'center', fontFamily:'Bebas Neue,sans-serif',
-          fontSize:26, color:'#0a0a0a',
-        }}>
-          {currentUsername ? currentUsername[0].toUpperCase() : '?'}
+        {/* Pixel Avatar */}
+        <div
+          onClick={() => setActiveTab('achievements')}
+          style={{ cursor:'pointer', flexShrink:0 }}
+          title="Başarılar sayfasına git"
+        >
+          <PixelAvatar totalXP={totalXP} size={64} animate={true} />
         </div>
-        <div>
+        <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:2, color:'var(--accent)', marginBottom:2 }}>
             @{currentUsername || '...'}
           </div>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:12, color:'var(--text-muted)' }}>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', marginBottom:4 }}>
             {user?.email}
+          </div>
+          <div style={{ display:'flex', gap:6 }}>
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, background:'rgba(232,255,71,.1)', border:'1px solid rgba(232,255,71,.2)', borderRadius:20, padding:'2px 8px', color:'var(--accent)' }}>
+              ⚡ {(totalXP || 0).toLocaleString()} XP
+            </span>
           </div>
         </div>
         <button onClick={() => signOut(auth)} className="btn btn-ghost"
-          style={{ marginLeft:'auto', borderColor:'rgba(255,71,71,.3)', color:'var(--red)', fontSize:12 }}>
-          🚪 Çıkış Yap
+          style={{ borderColor:'rgba(255,71,71,.3)', color:'var(--red)', fontSize:12, flexShrink:0 }}>
+          🚪 Çıkış
         </button>
       </div>
 

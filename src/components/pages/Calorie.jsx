@@ -293,36 +293,39 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
     if (!fridgeInput.trim()) return
     setFridgeLoading(true); setFridgeResult(null)
     const profileInfo = profile
-      ? `Kullanıcı profili: ${profile.gender === 'male' ? 'Erkek' : 'Kadın'}, ${profile.weight || '?'}kg, Hedef: ${profile.goal === 'lose' ? 'Kilo vermek' : profile.goal === 'gain' ? 'Kilo almak' : 'Fit kalmak'}`
+      ? `Kullanıcı: ${profile.gender === 'male' ? 'Erkek' : 'Kadın'}, ${profile.weight || '?'}kg, Hedef: ${profile.goal === 'lose' ? 'Kilo vermek' : profile.goal === 'gain' ? 'Kilo almak' : 'Fit kalmak'}`
       : ''
     const prompt = `Sen sporcu beslenmesi uzmanı bir şefsin. Kullanıcının elindeki malzemeleri kullanarak en optimal sporcu öğününü tarif et.
-
 ${profileInfo}
 Elindeki malzemeler: "${fridgeInput}"
 
-SADECE JSON döndür (başka hiçbir şey yazma):
-{
-  "meal_name": "Yemek Adı (Türkçe)",
-  "description": "Kısa tarif açıklaması (1-2 cümle)",
-  "ingredients_used": ["Malzeme 1", "Malzeme 2"],
-  "steps": ["Adım 1", "Adım 2", "Adım 3"],
-  "total": {"kcal": 450, "protein": 35, "fat": 12, "carb": 40},
-  "prep_time": "10 dk",
-  "tip": "Sporcu notu (neden bu kombinasyon iyi)"
-}`
+ÖNEMLİ: SADECE geçerli JSON döndür, başka HİÇBİR ŞEY yazma, markdown kullanma:
+{"meal_name":"Yemek Adı","description":"1-2 cümle","ingredients_used":["Malzeme 1"],"steps":["Adım 1","Adım 2"],"total":{"kcal":450,"protein":35,"fat":12,"carb":40},"prep_time":"10 dk","tip":"Neden iyi kombinasyon"}`
 
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents:[{ parts:[{ text:prompt }] }], generationConfig:{ temperature:.7, maxOutputTokens:800 } }) }
-      )
-      const data = await res.json()
-      let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
-      let parsed = null
-      try { parsed = JSON.parse(raw) } catch { const m = raw.match(/\{[\s\S]*\}/); try { parsed = m ? JSON.parse(m[0]) : null } catch {} }
-      setFridgeResult(parsed)
-    } catch { showToast('Bağlantı hatası, tekrar dene.', 'error') }
+    const FRIDGE_MODELS = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
+    let parsed = null
+
+    for (const model of FRIDGE_MODELS) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ contents:[{ parts:[{ text:prompt }] }], generationConfig:{ temperature:.6, maxOutputTokens:1000 } }) }
+        )
+        if (!res.ok) continue
+        const data = await res.json()
+        let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim()
+        raw = raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+        const s = raw.indexOf('{'); const e = raw.lastIndexOf('}')
+        if (s !== -1 && e !== -1) raw = raw.slice(s, e + 1)
+        try { parsed = JSON.parse(raw) } catch { parsed = null }
+        if (parsed?.meal_name && parsed?.total) break
+        parsed = null
+      } catch { continue }
+    }
+
+    if (!parsed) showToast('Tarif oluşturulamadı, tekrar dene.', 'error')
+    else setFridgeResult(parsed)
     setFridgeLoading(false)
   }
 

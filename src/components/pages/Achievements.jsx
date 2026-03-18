@@ -1,6 +1,7 @@
 import { useApp, BADGE_DEFINITIONS, PERSONA_UNLOCKS, XP_LEVELS, getXpLevel } from '../../context/AppContext'
+import PixelAvatar from '../PixelAvatar'
 
-function XpBar({ xpData }) {
+function XpBar({ xpData, totalXP }) {
   return (
     <div style={{
       background:'linear-gradient(135deg,rgba(232,255,71,.08),rgba(232,255,71,.03))',
@@ -8,7 +9,8 @@ function XpBar({ xpData }) {
       padding:'22px 24px', marginBottom:24,
     }}>
       <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:16 }}>
-        <div style={{ fontSize:42, lineHeight:1 }}>{xpData.icon}</div>
+        {/* Pixel Avatar */}
+        <PixelAvatar totalXP={totalXP} size={72} animate={true} />
         <div style={{ flex:1 }}>
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:28, letterSpacing:3, color:'var(--accent)', lineHeight:1 }}>
             {xpData.title}
@@ -116,7 +118,7 @@ export default function AchievementsPage() {
       </div>
 
       {/* XP Bar */}
-      <XpBar xpData={xpData} />
+      <XpBar xpData={xpData} totalXP={totalXP} />
 
       {/* Hızlı istatistikler */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:28 }}>

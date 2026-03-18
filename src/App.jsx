@@ -22,10 +22,24 @@ import Onboarding from './components/Onboarding'
 import DaySummaryPage from './components/pages/DaySummary'
 import BottomNav from './components/BottomNav'
 import AchievementsPage from './components/pages/Achievements'
+import AdminPanelPage from './components/pages/AdminPanel'
+import Announcement from './components/Announcement'
+import TourGuide from './components/TourGuide'
 
 export default function App() {
   const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme, xpPopup, badgePopup } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showTour, setShowTour] = useState(false)
+
+  // Tur: ilk girişte (profil dolunca) 1 kere göster
+  useEffect(() => {
+    if (user && uid && profile) {
+      const tourKey = `tour_shown_${uid}`
+      if (!localStorage.getItem(tourKey)) {
+        setTimeout(() => setShowTour(true), 800)
+      }
+    }
+  }, [user, uid, profile])
 
   // Tema uygula
   useEffect(() => {
@@ -96,12 +110,20 @@ export default function App() {
     recognize:<RecognizePage />,
     foodrecognize:<FoodRecognizePage />,
     achievements:<AchievementsPage />,
+    admin:<AdminPanelPage />,
     download: <DownloadPage />,
   }
 
   return (
     <>
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+      <Announcement />
+      {showTour && (
+        <TourGuide onClose={() => {
+          localStorage.setItem(`tour_shown_${uid}`, '1')
+          setShowTour(false)
+        }} />
+      )}
       <Header />
       <div style={{ paddingBottom: 72 }}>
         {pages[activeTab] ?? <TodayPage />}
