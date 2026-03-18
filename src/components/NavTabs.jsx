@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 
 const SECTIONS = [
@@ -42,8 +42,6 @@ const SECTIONS = [
   },
 ]
 
-// ── Spotify linkleri — buraya ekle ──
-// { label: 'Liste Adı', url: 'https://open.spotify.com/playlist/...' }
 const SPOTIFY_PLAYLISTS = [
   { label: "Kerem'in Gym Listesi", url: 'https://open.spotify.com/playlist/53QiU1CEjWEUJ9zxbqYHCK' },
   { label: 'Power Workout',        url: 'https://open.spotify.com/playlist/37i9dQZF1DX5n5gZBZb0AT' },
@@ -60,8 +58,18 @@ function SpotifyIcon() {
 
 export default function NavTabs({ open, onClose }) {
   const { activeTab, setActiveTab, theme, setTheme, requestNotifPermission, notifPermission } = useApp()
-
   const [notifStatus, setNotifStatus] = useState(notifPermission || 'default')
+
+  // ✅ FIX: Sidebar açıkken body scroll'u kilitle
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
   const handleNotif = async () => { const r = await requestNotifPermission(); setNotifStatus(r) }
 
   return (
@@ -107,7 +115,6 @@ export default function NavTabs({ open, onClose }) {
         <nav style={{ padding:'6px 8px', flex:1 }}>
           {SECTIONS.map(section => (
             <div key={section.label} style={{ marginBottom:6 }}>
-              {/* Bölüm başlığı */}
               <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 10px 5px' }}>
                 <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:section.color, fontWeight:600 }}>
                   {section.label}
@@ -116,8 +123,8 @@ export default function NavTabs({ open, onClose }) {
               </div>
 
               {section.items.map(t => {
-                const active    = activeTab === t.id
-                const clr       = t.special ? '#e8ff47' : section.color
+                const active = activeTab === t.id
+                const clr    = t.special ? '#e8ff47' : section.color
                 return (
                   <div key={t.id}
                     onClick={() => { if(t.notif){ handleNotif(); return } setActiveTab(t.id); onClose() }}

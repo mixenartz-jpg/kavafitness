@@ -217,8 +217,8 @@ export default function ShareCard() {
         <button onClick={generateCanvas} disabled={exporting} className="btn btn-primary"
           style={{ width:'100%', padding:'14px 0', fontSize:14, letterSpacing:2, fontFamily:'Bebas Neue,sans-serif', justifyContent:'center', opacity:exporting?.6:1 }}>
           {exporting
-            ? <><span className="spinner" style={{width:16,height:16,borderTopColor:'#0a0a0a',marginRight:8,flexShrink:0}}/>OLUŞTURULUYOR...</>
-            : '🎨 KART OLUŞTUR'
+            ? <><span className="spinner" style={{width:16,height:16,borderTopColor:'#0a0a0a',marginRight:10,flexShrink:0}}/>OLUŞTURULUYOR...</>
+            : '🎨  KART OLUŞTUR'
           }
         </button>
       )}

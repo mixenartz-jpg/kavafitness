@@ -50,7 +50,8 @@ function stringToColor(str) {
 }
 
 export default function Header() {
-  const { user, exercises, exArchive, viewingDate, setViewingDate, setActiveTab } = useApp()
+  // ✅ FIX: context'teki todayKey kullanılıyor — timezone tutarlılığı sağlandı
+  const { user, exercises, exArchive, viewingDate, setViewingDate, setActiveTab, todayKey } = useApp()
   const [username, setUsername] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -62,12 +63,13 @@ export default function Header() {
     })
   }, [user])
 
-  const todayKey = () => new Date().toISOString().slice(0, 10)
-
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i))
-    const key = d.toISOString().slice(0, 10)
-    const isToday = key === todayKey()
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    // ✅ FIX: toISOString() yerine manuel format — timezone kayması önlendi
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    const today = todayKey()
+    const isToday = key === today
     const hasData = isToday ? exercises.length > 0 : (exArchive[key]?.length > 0)
     const isActive = key === viewingDate
     return { d, key, isToday, hasData, isActive }
@@ -89,7 +91,6 @@ export default function Header() {
       }}>
         {/* Left: Hamburger + Logo */}
         <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-          {/* Hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
             style={{
@@ -107,7 +108,6 @@ export default function Header() {
             <span style={{ display:'block', width:16, height:1.5, background:'var(--text)', borderRadius:2 }} />
           </button>
 
-          {/* Logo */}
           <div onClick={() => setActiveTab('home')}
             style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
             <img src="/logo-sm.png" alt="KeroGym" style={{ height:30, width:'auto' }} />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { auth, db } from '../../firebase'
 import {
@@ -53,19 +53,17 @@ export default function AccountPage() {
   const [accountLoading, setAccountLoading]       = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [usernameLastChanged, setUsernameLastChanged] = useState(null)
-  const [loaded, setLoaded]                       = useState(false)
 
-  // Kullanıcı adını ve cooldown'ı yükle
-  useState(() => {
-    if (!uid || loaded) return
-    setLoaded(true)
+  // ✅ FIX: useState → useEffect (önceki hali her render'da çalışıyordu)
+  useEffect(() => {
+    if (!uid) return
     getDoc(doc(db, 'users', uid)).then(s => {
       if (s.exists()) {
         setCurrentUsername(s.data().username || '')
         setUsernameLastChanged(s.data().usernameLastChanged || null)
       }
     })
-  })
+  }, [uid])
 
   const reauth = async (password) => {
     const credential = EmailAuthProvider.credential(user.email, password)
@@ -112,12 +110,10 @@ export default function AccountPage() {
     try {
       await reauth(emailPw)
       await verifyBeforeUpdateEmail(user, newEmail)
-      // Firestore'da yeni emaili kaydet, eski emaili yedekte tut
-      // Login sırasında her ikisi de denenecek
       await setDoc(doc(db, 'usernames', currentUsername), {
         uid,
         email: newEmail,
-        oldEmail: user.email,  // doğrulanana kadar eski email yedekte
+        oldEmail: user.email,
         createdAt: new Date(),
       })
       await setDoc(doc(db, 'users', uid), {
@@ -190,7 +186,6 @@ export default function AccountPage() {
         borderRadius:14, padding:'16px 20px', marginBottom:24,
         display:'flex', alignItems:'center', gap:20, flexWrap:'wrap',
       }}>
-        {/* Avatar */}
         <div style={{
           width:56, height:56, borderRadius:'50%', flexShrink:0,
           background:'var(--accent)', display:'flex', alignItems:'center',
