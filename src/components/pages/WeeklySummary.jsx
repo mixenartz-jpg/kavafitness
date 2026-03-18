@@ -92,15 +92,22 @@ Aşağıdaki başlıklar altında Türkçe, samimi rapor yaz:
 5. 💬 MOTİVASYON MESAJI (1 güçlü cümle)
 
 Eksiksiz yaz.`
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.8,maxOutputTokens:2048} }) }
-      )
-      const data = await res.json()
-      setAiReport(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Rapor alınamadı.')
-    } catch { setAiReport('⚠️ Bağlantı hatası, tekrar dene.') }
+    const W_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    let report = null
+    for (const model of W_MODELS) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.8,maxOutputTokens:2048} }) }
+        )
+        if (!res.ok) continue
+        const data = await res.json()
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (text) { report = text; break }
+      } catch { continue }
+    }
+    setAiReport(report || '⚠️ Rapor alınamadı, tekrar dene.')
     setAiLoading(false)
   }
 
@@ -115,14 +122,14 @@ Eksiksiz yaz.`
     const d = diff(value, prev, higherIsBetter)
     return (
       <div className="card" style={{ padding:'16px 18px' }}>
-        <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8,textTransform:'uppercase' }}>{label}</div>
+        <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8,textTransform:'uppercase' }}>{label}</div>
         <div style={{ display:'flex',alignItems:'flex-end',gap:6 }}>
           <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:32,lineHeight:1,color:color||'var(--text)' }}>{value}</div>
-          <div style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginBottom:4 }}>{unit}</div>
+          <div style={{ fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--text-muted)',marginBottom:4 }}>{unit}</div>
           {d && <span className={`delta delta-${d.cls}`} style={{ marginBottom:4,fontSize:10 }}>{d.label}</span>}
         </div>
         {prev !== undefined && prev !== null && (
-          <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',marginTop:4 }}>geçen hafta: {prev} {unit}</div>
+          <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',marginTop:4 }}>geçen hafta: {prev} {unit}</div>
         )}
       </div>
     )
@@ -137,9 +144,9 @@ Eksiksiz yaz.`
       <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:8 }}>
         <div>
           <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:28,letterSpacing:3,color:'var(--accent)' }}>HAFTALIK ÖZET</div>
-          <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:2 }}>{fmt(monday)} – {fmt(sunday)}</div>
+          <div style={{ fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--text-muted)',marginTop:2 }}>{fmt(monday)} – {fmt(sunday)}</div>
         </div>
-        <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 12px' }}>Her Pazartesi sıfırlanır</div>
+        <div style={{ fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 12px' }}>Her Pazartesi sıfırlanır</div>
       </div>
 
       {/* ── AI RAPOR ── */}
@@ -156,7 +163,7 @@ Eksiksiz yaz.`
         >
           {aiLoading
             ? <><span className="spinner" style={{width:16,height:16}}/><span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--text-muted)'}}>ANALİZ EDİYOR...</span></>
-            : <><span style={{fontSize:18}}>🤖</span><span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--accent)'}}>AI HAFTALIK RAPOR OLUŞTUR</span><span style={{fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>— analiz, öneri, motivasyon</span></>
+            : <><span style={{fontSize:18}}>🤖</span><span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:2,color:'var(--accent)'}}>AI HAFTALIK RAPOR OLUŞTUR</span><span style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>— analiz, öneri, motivasyon</span></>
           }
         </button>
 
@@ -172,8 +179,8 @@ Eksiksiz yaz.`
             {reportExpanded && (
               <div style={{ padding:'16px 18px' }}>
                 {aiLoading
-                  ? <div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}><span className="spinner"/>Yapay zeka analiz ediyor...</div>
-                  : <div style={{ fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'DM Sans,sans-serif',whiteSpace:'pre-wrap' }}>{aiReport}</div>
+                  ? <div style={{ display:'flex',alignItems:'center',gap:10,color:'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:12 }}><span className="spinner"/>Yapay zeka analiz ediyor...</div>
+                  : <div style={{ fontSize:13,lineHeight:1.9,color:'var(--text-dim)',fontFamily:'Inter,sans-serif',whiteSpace:'pre-wrap' }}>{aiReport}</div>
                 }
               </div>
             )}
@@ -190,7 +197,7 @@ Eksiksiz yaz.`
       </div>
 
       <div className="card" style={{ padding:'16px 18px',marginBottom:24 }}>
-        <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:12,textTransform:'uppercase' }}>Bu Haftanın Günleri</div>
+        <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:12,textTransform:'uppercase' }}>Bu Haftanın Günleri</div>
         <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
           {thisWeek.dates.map(dk => {
             const today = todayKey()
@@ -201,9 +208,9 @@ Eksiksiz yaz.`
             const isFuture = dk > today
             return (
               <div key={dk} style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 10px',borderRadius:10,minWidth:44, background:hasData?'rgba(232,255,71,.08)':isFuture?'transparent':'var(--surface2)', border:`1px solid ${hasData?'rgba(232,255,71,.25)':'var(--border)'}` }}>
-                <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:hasData?'var(--accent)':'var(--text-muted)' }}>{dayName}</div>
+                <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:hasData?'var(--accent)':'var(--text-muted)' }}>{dayName}</div>
                 <div style={{ fontSize:hasData?16:14 }}>{hasData?'💪':isFuture?'⬜':'😴'}</div>
-                <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)' }}>{exs.length>0?`${exs.length} ex`:'—'}</div>
+                <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)' }}>{exs.length>0?`${exs.length} ex`:'—'}</div>
               </div>
             )
           })}
@@ -216,11 +223,11 @@ Eksiksiz yaz.`
         <StatCard label="Günlük Ortalama" value={thisWeek.avgCalories} unit="kcal/gün" prev={lastWeek.avgCalories}/>
         <StatCard label="Takip Edilen Gün" value={thisWeek.calDays} unit="gün" prev={lastWeek.calDays}/>
         <div className="card" style={{ padding:'16px 18px' }}>
-          <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8,textTransform:'uppercase' }}>Hedefe Göre</div>
+          <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,letterSpacing:2,color:'var(--text-muted)',marginBottom:8,textTransform:'uppercase' }}>Hedefe Göre</div>
           {goals.kcal>0 && thisWeek.avgCalories>0
             ? <><div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:32,lineHeight:1,color:thisWeek.avgCalories>goals.kcal?'var(--red)':'var(--accent)' }}>{thisWeek.avgCalories>goals.kcal?'+':''}{thisWeek.avgCalories-goals.kcal}</div>
-               <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',marginTop:4 }}>hedef: {goals.kcal} kcal/gün</div></>
-            : <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)' }}>Veri yok</div>
+               <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',marginTop:4 }}>hedef: {goals.kcal} kcal/gün</div></>
+            : <div style={{ fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--text-muted)' }}>Veri yok</div>
           }
         </div>
       </div>
@@ -253,7 +260,7 @@ Eksiksiz yaz.`
               <span style={{ fontSize:20,width:28,textAlign:'center' }}>{icon}</span>
               <div style={{ flex:1 }}>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:1 }}>{label}</div>
-                <div style={{ fontFamily:'DM Mono,monospace',fontSize:10,color:'var(--text-muted)' }}>{prev} → {cur} {unit}</div>
+                <div style={{ fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--text-muted)' }}>{prev} → {cur} {unit}</div>
               </div>
               <div style={{ textAlign:'right' }}>
                 <span className={`delta delta-${d>0?'up':d<0?'down':'same'}`}>{d>0?'+':''}{d} {unit}</span>

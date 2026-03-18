@@ -20,10 +20,9 @@ function CoachNote({ onClick }) {
 
 // ── Model Fallback Zinciri ──
 const MODELS = [
-  'gemini-3.1-flash-lite-preview',
-  'gemini-3-flash-preview',
   'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
 ]
 async function geminiCall(contents, cfg = {}) {
   for (const model of MODELS) {
@@ -31,12 +30,14 @@ async function geminiCall(contents, cfg = {}) {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
         { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ contents, generationConfig:{ temperature:.7, maxOutputTokens:600, ...cfg } }) }
+          body: JSON.stringify({ contents, generationConfig:{ temperature:.7, maxOutputTokens:1200, ...cfg } }) }
       )
       if (!res.ok) continue
       const d = await res.json()
-      const t = d?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (t) return t
+      const cand = d?.candidates?.[0]
+      const t = cand?.content?.parts?.[0]?.text
+      if (t && cand?.finishReason !== 'MAX_TOKENS') return t
+      if (t && model === MODELS[MODELS.length - 1]) return t  // son model, yine de dön
     } catch { continue }
   }
   return null
@@ -187,7 +188,7 @@ export default function AiCoachPage() {
       ...newMsgs.map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text}]})),
     ]
     try {
-      const reply = await geminiCall(contents, {maxOutputTokens:600})
+      const reply = await geminiCall(contents, {maxOutputTokens:1200})
       if (reply) { checkAndUseAiCredit('chat'); setMessages(prev=>[...prev,{role:'assistant',text:reply}]) }
       else setMessages(prev=>[...prev,{role:'assistant',text:'Yanıt alınamadı, tekrar dene.'}])
     } catch { setMessages(prev=>[...prev,{role:'assistant',text:'⚠️ Bağlantı hatası, tekrar dene.'}]) }
@@ -245,7 +246,7 @@ Türkçe analiz:
 4. 💡 GENEL TAVSİYE (1-2 cümle)
 Eksiksiz yaz.`
     try {
-      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:600})
+      const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:1000})
       if (reply) { checkAndUseAiCredit('diyet'); setDietResult(reply) }
       else setDietResult('Analiz alınamadı, tekrar dene.')
     } catch { setDietResult('⚠️ Bağlantı hatası, tekrar dene.') }

@@ -1,7 +1,11 @@
 import { useState, useRef } from 'react'
 
 const GKEY   = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
-const MODELS = ['gemini-3.1-flash-lite-preview','gemini-3-flash-preview','gemini-2.5-flash','gemini-2.5-flash-lite']
+const MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+]
 
 const YT_DB = {
   'bench press':['dbl8xMcCHAY','SCVCLChPQEY','gRVjAtPip0Y','1OGTxqpjHaQ'],
@@ -117,7 +121,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
   }
 
   const chipStyle = (state) => {
-    const base={fontFamily:'DM Mono,monospace',fontSize:10,padding:'3px 9px',borderRadius:20,border:'1px solid var(--border)'}
+    const base={fontFamily:'Space Mono,monospace',fontSize:10,padding:'3px 9px',borderRadius:20,border:'1px solid var(--border)'}
     if(state==='ok')     return{...base,color:'var(--green)',borderColor:'rgba(71,255,138,.3)',background:'rgba(71,255,138,.07)'}
     if(state==='fail')   return{...base,color:'var(--red)',borderColor:'rgba(255,71,71,.2)',background:'rgba(255,71,71,.05)',textDecoration:'line-through'}
     if(state==='trying') return{...base,color:'var(--blue)',borderColor:'rgba(71,200,255,.3)',background:'rgba(71,200,255,.07)'}
@@ -127,7 +131,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
   return (
     <div className="page" style={{ maxWidth:700, margin:'0 auto' }}>
       <div className="section-title">EGZERSİZ TANIMA</div>
-      <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:20, lineHeight:1.7, fontFamily:'DM Mono,monospace' }}>
+      <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:20, lineHeight:1.7, fontFamily:'Space Mono,monospace' }}>
         Egzersiz yapılan bir fotoğraf yükle → yapay zeka hareketi tanır → YouTube'dan nasıl yapıldığını gösterir.
       </p>
 
@@ -144,7 +148,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
           : <>
               <div style={{ fontSize:48, marginBottom:14, opacity:.5 }}>📷</div>
               <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:2, marginBottom:5 }}>FOTOĞRAF YÜKLE</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>Tıkla veya sürükle bırak · JPG / PNG / WEBP</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>Tıkla veya sürükle bırak · JPG / PNG / WEBP</div>
             </>
         }
       </div>
@@ -174,7 +178,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
           {status.type==='error'&&<span style={{fontSize:22}}>❌</span>}
           <div>
             <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:17,letterSpacing:1,marginBottom:2}}>{status.title}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'DM Mono,monospace'}}>{status.sub}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'Space Mono,monospace'}}>{status.sub}</div>
           </div>
         </div>
       )}
@@ -200,7 +204,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
                     background:'var(--surface2)', transition:'all .15s',
                   }}>
                     <img src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`} alt="" style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
-                    <div style={{ padding:'6px 8px', fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>Video {i+1}</div>
+                    <div style={{ padding:'6px 8px', fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>Video {i+1}</div>
                   </div>
                 ))}
               </div>
@@ -209,7 +213,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
             <div className="card" style={{ padding:24, textAlign:'center', marginBottom:14 }}>
               <div style={{ fontSize:32, marginBottom:10 }}>🎬</div>
               <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:16, letterSpacing:2, marginBottom:6 }}>{ytData.exTR}</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginBottom:14 }}>YouTube'da bu egzersiz için videolar bul</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginBottom:14 }}>YouTube'da bu egzersiz için videolar bul</div>
               <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent((ytData.query||ytData.exName)+' exercise tutorial')}`}
                 target="_blank" rel="noreferrer" className="btn btn-primary" style={{ fontSize:12, textDecoration:'none' }}>
                 YouTube'da Aç ↗

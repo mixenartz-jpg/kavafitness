@@ -151,7 +151,8 @@ export function AppProvider({ children }) {
   const [body,      setBody]      = useState([])
   const [water,     setWater]     = useState(0)
   const [templates, setTemplates] = useState([])
-  const [profile,   setProfile]   = useState(null)
+  const [profile,       setProfile]       = useState(null)
+  const [profileLoaded, setProfileLoaded] = useState(false)  // Firestore pull bitti mi?
   const [favFoods,  setFavFoods]  = useState([])
 
   // Tema
@@ -285,6 +286,7 @@ export function AppProvider({ children }) {
     setBody(ls.get(userId,'fittrack_body',[]))
     setTemplates(ls.get(userId,'fittrack_templates',[]))
     setProfile(ls.get(userId,'fittrack_profile',null))
+    setProfileLoaded(true)  // Artık profile kesin yüklendi (null = gerçekten yok)
     setFavFoods(ls.get(userId,'fittrack_fav_foods',[]))
 
     const wd=ls.get(userId,'fittrack_water',{date:today,amount:0})
@@ -407,7 +409,7 @@ export function AppProvider({ children }) {
       // PR = XP bonus
       earnXP(XP_REWARDS.PR_BONUS, 'Kişisel Rekor! 🏆')
     }
-  }, [exArchive, exercises, sendNotif])
+  }, [exArchive, exercises, sendNotif, earnXP])
 
   // ── XP Kazanma ──
   const earnXP = useCallback((amount, reason = '') => {
@@ -505,7 +507,7 @@ export function AppProvider({ children }) {
       goals, saveGoals,
       body, saveBody,
       templates, saveTemplates,
-      profile, saveProfile,
+      profile, saveProfile, profileLoaded,
       saveWorkoutNote, getWorkoutNote,
       water, saveWater,
       favFoods, saveFavFood, isFavFood,

@@ -3,9 +3,9 @@ import { useApp } from '../../context/AppContext'
 
 const GEMINI_KEY  = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const FOOD_MODELS = [
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
 ]
 
 const FOOD_DB = [
@@ -248,25 +248,31 @@ veya: {"is_product":false}
 
 Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa serving_g belirt).`
 
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:labelMime,data:labelImg}}]}], generationConfig:{temperature:.1,maxOutputTokens:512} }) }
-      )
-      const data  = await res.json()
-      let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
-      let parsed = null
-      try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
+    const LABEL_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    let parsed = null
 
-      if (!parsed?.is_product) {
-        setLabelStatus({type:'error', title:'❌ Ürün Bulunamadı', sub:'Görselde gıda etiketi veya ürün tespit edilemedi.'})
-      } else {
-        setLabelStatus({type:'success', title:`✅ ${parsed.product_name}`, sub:`${parsed.serving_g||100}g için besin değerleri okundu`})
-        setLabelResult(parsed)
-        setLabelGram(String(parsed.serving_g || 100))
-      }
-    } catch { setLabelStatus({type:'error', title:'⚠️ Hata', sub:'Bağlantı hatası, tekrar dene.'}) }
+    for (const model of LABEL_MODELS) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:labelMime,data:labelImg}}]}], generationConfig:{temperature:.1,maxOutputTokens:512} }) }
+        )
+        if (!res.ok) continue
+        const data = await res.json()
+        let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim()
+        try{parsed=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);try{parsed=m?JSON.parse(m[0]):null}catch{}}
+        if (parsed) break
+      } catch { continue }
+    }
+
+    if (!parsed?.is_product) {
+      setLabelStatus({type:'error', title:'❌ Ürün Bulunamadı', sub:'Görselde gıda etiketi veya ürün tespit edilemedi.'})
+    } else {
+      setLabelStatus({type:'success', title:`✅ ${parsed.product_name}`, sub:`${parsed.serving_g||100}g için besin değerleri okundu`})
+      setLabelResult(parsed)
+      setLabelGram(String(parsed.serving_g || 100))
+    }
     setLabelLoading(false)
   }
 

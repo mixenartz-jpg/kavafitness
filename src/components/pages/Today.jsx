@@ -2,7 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 
 const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview']
+const MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+]
 
 // ── Egzersiz Autocomplete Listesi ──
 const EXERCISE_LIST = [

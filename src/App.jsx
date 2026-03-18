@@ -27,7 +27,7 @@ import Announcement from './components/Announcement'
 import TourGuide from './components/TourGuide'
 
 export default function App() {
-  const { user, loading, activeTab, profile, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
+  const { user, loading, activeTab, profile, profileLoaded, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showTour,       setShowTour]       = useState(false)
   const [tourReady,      setTourReady]       = useState(false) // onboarding bitmeden tur açılmasın
@@ -37,19 +37,17 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme || 'dark')
   }, [theme])
 
-  // Onboarding kontrolü — profile null ise VE Firestore'dan da gelmediyse göster
+  // Onboarding kontrolü — profileLoaded TRUE olana kadar ASLA açma
   useEffect(() => {
-    if (!user || !uid) return
+    if (!user || !uid || loading || !profileLoaded) return
     if (profile === null) {
-      // profile henüz yüklenmedi (null = yok, undefined = yükleniyor farkı yok burada)
-      // Firestore pull'dan sonra profile null geliyorsa gerçekten yok demektir
+      // Firestore pull bitti, gerçekten profil yok → onboarding
       setShowOnboarding(true)
     } else {
-      // Profile var — onboarding gösterme
       setShowOnboarding(false)
       setTourReady(true)
     }
-  }, [user, uid, profile])
+  }, [user, uid, profile, loading, profileLoaded])
 
   // Tur — profile kaydedildikten SONRA, onboarding kapandıktan SONRA
   useEffect(() => {
