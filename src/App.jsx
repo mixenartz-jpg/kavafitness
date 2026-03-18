@@ -8,6 +8,7 @@ import HistoryPage from './components/pages/History'
 import CaloriePage from './components/pages/Calorie'
 import { GoalsPage, ProgressPage, BodyPage } from './components/pages/GoalsProgressBody'
 import RecognizePage from './components/pages/Recognize'
+import FoodRecognizePage from './components/pages/FoodRecognize'
 import HomePage from './components/pages/Home'
 import AiCoachPage from './components/pages/AiCoach'
 import PersonalCoachPage from './components/pages/PersonalCoach'
@@ -92,6 +93,7 @@ export default function App() {
     settings: <SettingsPage />,
     account:  <AccountPage />,
     recognize:<RecognizePage />,
+    foodrecognize:<FoodRecognizePage />,
     download: <DownloadPage />,
   }
 

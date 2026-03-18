@@ -132,10 +132,10 @@ export default function SettingsPage() {
       {/* Kişiselleştirme özeti */}
       {profile && getPersonalizedTips().length > 0 && (
         <div style={{ background: 'rgba(232,255,71,.05)', border: '1px solid rgba(232,255,71,.15)', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, letterSpacing: 3, color: 'var(--accent)', marginBottom: 10 }}>KİŞİSEL PROFİLİN</div>
+          <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, letterSpacing: 3, color: 'var(--accent)', marginBottom: 10 }}>KİŞİSEL PROFİLİN</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {getPersonalizedTips().map((tip, i) => (
-              <span key={i} style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 12px', color: 'var(--text-muted)' }}>
+              <span key={i} style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 12px', color: 'var(--text-muted)' }}>
                 {tip}
               </span>
             ))}
@@ -167,7 +167,7 @@ export default function SettingsPage() {
                   transition: 'all .15s',
                 }}>
                   <span style={{ fontSize: 20 }}>{g.icon}</span>
-                  <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: form.goal === g.id ? 'var(--accent)' : 'var(--text-muted)' }}>{g.label}</span>
+                  <span style={{ fontFamily: 'Space Mono,monospace', fontSize: 11, color: form.goal === g.id ? 'var(--accent)' : 'var(--text-muted)' }}>{g.label}</span>
                   {form.goal === g.id && <span style={{ marginLeft: 'auto', color: 'var(--accent)' }}>✓</span>}
                 </div>
               ))}
@@ -187,7 +187,7 @@ export default function SettingsPage() {
                     border: `1px solid ${sel ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
                   }}>
                     <div style={{ fontSize: 18, marginBottom: 4 }}>{s.icon}</div>
-                    <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: sel ? 'var(--accent)' : 'var(--text-muted)' }}>{s.label}</div>
+                    <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, color: sel ? 'var(--accent)' : 'var(--text-muted)' }}>{s.label}</div>
                   </div>
                 )
               })}
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                   border: `1px solid ${form.level === l.id ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
                 }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>{l.icon}</div>
-                  <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, color: form.level === l.id ? 'var(--accent)' : 'var(--text-muted)' }}>{l.label}</div>
+                  <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, color: form.level === l.id ? 'var(--accent)' : 'var(--text-muted)' }}>{l.label}</div>
                 </div>
               ))}
             </div>
@@ -258,7 +258,7 @@ export default function SettingsPage() {
                     />
                     {form.weight && form.targetWeight && (
                       <div style={{
-                        fontFamily: 'DM Mono,monospace', fontSize: 11,
+                        fontFamily: 'Space Mono,monospace', fontSize: 11,
                         color: form.goal === 'lose' || form.goal === 'cut' ? 'var(--green)' : 'var(--accent)',
                         background: 'var(--surface2)', border: '1px solid var(--border)',
                         borderRadius: 8, padding: '8px 12px', whiteSpace: 'nowrap', flexShrink: 0,
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                     background: sel ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
                     border: `1px solid ${sel ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
                   }}>
-                    <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 8, color: sel ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 4 }}>{day}</div>
+                    <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 8, color: sel ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 4 }}>{day}</div>
                     <div style={{ fontSize: 14 }}>{sel ? '💪' : '⬜'}</div>
                   </div>
                 )
@@ -296,11 +296,11 @@ export default function SettingsPage() {
           {/* TDEE */}
           {calcTDEE() && (
             <div style={{ background: 'rgba(232,255,71,.06)', border: '1px solid rgba(232,255,71,.15)', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 4 }}>TAHMİNİ GÜNLÜK KALORİ</div>
+              <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 4 }}>TAHMİNİ GÜNLÜK KALORİ</div>
               <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 28, color: 'var(--accent)' }}>
                 {calcTDEE()} <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>kcal/gün</span>
               </div>
-              <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+              <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
                 Kaydettiğinde hedefler otomatik güncellenecek
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function SettingsPage() {
       {/* HEDEFLER TAB */}
       {tab === 'goals' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <p style={{ fontFamily: 'Space Mono,monospace', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             Profilini kaydettiğinde hedefler otomatik hesaplanır. İstersen buradan manuel olarak da düzenleyebilirsin.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
@@ -375,7 +375,7 @@ export default function SettingsPage() {
                   <thead>
                     <tr>
                       {['Tarih','Kilo','Bel','Göğüs','Kalça','Boyun',''].map(h => (
-                        <th key={h} style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', padding:'10px 12px', borderBottom:'1px solid var(--border)', textAlign:'left', background:'var(--surface2)' }}>{h}</th>
+                        <th key={h} style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', padding:'10px 12px', borderBottom:'1px solid var(--border)', textAlign:'left', background:'var(--surface2)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                       const prev = sorted[i+1]
                       return (
                         <tr key={d.date}>
-                          <td style={{ padding:'10px 12px', fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                          <td style={{ padding:'10px 12px', fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
                             {new Date(d.date+'T00:00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:'numeric'})}
                           </td>
                           {['weight','waist','chest','hip','neck'].map(k => (

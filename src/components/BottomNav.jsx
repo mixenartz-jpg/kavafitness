@@ -24,9 +24,10 @@ const MORE_SECTIONS = [
     label: 'DİYET & AI',
     color: '#47ff8a',
     items: [
-      { id:'goals',    icon:'🎯', label:'Makro Hedefler' },
-      { id:'aicoach',  icon:'🤖', label:'AI Koçu'        },
-      { id:'coach',    icon:'⭐', label:'Kişisel Koç'    },
+      { id:'goals',         icon:'🎯', label:'Makro Hedefler'    },
+      { id:'aicoach',       icon:'🤖', label:'AI Koçu'           },
+      { id:'coach',         icon:'⭐', label:'Kişisel Koç'       },
+      { id:'foodrecognize', icon:'🍽️', label:'Yemek Tanıma'      },
     ],
   },
   {
@@ -107,7 +108,7 @@ export default function BottomNav() {
               flex: 1, padding: '10px 8px', borderRadius: 12,
               border: '1px solid var(--border)', background: 'var(--surface2)',
               color: 'var(--text)', cursor: 'pointer', fontSize: 13,
-              fontFamily: 'DM Mono,monospace', display: 'flex',
+              fontFamily: 'Space Mono,monospace', display: 'flex',
               alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
@@ -121,7 +122,7 @@ export default function BottomNav() {
               background: 'var(--surface2)',
               color: notifStatus === 'granted' ? 'var(--green)' : notifStatus === 'denied' ? 'var(--red)' : '#ff8c47',
               cursor: 'pointer', fontSize: 12,
-              fontFamily: 'DM Mono,monospace', display: 'flex',
+              fontFamily: 'Space Mono,monospace', display: 'flex',
               alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
@@ -133,7 +134,7 @@ export default function BottomNav() {
         {MORE_SECTIONS.map(section => (
           <div key={section.label} style={{ marginBottom: 16 }}>
             <div style={{
-              fontFamily: 'DM Mono,monospace', fontSize: 9,
+              fontFamily: 'Space Mono,monospace', fontSize: 9,
               letterSpacing: 3, color: section.color,
               marginBottom: 8, paddingLeft: 4,
             }}>
@@ -157,7 +158,7 @@ export default function BottomNav() {
                   >
                     <span style={{ fontSize: 22 }}>{item.icon}</span>
                     <span style={{
-                      fontFamily: 'DM Mono,monospace', fontSize: 9,
+                      fontFamily: 'Space Mono,monospace', fontSize: 9,
                       color: active ? section.color : 'var(--text-muted)',
                       textAlign: 'center', lineHeight: 1.3,
                     }}>
@@ -175,7 +176,7 @@ export default function BottomNav() {
           <a
             href="https://instagram.com/slmbnmixo"
             target="_blank" rel="noreferrer"
-            style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'DM Mono,monospace', textDecoration: 'none', opacity: .6 }}
+            style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Space Mono,monospace', textDecoration: 'none', opacity: .6 }}
           >
             📸 @slmbnmixo
           </a>
@@ -216,7 +217,7 @@ export default function BottomNav() {
               )}
               <span style={{ fontSize: 22, lineHeight: 1 }}>{tab.icon}</span>
               <span style={{
-                fontFamily: 'DM Mono,monospace', fontSize: 9,
+                fontFamily: 'Space Mono,monospace', fontSize: 9,
                 letterSpacing: 0.5,
                 color: active ? 'var(--accent)' : 'var(--text-muted)',
                 transition: 'color .15s',
@@ -260,7 +261,7 @@ export default function BottomNav() {
             ))}
           </div>
           <span style={{
-            fontFamily: 'DM Mono,monospace', fontSize: 9,
+            fontFamily: 'Space Mono,monospace', fontSize: 9,
             letterSpacing: 0.5,
             color: moreOpen || moreActive ? 'var(--accent)' : 'var(--text-muted)',
             transition: 'color .15s',

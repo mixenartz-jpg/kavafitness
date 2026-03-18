@@ -55,7 +55,7 @@ export default function HistoryPage() {
         <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3, color:'var(--accent)' }}>
           GEÇMİŞ ANTRENMANLAR
         </div>
-        <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'5px 12px' }}>
+        <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'5px 12px' }}>
           {allEntries.length} gün
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function HistoryPage() {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-muted)', fontFamily:'DM Mono,monospace', fontSize:12 }}>
+        <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-muted)', fontFamily:'Space Mono,monospace', fontSize:12 }}>
           "{search}" için sonuç bulunamadı
         </div>
       )}
@@ -107,17 +107,17 @@ export default function HistoryPage() {
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
                     <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:16, letterSpacing:2 }}>{lbl}</div>
                     {isToday && (
-                      <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'#0a0a0a', background:'var(--accent)', borderRadius:20, padding:'2px 8px' }}>BUGÜN</span>
+                      <span style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'#0a0a0a', background:'var(--accent)', borderRadius:20, padding:'2px 8px' }}>BUGÜN</span>
                     )}
                   </div>
-                  <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace' }}>
+                  <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>
                     {exs.length} egzersiz · {ts} set · max {mw} kg
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <button
                     onClick={e => { e.stopPropagation(); goToDay(dk) }}
-                    style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 10px', cursor:'pointer', transition:'all .15s' }}
+                    style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 10px', cursor:'pointer', transition:'all .15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
                   >
@@ -142,12 +142,12 @@ export default function HistoryPage() {
                           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:16, letterSpacing:1, color: isMatch ? 'var(--accent)' : 'var(--text)' }}>
                             {ex.name}
                           </div>
-                          <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginTop:2 }}>{ex.sets.length} set</div>
+                          <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginTop:2 }}>{ex.sets.length} set</div>
                         </div>
                         <div style={{ display:'flex', flexWrap:'wrap', gap:5, justifyContent:'flex-end' }}>
                           {ex.sets.map((s, si) => (
                             <span key={si} style={{
-                              fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)',
+                              fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)',
                               background:'var(--surface2)', border:'1px solid var(--border)',
                               padding:'3px 8px', borderRadius:20,
                             }}>

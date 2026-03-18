@@ -291,7 +291,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
   ]
 
   const chipStyle = (state) => {
-    const base = { fontFamily:'DM Mono,monospace', fontSize:10, padding:'3px 9px', borderRadius:20, border:'1px solid var(--border)' }
+    const base = { fontFamily:'Space Mono,monospace', fontSize:10, padding:'3px 9px', borderRadius:20, border:'1px solid var(--border)' }
     if (state==='ok')     return {...base, color:'var(--green)', borderColor:'rgba(71,255,138,.3)', background:'rgba(71,255,138,.07)'}
     if (state==='fail')   return {...base, color:'var(--red)',   borderColor:'rgba(255,71,71,.2)',  background:'rgba(255,71,71,.05)', textDecoration:'line-through'}
     if (state==='trying') return {...base, color:'var(--blue)',  borderColor:'rgba(71,200,255,.3)', background:'rgba(71,200,255,.07)'}
@@ -313,7 +313,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
 
       {/* Geçmiş gün banner */}
       {!isToday && (
-        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,background:'rgba(71,200,255,.06)',border:'1px solid rgba(71,200,255,.2)',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--blue)',fontFamily:'DM Mono,monospace',flexWrap:'wrap' }}>
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,background:'rgba(71,200,255,.06)',border:'1px solid rgba(71,200,255,.2)',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--blue)',fontFamily:'Space Mono,monospace',flexWrap:'wrap' }}>
           <span>📅 {new Date(viewingDate+'T00:00:00').toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'})} — Salt Okunur</span>
         </div>
       )}
@@ -328,7 +328,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
           return (
             <div key={key} className="card" style={{ padding:16, position:'relative', overflow:'hidden' }}>
               <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:cur>0?color:'transparent', transform:cur>0?'scaleX(1)':'scaleX(0)', transition:'transform .4s', transformOrigin:'left' }}/>
-              <div style={{ fontSize:10, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6, fontFamily:'DM Mono,monospace' }}>{label}</div>
+              <div style={{ fontSize:10, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6, fontFamily:'Space Mono,monospace' }}>{label}</div>
               <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:34, lineHeight:1 }}>
                 {cur} <span style={{ fontSize:13, color:'var(--text-muted)' }}>{unit}</span>
               </div>
@@ -362,7 +362,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
           </div>
           <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:6, marginBottom:14, scrollbarWidth:'none' }}>
             {cats.map(cat=>(
-              <button key={cat} onClick={()=>{setDbCat(cat);setDbSelected(null)}} style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:dbCat===cat?'var(--accent)':'var(--surface2)',color:dbCat===cat?'#0a0a0a':'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:10,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0 }}>{cat}</button>
+              <button key={cat} onClick={()=>{setDbCat(cat);setDbSelected(null)}} style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:dbCat===cat?'var(--accent)':'var(--surface2)',color:dbCat===cat?'#0a0a0a':'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:10,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0 }}>{cat}</button>
             ))}
           </div>
           {dbSelected && (
@@ -373,18 +373,18 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
               </div>
               <div style={{ display:'flex',gap:6,flexWrap:'wrap',marginBottom:12 }}>
                 {getFoodTags(dbSelected).map(tag=>(
-                  <span key={tag.label} style={{ fontFamily:'DM Mono,monospace',fontSize:10,background:`${tag.color}18`,border:`1px solid ${tag.color}44`,borderRadius:20,padding:'3px 10px',color:tag.color }}>{tag.label}</span>
+                  <span key={tag.label} style={{ fontFamily:'Space Mono,monospace',fontSize:10,background:`${tag.color}18`,border:`1px solid ${tag.color}44`,borderRadius:20,padding:'3px 10px',color:tag.color }}>{tag.label}</span>
                 ))}
               </div>
               <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:14 }}>
                 {[{val:dbSelected.kcal,lbl:'KCAL',col:'#e8ff47'},{val:`${dbSelected.protein}g`,lbl:'PROTEİN',col:'#47c8ff'},{val:`${dbSelected.fat}g`,lbl:'YAĞ',col:'#ff8c47'},{val:`${dbSelected.carb}g`,lbl:'KARB',col:'#47ff8a'}].map(({val,lbl,col})=>(
                   <div key={lbl} style={{ background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',textAlign:'center' }}>
                     <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:20,color:col }}>{val}</div>
-                    <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',letterSpacing:1,marginTop:2 }}>{lbl}</div>
+                    <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',letterSpacing:1,marginTop:2 }}>{lbl}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',marginBottom:12 }}>↑ 100g için değerler</div>
+              <div style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',marginBottom:12 }}>↑ 100g için değerler</div>
               <div style={{ display:'flex',gap:8,alignItems:'flex-end' }}>
                 <div className="form-group" style={{ flex:1 }}>
                   <span className="flabel">Miktar (gram)</span>
@@ -392,12 +392,12 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
                 </div>
                 <div style={{ display:'flex',gap:6 }}>
                   {['50','100','150','200'].map(g=>(
-                    <button key={g} onClick={()=>setDbGram(g)} style={{ padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:dbGram===g?'var(--accent)':'var(--surface2)',color:dbGram===g?'#0a0a0a':'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:11,cursor:'pointer' }}>{g}g</button>
+                    <button key={g} onClick={()=>setDbGram(g)} style={{ padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:dbGram===g?'var(--accent)':'var(--surface2)',color:dbGram===g?'#0a0a0a':'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:11,cursor:'pointer' }}>{g}g</button>
                   ))}
                 </div>
               </div>
               {dbGram && +dbGram!==100 && (
-                <div style={{ marginTop:10,padding:'8px 12px',background:'var(--surface2)',borderRadius:8,fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)' }}>
+                <div style={{ marginTop:10,padding:'8px 12px',background:'var(--surface2)',borderRadius:8,fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--text-muted)' }}>
                   {dbGram}g: <b style={{color:'#e8ff47'}}>{Math.round(dbSelected.kcal*+dbGram/100)}kcal</b> · <b style={{color:'#47c8ff'}}>{Math.round(dbSelected.protein*+dbGram/100)}g P</b> · <b style={{color:'#ff8c47'}}>{Math.round(dbSelected.fat*+dbGram/100)}g Y</b> · <b style={{color:'#47ff8a'}}>{Math.round(dbSelected.carb*+dbGram/100)}g K</b>
                 </div>
               )}
@@ -405,7 +405,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
             </div>
           )}
           <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-            {filtered.length===0&&<div style={{ textAlign:'center',padding:'32px 0',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}>"{dbSearch}" için sonuç bulunamadı</div>}
+            {filtered.length===0&&<div style={{ textAlign:'center',padding:'32px 0',color:'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:12 }}>"{dbSearch}" için sonuç bulunamadı</div>}
             {filtered.map((food,i)=>{
               const isSelected = dbSelected?.name===food.name
               return (
@@ -416,12 +416,12 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontFamily:'Bebas Neue,sans-serif',fontSize:14,letterSpacing:1,marginBottom:4 }}>{food.name}</div>
                     <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
-                      {getFoodTags(food).map(tag=><span key={tag.label} style={{ fontFamily:'DM Mono,monospace',fontSize:9,color:tag.color,opacity:.85 }}>{tag.label}</span>)}
+                      {getFoodTags(food).map(tag=><span key={tag.label} style={{ fontFamily:'Space Mono,monospace',fontSize:9,color:tag.color,opacity:.85 }}>{tag.label}</span>)}
                     </div>
                   </div>
                   <div style={{ display:'flex',gap:8,flexShrink:0 }}>
                     {[{val:food.kcal,u:'kcal',c:'#e8ff47'},{val:`${food.protein}g`,u:'P',c:'#47c8ff'},{val:`${food.carb}g`,u:'K',c:'#47ff8a'}].map(({val,u,c})=>(
-                      <span key={u} style={{ fontFamily:'DM Mono,monospace',fontSize:10,padding:'2px 7px',borderRadius:20,border:'1px solid rgba(255,255,255,.07)',color:c }}>{u} {val}</span>
+                      <span key={u} style={{ fontFamily:'Space Mono,monospace',fontSize:10,padding:'2px 7px',borderRadius:20,border:'1px solid rgba(255,255,255,.07)',color:c }}>{u} {val}</span>
                     ))}
                   </div>
                 </div>
@@ -440,7 +440,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
             onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--surface)'}}>
             {preview
               ?<img src={preview} alt="preview" style={{width:'100%',maxHeight:220,objectFit:'cover',display:'block',borderRadius:12}} onClick={e=>e.stopPropagation()}/>
-              :<><div style={{fontSize:36,marginBottom:10,opacity:.5}}>🍽️</div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:4}}>YEMEĞİN FOTOĞRAFINI YÜKLE</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'DM Mono,monospace'}}>Tıkla veya sürükle · JPG / PNG / WEBP</div></>
+              :<><div style={{fontSize:36,marginBottom:10,opacity:.5}}>🍽️</div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:4}}>YEMEĞİN FOTOĞRAFINI YÜKLE</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'Space Mono,monospace'}}>Tıkla veya sürükle · JPG / PNG / WEBP</div></>
             }
           </div>
           <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:8,marginBottom:16 }}>
@@ -452,7 +452,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
           {status&&(
             <div className="animate-fade" style={{ background:'var(--surface)',border:`1px solid ${status.type==='success'?'rgba(71,255,138,.25)':status.type==='error'?'rgba(255,71,71,.25)':'rgba(71,200,255,.25)'}`,borderRadius:12,padding:'16px 18px',marginBottom:18,display:'flex',alignItems:'center',gap:12 }}>
               {status.type==='analyzing'&&<span className="spinner"/>}{status.type==='success'&&<span style={{fontSize:20}}>✅</span>}{status.type==='error'&&<span style={{fontSize:20}}>❌</span>}
-              <div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:17,letterSpacing:1,marginBottom:2}}>{status.title}</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'DM Mono,monospace'}}>{status.sub}</div></div>
+              <div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:17,letterSpacing:1,marginBottom:2}}>{status.title}</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'Space Mono,monospace'}}>{status.sub}</div></div>
             </div>
           )}
           {resultData&&(
@@ -462,7 +462,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
                 {[{val:resultData.kcal,lbl:'KCAL',col:'#e8ff47'},{val:`${resultData.protein}g`,lbl:'PROTEİN',col:'#47c8ff'},{val:`${resultData.fat}g`,lbl:'YAĞ',col:'#ff8c47'},{val:`${resultData.carb}g`,lbl:'KARB',col:'#47ff8a'}].map(({val,lbl,col})=>(
                   <div key={lbl} style={{background:'var(--surface3)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
                     <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:20,color:col}}>{val}</div>
-                    <div style={{fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',letterSpacing:1,marginTop:2}}>{lbl}</div>
+                    <div style={{fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',letterSpacing:1,marginTop:2}}>{lbl}</div>
                   </div>
                 ))}
               </div>
@@ -478,7 +478,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
       {/* ══ ETİKET OKU ══ */}
       {isToday && tab === 'label' && (
         <div className="animate-fade">
-          <p style={{ fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)',marginBottom:16,lineHeight:1.7 }}>
+          <p style={{ fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--text-muted)',marginBottom:16,lineHeight:1.7 }}>
             Ürün ambalajı, besin değerleri etiketi veya barkodunun fotoğrafını yükle — AI besin değerlerini okur ve listene ekler.
           </p>
           <input type="file" ref={labelFileRef} accept="image/*" style={{display:'none'}} onChange={e=>handleLabelFile(e.target.files[0])}/>
@@ -487,7 +487,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
             onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--surface)'}}>
             {labelPreview
               ?<img src={labelPreview} alt="label" style={{width:'100%',maxHeight:220,objectFit:'contain',display:'block',borderRadius:12,padding:8,background:'var(--surface2)'}} onClick={e=>e.stopPropagation()}/>
-              :<><div style={{fontSize:36,marginBottom:10,opacity:.5}}>🏷️</div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:4}}>ETİKET / AMBALAJ FOTOĞRAFI</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'DM Mono,monospace'}}>Besin değerleri tablosu veya ürün ambalajı</div></>
+              :<><div style={{fontSize:36,marginBottom:10,opacity:.5}}>🏷️</div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:18,letterSpacing:2,marginBottom:4}}>ETİKET / AMBALAJ FOTOĞRAFI</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'Space Mono,monospace'}}>Besin değerleri tablosu veya ürün ambalajı</div></>
             }
           </div>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,marginBottom:16}}>
@@ -498,7 +498,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
           {labelStatus&&(
             <div className="animate-fade" style={{ background:'var(--surface)',border:`1px solid ${labelStatus.type==='success'?'rgba(71,255,138,.25)':labelStatus.type==='error'?'rgba(255,71,71,.25)':'rgba(71,200,255,.25)'}`,borderRadius:12,padding:'16px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12 }}>
               {labelStatus.type==='analyzing'&&<span className="spinner"/>}{labelStatus.type==='success'&&<span style={{fontSize:20}}>✅</span>}{labelStatus.type==='error'&&<span style={{fontSize:20}}>❌</span>}
-              <div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:17,letterSpacing:1,marginBottom:2}}>{labelStatus.title}</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'DM Mono,monospace'}}>{labelStatus.sub}</div></div>
+              <div><div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:17,letterSpacing:1,marginBottom:2}}>{labelStatus.title}</div><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'Space Mono,monospace'}}>{labelStatus.sub}</div></div>
             </div>
           )}
           {labelResult&&(
@@ -508,11 +508,11 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
                 {[{val:labelResult.kcal,lbl:'KCAL',col:'#e8ff47'},{val:`${labelResult.protein}g`,lbl:'PROTEİN',col:'#47c8ff'},{val:`${labelResult.fat}g`,lbl:'YAĞ',col:'#ff8c47'},{val:`${labelResult.carb}g`,lbl:'KARB',col:'#47ff8a'}].map(({val,lbl,col})=>(
                   <div key={lbl} style={{background:'var(--surface3)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
                     <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:20,color:col}}>{val}</div>
-                    <div style={{fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',letterSpacing:1,marginTop:2}}>{lbl}</div>
+                    <div style={{fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',letterSpacing:1,marginTop:2}}>{lbl}</div>
                   </div>
                 ))}
               </div>
-              <div style={{fontFamily:'DM Mono,monospace',fontSize:9,color:'var(--text-muted)',marginBottom:14}}>↑ {labelResult.serving_g||100}g için değerler</div>
+              <div style={{fontFamily:'Space Mono,monospace',fontSize:9,color:'var(--text-muted)',marginBottom:14}}>↑ {labelResult.serving_g||100}g için değerler</div>
               <div style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:14}}>
                 <div className="form-group" style={{flex:1}}>
                   <span className="flabel">Miktar (gram)</span>
@@ -520,12 +520,12 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
                 </div>
                 <div style={{display:'flex',gap:6}}>
                   {['50','100','150','200'].map(g=>(
-                    <button key={g} onClick={()=>setLabelGram(g)} style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:labelGram===g?'var(--accent)':'var(--surface2)',color:labelGram===g?'#0a0a0a':'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:11,cursor:'pointer'}}>{g}g</button>
+                    <button key={g} onClick={()=>setLabelGram(g)} style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:labelGram===g?'var(--accent)':'var(--surface2)',color:labelGram===g?'#0a0a0a':'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:11,cursor:'pointer'}}>{g}g</button>
                   ))}
                 </div>
               </div>
               {labelGram&&+labelGram!==(labelResult.serving_g||100)&&(
-                <div style={{marginBottom:12,padding:'8px 12px',background:'var(--surface3)',borderRadius:8,fontFamily:'DM Mono,monospace',fontSize:11,color:'var(--text-muted)'}}>
+                <div style={{marginBottom:12,padding:'8px 12px',background:'var(--surface3)',borderRadius:8,fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--text-muted)'}}>
                   {labelGram}g: <b style={{color:'#e8ff47'}}>{Math.round(labelResult.kcal*(+labelGram/(labelResult.serving_g||100)))}kcal</b> · <b style={{color:'#47c8ff'}}>{Math.round(labelResult.protein*(+labelGram/(labelResult.serving_g||100)))}g P</b> · <b style={{color:'#ff8c47'}}>{Math.round(labelResult.fat*(+labelGram/(labelResult.serving_g||100)))}g Y</b> · <b style={{color:'#47ff8a'}}>{Math.round(labelResult.carb*(+labelGram/(labelResult.serving_g||100)))}g K</b>
                 </div>
               )}
@@ -571,7 +571,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
                   <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:17,letterSpacing:1,marginBottom:4}}>{f.name}</div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                     {[{v:f.kcal,u:'kcal',c:'#e8ff47'},{v:`${f.protein}g`,u:'P',c:'#47c8ff'},{v:`${f.fat}g`,u:'Y',c:'#ff8c47'},{v:`${f.carb}g`,u:'K',c:'#47ff8a'}].map(({v,u,c})=>(
-                      <span key={u} style={{fontFamily:'DM Mono,monospace',fontSize:10,padding:'2px 7px',borderRadius:20,border:'1px solid rgba(255,255,255,.08)',color:c}}>{u} {v}</span>
+                      <span key={u} style={{fontFamily:'Space Mono,monospace',fontSize:10,padding:'2px 7px',borderRadius:20,border:'1px solid rgba(255,255,255,.08)',color:c}}>{u} {v}</span>
                     ))}
                   </div>
                 </div>

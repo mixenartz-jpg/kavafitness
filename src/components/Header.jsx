@@ -116,7 +116,7 @@ export default function Header() {
               background: isActive ? 'var(--accent)' : 'transparent',
               transition:'all .18s', userSelect:'none',
             }}>
-            <span style={{ fontFamily:'DM Mono,monospace', fontSize:8, letterSpacing:1, textTransform:'uppercase',
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:8, letterSpacing:1, textTransform:'uppercase',
               color: isActive ? '#0a0a0a' : isToday ? 'var(--accent)' : 'var(--text-muted)' }}>
               {DAYS[d.getDay()]}
             </span>
@@ -141,7 +141,7 @@ export default function Header() {
       }}>
         <span style={{ fontSize: 12, flexShrink: 0 }}>💪</span>
         <div style={{
-          fontFamily: 'DM Mono,monospace', fontSize: 10,
+          fontFamily: 'Space Mono,monospace', fontSize: 10,
           color: 'var(--text-muted)', letterSpacing: 1,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           fontStyle: 'italic',

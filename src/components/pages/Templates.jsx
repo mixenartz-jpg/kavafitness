@@ -109,12 +109,12 @@ export default function TemplatesPage() {
                     <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:17, letterSpacing:2, color:'var(--accent)', marginBottom:8 }}>{tpl.name}</div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                       {tpl.exercises.map((ex, i) => (
-                        <span key={i} style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px', color:'var(--text-muted)' }}>
+                        <span key={i} style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px', color:'var(--text-muted)' }}>
                           {ex}
                         </span>
                       ))}
                     </div>
-                    <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:8 }}>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', marginTop:8 }}>
                       {tpl.exercises.length} egzersiz
                     </div>
                   </div>
@@ -139,7 +139,7 @@ export default function TemplatesPage() {
 
       {/* Hazır şablonlar */}
       <div className="section-title">HAZIR SABLONLAR</div>
-      <p style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginBottom:14, lineHeight:1.6 }}>
+      <p style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginBottom:14, lineHeight:1.6 }}>
         Hazır şablonları tek tıkla ekle, sonra düzenleyebilirsin.
       </p>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10 }}>
@@ -148,7 +148,7 @@ export default function TemplatesPage() {
           return (
             <div key={preset.name} className="card" style={{ padding:'14px 16px', opacity: exists?.6:1 }}>
               <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:1, marginBottom:6, color: exists?'var(--text-muted)':'var(--text)' }}>{preset.name}</div>
-              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', marginBottom:10, lineHeight:1.6 }}>
+              <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginBottom:10, lineHeight:1.6 }}>
                 {preset.exercises.slice(0,3).join(' · ')}{preset.exercises.length > 3 ? ` +${preset.exercises.length-3}` : ''}
               </div>
               <button className="btn btn-ghost" onClick={()=>addPreset(preset)} disabled={exists} style={{ fontSize:11, padding:'5px 12px', width:'100%', justifyContent:'center', opacity:exists?.5:1, cursor:exists?'not-allowed':'pointer' }}>

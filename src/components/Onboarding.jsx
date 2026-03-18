@@ -105,10 +105,10 @@ export default function Onboarding({ onComplete }) {
         {/* Progress bar */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>
+            <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, letterSpacing: 2, color: 'var(--text-muted)' }}>
               ADIM {step + 1} / {steps.length}
             </div>
-            <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'var(--accent)' }}>
+            <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, color: 'var(--accent)' }}>
               {Math.round(progress)}%
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function Onboarding({ onComplete }) {
           <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 32, letterSpacing: 2, marginBottom: 6 }}>
             {steps[step].title}
           </div>
-          <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>
+          <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>
             {steps[step].subtitle}
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function Onboarding({ onComplete }) {
               }}>
                 <div style={{ fontSize: 32, marginBottom: 10 }}>{g.icon}</div>
                 <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 18, letterSpacing: 2, color: form.goal === g.id ? 'var(--accent)' : 'var(--text)', marginBottom: 4 }}>{g.label}</div>
-                <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>{g.desc}</div>
+                <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>{g.desc}</div>
               </div>
             ))}
           </div>
@@ -167,7 +167,7 @@ export default function Onboarding({ onComplete }) {
                   transition: 'all .15s', userSelect: 'none',
                 }}>
                   <span style={{ fontSize: 22 }}>{s.icon}</span>
-                  <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: sel ? 'var(--accent)' : 'var(--text-muted)' }}>{s.label}</span>
+                  <span style={{ fontFamily: 'Space Mono,monospace', fontSize: 11, color: sel ? 'var(--accent)' : 'var(--text-muted)' }}>{s.label}</span>
                   {sel && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 14 }}>✓</span>}
                 </div>
               )
@@ -189,7 +189,7 @@ export default function Onboarding({ onComplete }) {
                 <span style={{ fontSize: 28 }}>{l.icon}</span>
                 <div>
                   <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 18, letterSpacing: 2, color: form.level === l.id ? 'var(--accent)' : 'var(--text)' }}>{l.label}</div>
-                  <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{l.desc}</div>
+                  <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{l.desc}</div>
                 </div>
                 {form.level === l.id && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 18 }}>✓</span>}
               </div>
@@ -209,7 +209,7 @@ export default function Onboarding({ onComplete }) {
                     padding: '10px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
                     background: form.gender === val ? 'rgba(232,255,71,.08)' : 'var(--surface2)',
                     border: `1px solid ${form.gender === val ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
-                    fontFamily: 'DM Mono,monospace', fontSize: 12,
+                    fontFamily: 'Space Mono,monospace', fontSize: 12,
                     color: form.gender === val ? 'var(--accent)' : 'var(--text-muted)',
                   }}>{lbl}</div>
                 ))}
@@ -261,7 +261,7 @@ export default function Onboarding({ onComplete }) {
                   />
                   {form.weight && form.targetWeight && (
                     <div style={{
-                      fontFamily:'DM Mono,monospace', fontSize:11,
+                      fontFamily:'Space Mono,monospace', fontSize:11,
                       color: form.goal === 'lose' || form.goal === 'cut' ? 'var(--green)' : 'var(--accent)',
                       background:'var(--surface2)', border:'1px solid var(--border)',
                       borderRadius:8, padding:'8px 12px', whiteSpace:'nowrap', flexShrink:0,
@@ -277,7 +277,7 @@ export default function Onboarding({ onComplete }) {
             {/* TDEE preview */}
             {form.weight && form.height && form.age && (
               <div style={{ background: 'rgba(232,255,71,.06)', border: '1px solid rgba(232,255,71,.15)', borderRadius: 10, padding: '12px 16px' }}>
-                <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 4 }}>TAHMİNİ GÜNLÜK KALORİ İHTİYACI</div>
+                <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 4 }}>TAHMİNİ GÜNLÜK KALORİ İHTİYACI</div>
                 <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 28, color: 'var(--accent)' }}>
                   {calcTDEE()} <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>kcal/gün</span>
                 </div>
@@ -299,13 +299,13 @@ export default function Onboarding({ onComplete }) {
                     border: `1px solid ${sel ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
                     transition: 'all .15s', userSelect: 'none',
                   }}>
-                    <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 9, letterSpacing: 1, color: sel ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 4 }}>{day}</div>
+                    <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, letterSpacing: 1, color: sel ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 4 }}>{day}</div>
                     <div style={{ fontSize: sel ? 18 : 14 }}>{sel ? '💪' : '⬜'}</div>
                   </div>
                 )
               })}
             </div>
-            <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
               {form.trainDays.length} gün seçildi
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function Onboarding({ onComplete }) {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <button onClick={onComplete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'DM Mono,monospace' }}>
+          <button onClick={onComplete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Space Mono,monospace' }}>
             Şimdilik geç
           </button>
         </div>

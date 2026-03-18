@@ -113,12 +113,12 @@ export function GoalsPage() {
     <div className="page">
       {profile && (
         <div style={{ background:'rgba(232,255,71,.05)', border:'1px solid rgba(232,255,71,.12)', borderRadius:14, padding:'16px 18px', marginBottom:24 }}>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--accent)', marginBottom:10 }}>KİŞİSEL PROFİL</div>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--accent)', marginBottom:10 }}>KİŞİSEL PROFİL</div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-            {profile.goal && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>{GOAL_LABELS[profile.goal]||profile.goal}</span>}
-            {profile.level && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>{LEVEL_LABELS[profile.level]||profile.level}</span>}
-            {profile.tdee && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>~{profile.tdee} kcal/gün</span>}
-            {profile.trainDays?.length > 0 && <span style={{ fontFamily:'DM Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>Haftada {profile.trainDays.length} gün</span>}
+            {profile.goal && <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>{GOAL_LABELS[profile.goal]||profile.goal}</span>}
+            {profile.level && <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>{LEVEL_LABELS[profile.level]||profile.level}</span>}
+            {profile.tdee && <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>~{profile.tdee} kcal/gün</span>}
+            {profile.trainDays?.length > 0 && <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', color:'var(--text-muted)' }}>Haftada {profile.trainDays.length} gün</span>}
           </div>
         </div>
       )}
@@ -128,19 +128,20 @@ export function GoalsPage() {
         {fields.map(({ key, label, unit, color }) => {
           const cur = Math.round(totals[key]); const tgt = goals[key]||1
           const pct = Math.min(100, Math.round((cur/tgt)*100))
-          const barColor = pct>=100?'var(--red)':pct>=75?'var(--accent)':color
+          // FIX: Renk hiyerarşisi — %100'de yeşil, aşıldıysa kırmızı, normalde soluk
+          const barColor = pct >= 100 ? 'var(--green)' : pct >= 75 ? 'var(--accent)' : 'var(--border)'
           return (
             <div key={key} className="card" style={{ padding:'18px 20px' }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
                 <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:16, letterSpacing:2, color:'var(--text-muted)' }}>{label}</div>
-                <div style={{ fontFamily:'DM Mono,monospace', fontSize:12, color:'var(--text-muted)' }}>
+                <div style={{ fontFamily:'Space Mono,monospace', fontSize:12, color:'var(--text-muted)' }}>
                   <b style={{ color:'var(--text)' }}>{cur}</b> / {goals[key]} {unit}
                 </div>
               </div>
               <div style={{ background:'var(--surface3)', borderRadius:20, height:8, overflow:'hidden' }}>
                 <div style={{ height:'100%', borderRadius:20, width:`${pct}%`, background:barColor, transition:'width .6s ease' }}/>
               </div>
-              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, marginTop:7, textAlign:'right', color:pct>=100?'var(--red)':pct>=75?'var(--accent)':'var(--text-muted)' }}>{pct}%</div>
+              <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, marginTop:7, textAlign:'right', color:pct>=100?'var(--green)':pct>=75?'var(--accent)':'var(--text-muted)' }}>{pct}%</div>
             </div>
           )
         })}
@@ -154,12 +155,12 @@ export function GoalsPage() {
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:48, lineHeight:1, color:'#47c8ff' }}>
               {water} <span style={{ fontSize:18, color:'var(--text-muted)' }}>ml</span>
             </div>
-            <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Hedef: {WATER_GOAL} ml / gün</div>
+            <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Hedef: {WATER_GOAL} ml / gün</div>
           </div>
-          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:28, color:waterPct>=100?'var(--green)':'#47c8ff' }}>{waterPct}%</div>
+          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:28, color:waterPct>=100?'var(--green)':'var(--text-muted)' }}>{waterPct}%</div>
         </div>
         <div style={{ background:'var(--surface3)', borderRadius:20, height:10, overflow:'hidden', marginBottom:16 }}>
-          <div style={{ height:'100%', borderRadius:20, width:`${waterPct}%`, background:waterPct>=100?'linear-gradient(90deg,#47ff8a,#47c8ff)':'linear-gradient(90deg,#47c8ff88,#47c8ff)', transition:'width .5s ease' }}/>
+          <div style={{ height:'100%', borderRadius:20, width:`${waterPct}%`, background:waterPct>=100?'var(--green)':'var(--border)', transition:'width .5s ease' }}/>
         </div>
         <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
           {[150,200,300,500].map(ml=>(
@@ -169,14 +170,14 @@ export function GoalsPage() {
             >+{ml}ml</button>
           ))}
         </div>
-        <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.6, marginBottom:10 }}>
+        <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.6, marginBottom:10 }}>
           {waterPct>=100?'🎉 Günlük su hedefinizi tamamladınız!':waterPct>=60?`💧 İyi gidiyorsunuz! ${WATER_GOAL-water} ml daha.`:`⚠️ ${WATER_GOAL} ml hedef. Şimdiye kadar ${water} ml.`}
         </div>
-        <button onClick={resetWater} style={{ background:'none', border:'none', cursor:'pointer', fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'underline' }}>Sıfırla</button>
+        <button onClick={resetWater} style={{ background:'none', border:'none', cursor:'pointer', fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}>Sıfırla</button>
       </div>
 
       {!profile && (
-        <div style={{ textAlign:'center', padding:'20px 0', fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7 }}>
+        <div style={{ textAlign:'center', padding:'20px 0', fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7 }}>
           Hedeflerini otomatik hesaplamak için<br/><b style={{ color:'var(--accent)' }}>Ayarlar sayfasını</b> doldur.
         </div>
       )}
@@ -206,7 +207,7 @@ export function ProgressPage() {
   }
 
   const tabStyle = (active) => ({
-    fontFamily:'DM Mono,monospace', fontSize:10, padding:'5px 10px', borderRadius:6,
+    fontFamily:'Space Mono,monospace', fontSize:10, padding:'5px 10px', borderRadius:6,
     border:'none', cursor:'pointer', transition:'all .15s',
     background: active?'var(--accent)':'var(--surface2)',
     color: active?'#0a0a0a':'var(--text-muted)',
@@ -318,7 +319,7 @@ Eksiksiz yaz.`
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
               <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:16, letterSpacing:2 }}>AGIRLIK / TEKRAR TAKİBİ</div>
               <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                <select value={selEx} onChange={e=>setSelEx(e.target.value)} style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', fontFamily:'DM Mono,monospace', fontSize:11, padding:'5px 10px', outline:'none' }}>
+                <select value={selEx} onChange={e=>setSelEx(e.target.value)} style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', fontFamily:'Space Mono,monospace', fontSize:11, padding:'5px 10px', outline:'none' }}>
                   <option value="">Egzersiz Sec</option>
                   {allExNames().map(n=><option key={n} value={n}>{n}</option>)}
                 </select>
@@ -329,7 +330,7 @@ Eksiksiz yaz.`
             </div>
             <div style={{ position:'relative', height:200 }}>
               <canvas ref={exChartRef}/>
-              {!selEx&&<div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',fontFamily:'DM Mono,monospace',fontSize:12 }}>Yukaridan egzersiz sec</div>}
+              {!selEx&&<div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:12 }}>Yukaridan egzersiz sec</div>}
             </div>
           </div>
 
@@ -353,7 +354,7 @@ Eksiksiz yaz.`
             <div className="card" style={{ padding:'32px 24px', textAlign:'center' }}>
               <div style={{ fontSize:36, marginBottom:12 }}>⚙️</div>
               <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, marginBottom:8 }}>PROFİL GEREKLİ</div>
-              <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7 }}>Ayarlar sayfasından profilini doldur.</div>
+              <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7 }}>Ayarlar sayfasından profilini doldur.</div>
             </div>
           ) : (
             <>
@@ -362,12 +363,12 @@ Eksiksiz yaz.`
                 <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:16, padding:'24px', marginBottom:20 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
                     <div>
-                      <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginBottom:6 }}>GENEL İLERLEME SKORU</div>
+                      <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginBottom:6 }}>GENEL İLERLEME SKORU</div>
                       <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:64, lineHeight:1, color:scoreColor(goalData.overallScore) }}>
                         {goalData.overallScore}
                         <span style={{ fontSize:20, color:'var(--text-muted)' }}>/100</span>
                       </div>
-                      <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
+                      <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
                         {goalData.overallScore>=80?'🏆 Harika gidiyorsun!':goalData.overallScore>=60?'💪 İyi yoldasın, devam et':goalData.overallScore>=40?'⚡ Biraz daha gayret':'🌱 Yeni başlıyorsun, sabırlı ol'}
                       </div>
                     </div>
@@ -396,7 +397,7 @@ Eksiksiz yaz.`
                       <div key={label} style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px', textAlign:'center' }}>
                         <div style={{ fontSize:20, marginBottom:4 }}>{icon}</div>
                         <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, lineHeight:1, color:raw?'#ff8c47':scoreColor(val) }}>{val}</div>
-                        <div style={{ fontFamily:'DM Mono,monospace', fontSize:8, color:'var(--text-muted)', letterSpacing:1, marginTop:2 }}>{label}</div>
+                        <div style={{ fontFamily:'Space Mono,monospace', fontSize:8, color:'var(--text-muted)', letterSpacing:1, marginTop:2 }}>{label}</div>
                       </div>
                     ))}
                   </div>
@@ -406,14 +407,14 @@ Eksiksiz yaz.`
               {/* Hedef ilerleme */}
               {goalData && (
                 <div className="card" style={{ padding:'18px 20px', marginBottom:16 }}>
-                  <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginBottom:14 }}>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:3, color:'var(--text-muted)', marginBottom:14 }}>
                     {(goalLabel[profile.goal]||'HEDEF').toUpperCase()} HEDEFİNE İLERLEME
                   </div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                    <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)' }}>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)' }}>
                       Başlangıç: <b style={{ color:'var(--text)' }}>{profile.weight}kg</b>
                     </div>
-                    <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)' }}>
+                    <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)' }}>
                       Güncel: <b style={{ color:'var(--accent)' }}>{goalData.latestWeight}kg</b>
                     </div>
                   </div>
@@ -425,7 +426,7 @@ Eksiksiz yaz.`
                       %{goalData.progressPct} TAMAMLANDI
                     </div>
                     {goalData.weeksToGoal && (
-                      <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px' }}>
+                      <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px' }}>
                         ~{goalData.weeksToGoal} hafta kaldı
                       </div>
                     )}
@@ -445,7 +446,7 @@ Eksiksiz yaz.`
                     <div key={label} className="card" style={{ padding:'14px 16px' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
                         <span style={{ fontSize:16 }}>{icon}</span>
-                        <div style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)' }}>{label}</div>
+                        <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, letterSpacing:2, color:'var(--text-muted)' }}>{label}</div>
                       </div>
                       <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, color }}>{val}</div>
                     </div>
@@ -473,7 +474,7 @@ Eksiksiz yaz.`
                     <div style={{ width:28,height:28,borderRadius:7,background:'rgba(232,255,71,.1)',border:'1px solid rgba(232,255,71,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>🤖</div>
                     <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:14, letterSpacing:2, color:'var(--accent)' }}>NASIL GİDİYORUM? — AI ANALİZİ</div>
                   </div>
-                  <div style={{ fontSize:13, lineHeight:1.9, color:'var(--text-dim)', fontFamily:'DM Sans,sans-serif', whiteSpace:'pre-wrap' }}>{aiInsight}</div>
+                  <div style={{ fontSize:13, lineHeight:1.9, color:'var(--text-dim)', fontFamily:'Inter,sans-serif', whiteSpace:'pre-wrap' }}>{aiInsight}</div>
                 </div>
               )}
 
@@ -481,7 +482,7 @@ Eksiksiz yaz.`
               {notifPermission !== 'granted' && (
                 <div style={{ background:'rgba(71,200,255,.05)', border:'1px solid rgba(71,200,255,.15)', borderRadius:12, padding:'16px 18px' }}>
                   <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#47c8ff', marginBottom:8 }}>📲 BİLDİRİMLERİ AÇ</div>
-                  <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, marginBottom:12 }}>
+                  <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, marginBottom:12 }}>
                     Streak milestoneleri, antrenman hatırlatmaları ve haftalık özet bildirimleri al.
                   </div>
                   <button onClick={requestNotifPermission} className="btn btn-ghost" style={{ borderColor:'rgba(71,200,255,.3)', color:'#47c8ff', fontSize:12 }}>

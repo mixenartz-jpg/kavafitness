@@ -49,7 +49,7 @@ function LockScreen({ onUnlock }) {
         <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:28, letterSpacing:4, color:'var(--accent)', marginBottom:8 }}>
           KİŞİSEL KOÇUN
         </div>
-        <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, marginBottom:28 }}>
+        <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'var(--text-muted)', lineHeight:1.7, marginBottom:28 }}>
           Bu özellik özel erişime sahiptir.<br/>Erişim şifresini girin.
         </div>
         <div className="form-group" style={{ marginBottom:14, textAlign:'left' }}>
@@ -64,7 +64,7 @@ function LockScreen({ onUnlock }) {
             style={{ borderColor: error ? 'rgba(255,71,71,.5)' : undefined }}
           />
           {error && (
-            <span style={{ fontSize:11, color:'var(--red)', fontFamily:'DM Mono,monospace', marginTop:4, display:'block' }}>
+            <span style={{ fontSize:11, color:'var(--red)', fontFamily:'Space Mono,monospace', marginTop:4, display:'block' }}>
               ❌ Hatalı şifre
             </span>
           )}
@@ -277,14 +277,14 @@ ${lines.join('\n')}
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:24, letterSpacing:3, color:'var(--accent)' }}>
             KİŞİSEL KOÇUN
           </div>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block', animation:'pulse 2s ease infinite' }}/>
             Tüm verilerine erişimi var · Türkçe konuşur
           </div>
         </div>
         <button
           onClick={() => { localStorage.removeItem(PASS_KEY); setUnlocked(false) }}
-          style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'underline' }}
+          style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}
         >
           Kilitle
         </button>
@@ -294,7 +294,7 @@ ${lines.join('\n')}
       {streak >= 3 && (
         <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.2)', borderRadius:10, padding:'10px 14px', marginBottom:16 }}>
           <span style={{ fontSize:20 }}>{streak >= 30?'🏆':streak >= 14?'🔥':'⚡'}</span>
-          <div style={{ fontFamily:'DM Mono,monospace', fontSize:11, color:'#ff8c47' }}>
+          <div style={{ fontFamily:'Space Mono,monospace', fontSize:11, color:'#ff8c47' }}>
             <b>{streak} günlük serin var</b> — Koçun seninle gurur duyuyor!
           </div>
         </div>
@@ -323,7 +323,7 @@ ${lines.join('\n')}
                 borderRadius: msg.role==='user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                 padding:'12px 16px',
               }}>
-                <div style={{ fontSize:13, lineHeight:1.85, color: msg.role==='user'?'var(--accent)':'var(--text-dim)', fontFamily:'DM Sans,sans-serif', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>
+                <div style={{ fontSize:13, lineHeight:1.85, color: msg.role==='user'?'var(--accent)':'var(--text-dim)', fontFamily:'Inter,sans-serif', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>
                   {msg.text}
                 </div>
               </div>
@@ -347,7 +347,7 @@ ${lines.join('\n')}
         {/* Hızlı sorular */}
         <div style={{ padding:'12px 16px 0', display:'flex', gap:6, overflowX:'auto', scrollbarWidth:'none' }}>
           {QUICK.map((q,i) => (
-            <button key={i} onClick={() => sendMessage(q)} disabled={loading} style={{ padding:'6px 13px', borderRadius:20, border:'1px solid var(--border)', background:'var(--surface2)', color:'var(--text-muted)', fontFamily:'DM Mono,monospace', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0, opacity:loading?.5:1, transition:'all .15s' }}
+            <button key={i} onClick={() => sendMessage(q)} disabled={loading} style={{ padding:'6px 13px', borderRadius:20, border:'1px solid var(--border)', background:'var(--surface2)', color:'var(--text-muted)', fontFamily:'Space Mono,monospace', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0, opacity:loading?.5:1, transition:'all .15s' }}
               onMouseEnter={e => { if(!loading){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}}
               onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}
             >{q}</button>
@@ -363,7 +363,7 @@ ${lines.join('\n')}
             placeholder="Koçuna sor... (Enter = gönder, Shift+Enter = yeni satır)"
             disabled={loading}
             rows={2}
-            style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:10, color:'var(--text)', fontSize:13, padding:'10px 12px', outline:'none', resize:'none', fontFamily:'DM Sans,sans-serif', lineHeight:1.5, transition:'border-color .2s' }}
+            style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:10, color:'var(--text)', fontSize:13, padding:'10px 12px', outline:'none', resize:'none', fontFamily:'Inter,sans-serif', lineHeight:1.5, transition:'border-color .2s' }}
             onFocus={e => e.target.style.borderColor='var(--accent)'}
             onBlur={e => e.target.style.borderColor='var(--border)'}
           />
@@ -395,7 +395,7 @@ ${lines.join('\n')}
         <div style={{ textAlign:'right' }}>
           <button
             onClick={() => setMessages([{ role:'assistant', text: getMorningMsg() + '\n\nYeni bir sohbet başlatalım! Ne sormak istersin?' }])}
-            style={{ background:'none', border:'none', cursor:'pointer', fontSize:10, color:'var(--text-muted)', fontFamily:'DM Mono,monospace', textDecoration:'underline' }}
+            style={{ background:'none', border:'none', cursor:'pointer', fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'underline' }}
           >
             Sohbeti Temizle
           </button>
