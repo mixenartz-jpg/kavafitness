@@ -401,23 +401,12 @@ export function AppProvider({ children }) {
 
   const isFavFood = useCallback((name) => favFoods.some(f=>f.name===name), [favFoods])
 
-  const checkAndShowPR = useCallback((exName, newWeight) => {
-    if (isPR(exName, newWeight, exArchive, exercises)) {
-      setPrAlert({name:exName,weight:newWeight})
-      sendNotif('🏆 Yeni Rekor!',`${exName}: ${newWeight}kg — kişisel rekor!`)
-      setTimeout(()=>setPrAlert(null), 4000)
-      // PR = XP bonus
-      earnXP(XP_REWARDS.PR_BONUS, 'Kişisel Rekor! 🏆')
-    }
-  }, [exArchive, exercises, sendNotif, earnXP])
-
-  // ── XP Kazanma ──
+  // ── XP Kazanma — ÖNCE tanımlanmalı, diğerleri bunu kullanıyor ──
   const earnXP = useCallback((amount, reason = '') => {
     if (!uid) return
     setTotalXP(prev => {
       const newXP = prev + amount
       ls.set(uid, 'kerogym_xp', newXP)
-      // XP popup göster
       setXpPopup({ amount, reason })
       setTimeout(() => setXpPopup(null), 2200)
       return newXP
@@ -429,27 +418,22 @@ export function AppProvider({ children }) {
     if (!uid) return
     const current = ls.get(uid, 'kerogym_badges', [])
 
-    // Tüm zaman max ağırlık
     let allTimeMaxWeight = 0
     Object.values(exArchive).forEach(day =>
       day.forEach(ex => ex.sets.forEach(s => { if (+s.weight > allTimeMaxWeight) allTimeMaxWeight = +s.weight }))
     )
     exercises.forEach(ex => ex.sets.forEach(s => { if (+s.weight > allTimeMaxWeight) allTimeMaxWeight = +s.weight }))
 
-    // Toplam antrenman günü sayısı
     const totalWorkouts = Object.values(exArchive).filter(day => day.length > 0).length
       + (exercises.length > 0 ? 1 : 0)
 
-    // Toplam XP
     const currentXP = ls.get(uid, 'kerogym_xp', 0)
 
     const checkData = {
-      streak,
-      allTimeMaxWeight,
-      totalWorkouts,
-      totalPRs:     ls.get(uid, 'kerogym_total_prs', 0),
+      streak, allTimeMaxWeight, totalWorkouts,
+      totalPRs:       ls.get(uid, 'kerogym_total_prs', 0),
       macroStreakDays: ls.get(uid, 'kerogym_macro_streak', 0),
-      totalXP:      currentXP,
+      totalXP:        currentXP,
       ...overrideData,
     }
 
@@ -464,30 +448,37 @@ export function AppProvider({ children }) {
       const updated = [...current, ...newlyEarned.map(b => b.id)]
       ls.set(uid, 'kerogym_badges', updated)
       setEarnedBadges(updated)
-      // İlk rozeti popup olarak göster
       setBadgePopup(newlyEarned[0])
       setTimeout(() => setBadgePopup(null), 4000)
-      // Her rozet için XP bonus
       newlyEarned.forEach(() => earnXP(50, 'Rozet Kazanıldı! 🏅'))
       sendNotif('🏅 Yeni Rozet!', `${newlyEarned[0].icon} ${newlyEarned[0].name} rozeti kazandın!`)
     }
   }, [uid, streak, exArchive, exercises, earnXP, sendNotif])
 
+  // ── PR tespiti — earnXP sonradan çağrılıyor, artık sorun yok ──
+  const checkAndShowPR = useCallback((exName, newWeight) => {
+    if (isPR(exName, newWeight, exArchive, exercises)) {
+      setPrAlert({name:exName,weight:newWeight})
+      sendNotif('🏆 Yeni Rekor!',`${exName}: ${newWeight}kg — kişisel rekor!`)
+      setTimeout(()=>setPrAlert(null), 4000)
+      earnXP(XP_REWARDS.PR_BONUS, 'Kişisel Rekor! 🏆')
+    }
+  }, [exArchive, exercises, sendNotif, earnXP])
+
   // ── Antrenman tamamlanınca XP ──
   const awardWorkoutXP = useCallback((exCount, setCount) => {
     if (!uid || exCount === 0) return
     earnXP(XP_REWARDS.WORKOUT_COMPLETE + setCount * XP_REWARDS.SET_ADDED, `${exCount} egzersiz tamamlandı`)
-    // Streak bonusu
     if (streak > 0 && streak % 7 === 0) earnXP(XP_REWARDS.STREAK_BONUS, `${streak} günlük seri!`)
     checkBadges()
   }, [uid, streak, earnXP, checkBadges])
 
-  // ── Makro tamamlanınca XP (Calorie/Goals sayfalarından çağrılır) ──
+  // ── Makro tamamlanınca XP ──
   const checkMacroXP = useCallback((totals, goalData) => {
     if (!uid || !goalData) return
     const today = todayKey()
     const lastCheck = ls.get(uid, 'kerogym_macro_check', '')
-    if (lastCheck === today) return  // Günde 1 kez
+    if (lastCheck === today) return
     const kcalPct = goalData.kcal > 0 ? totals.kcal / goalData.kcal : 0
     const protPct = goalData.protein > 0 ? totals.protein / goalData.protein : 0
     if (kcalPct >= 1.0) earnXP(XP_REWARDS.MACRO_100, 'Kalori hedefi tamamlandı!')
