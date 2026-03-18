@@ -302,16 +302,24 @@ Elindeki malzemeler: "${fridgeInput}"
 ÖNEMLİ: SADECE geçerli JSON döndür, başka HİÇBİR ŞEY yazma, markdown kullanma:
 {"meal_name":"Yemek Adı","description":"1-2 cümle","ingredients_used":["Malzeme 1"],"steps":["Adım 1","Adım 2"],"total":{"kcal":450,"protein":35,"fat":12,"carb":40},"prep_time":"10 dk","tip":"Neden iyi kombinasyon"}`
 
-    const FRIDGE_MODELS = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
+    const FRIDGE_MODELS = [
+      'gemini-2.5-flash-preview-05-20',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+    ]
     let parsed = null
 
     for (const model of FRIDGE_MODELS) {
       try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 15000) // 15sn timeout
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
+            signal: controller.signal,
             body: JSON.stringify({ contents:[{ parts:[{ text:prompt }] }], generationConfig:{ temperature:.6, maxOutputTokens:1000 } }) }
         )
+        clearTimeout(timeout)
         if (!res.ok) continue
         const data = await res.json()
         let raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim()

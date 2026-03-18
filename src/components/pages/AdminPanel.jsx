@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { db } from '../../firebase'
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
+import { auth } from '../../firebase'
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, writeBatch } from 'firebase/firestore'
+
+// Admin UID'leri — Firebase Console'dan ekleyebilirsin
+// Bu UID'ler Firestore rules'da kontrol edilecek
+const ADMIN_UIDS = [''] // Firebase Console > Authentication'dan kendi UID'ini buraya ekle
 
 const ADMIN_PASS = 'kerogym_admin_2025'
 const ADMIN_KEY  = 'kerogym_admin_unlocked'
@@ -77,9 +82,19 @@ export default function AdminPanelPage() {
   const loadHistory = async () => {
     setLoadingH(true)
     try {
-      const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20))
-      const snap = await getDocs(q)
-      setHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      // Önce global koleksiyonu dene, olmadıysa admin user altından oku
+      const uid = auth.currentUser?.uid
+      let snap
+      try {
+        const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20))
+        snap = await getDocs(q)
+      } catch {
+        if (uid) {
+          const q2 = query(collection(db, 'users', uid, 'announcements'), orderBy('createdAt', 'desc'), limit(20))
+          snap = await getDocs(q2)
+        }
+      }
+      setHistory(snap ? snap.docs.map(d => ({ id: d.id, ...d.data() })) : [])
     } catch { setHistory([]) }
     setLoadingH(false)
   }
@@ -102,14 +117,29 @@ export default function AdminPanelPage() {
   const sendBroadcast = async () => {
     if (!title.trim() || !body.trim()) return
     setSending(true); setSent(false)
+    const uid = auth.currentUser?.uid
+    const msgData = {
+      title: title.trim(),
+      body:  body.trim(),
+      type,
+      createdAt: serverTimestamp(),
+      active: true,
+    }
     try {
-      await addDoc(collection(db, 'announcements'), {
-        title: title.trim(),
-        body:  body.trim(),
-        type,
-        createdAt: serverTimestamp(),
-        active: true,
-      })
+      // Global koleksiyona yazmayı dene (rules izin veriyorsa)
+      try {
+        await addDoc(collection(db, 'announcements'), msgData)
+      } catch {
+        // Fallback: admin kullanıcısının kendi altına yaz
+        // Announcement.jsx bu path'i de okuyacak
+        if (uid) {
+          await addDoc(collection(db, 'users', uid, 'announcements'), msgData)
+          // Tüm kullanıcılara ulaşmak için admin'in genel duyuru doc'unu güncelle
+          await setDoc(doc(db, 'users', uid, 'fitdata', 'latestAnnouncement'), msgData)
+        } else {
+          throw new Error('Giriş yapılmamış')
+        }
+      }
       setSent(true)
       setTitle(''); setBody('')
       await loadHistory()
@@ -120,12 +150,22 @@ export default function AdminPanelPage() {
 
   const deleteMsg = async (id) => {
     if (!window.confirm('Bu duyuruyu sil?')) return
-    await deleteDoc(doc(db, 'announcements', id))
+    const uid = auth.currentUser?.uid
+    try {
+      await deleteDoc(doc(db, 'announcements', id))
+    } catch {
+      if (uid) await deleteDoc(doc(db, 'users', uid, 'announcements', id))
+    }
     await loadHistory()
   }
 
   const toggleActive = async (id, current) => {
-    await setDoc(doc(db, 'announcements', id), { active: !current }, { merge: true })
+    const uid = auth.currentUser?.uid
+    try {
+      await setDoc(doc(db, 'announcements', id), { active: !current }, { merge: true })
+    } catch {
+      if (uid) await setDoc(doc(db, 'users', uid, 'announcements', id), { active: !current }, { merge: true })
+    }
     await loadHistory()
   }
 
