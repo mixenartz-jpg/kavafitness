@@ -1,6 +1,15 @@
 import { useApp } from '../../context/AppContext'
 import Icon from '../Icons'
 
+const QUICK_CARDS = [
+  { id:'today',    icon:'dumbbell', label:'Antrenman',     desc:'Bugünkü egzersizleri kaydet' },
+  { id:'calorie',  icon:'apple',    label:'Kalori Takibi', desc:'Yemek ve makro takibi'        },
+  { id:'aicoach',  icon:'robot',    label:'AI Koçu',       desc:'Beslenme & antrenman analizi' },
+  { id:'progress', icon:'chart',    label:'İlerleme',      desc:'Grafikler & haftalık özet'    },
+  { id:'history',  icon:'calendar', label:'Geçmiş',        desc:'Tüm antrenman geçmişin'       },
+  { id:'settings', icon:'settings', label:'Ayarlar',       desc:'Profil, hedefler, ölçüler'    },
+]
+
 const GOAL_LABELS = { lose:'Kilo Ver', gain:'Kilo Al', cut:'Yağ Yak', maintain:'Koru' }
 
 export default function HomePage() {
@@ -12,17 +21,16 @@ export default function HomePage() {
   return (
     <div className="page animate-fade" style={{ maxWidth: 700 }}>
 
-      {/* ── HERO ── */}
+      {/* HERO */}
       <div style={{
-        background: 'linear-gradient(135deg,rgba(232,255,71,.07) 0%,rgba(232,255,71,.02) 100%)',
-        border: '1px solid rgba(232,255,71,.15)',
+        background: 'var(--surface)', border: '1px solid var(--border)',
         borderRadius: 20, padding: '28px 24px', marginBottom: 24,
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position:'absolute', right:-10, top:-10, fontFamily:'Bebas Neue,sans-serif', fontSize:110, color:'rgba(232,255,71,.04)', letterSpacing:4, userSelect:'none', pointerEvents:'none', lineHeight:1 }}>GYM</div>
+        <div style={{ position:'absolute', right:-10, top:-10, fontFamily:'Bebas Neue,sans-serif', fontSize:110, color:'rgba(255,255,255,.02)', letterSpacing:4, userSelect:'none', pointerEvents:'none', lineHeight:1 }}>FIT</div>
 
         <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:16 }}>
-          <img src="/logo.png" alt="KavaFit" style={{ height:48, width:'auto' }} />
+          <img src="/logo.png" alt="KavaFit" style={{ height:48, width:'auto', filter:'brightness(0) invert(1)' }} />
           <div>
             <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:34, letterSpacing:5, color:'var(--accent)', lineHeight:1 }}>
               KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
@@ -33,37 +41,36 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bugünkü durum chip'leri */}
         <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:14 }}>
           {streak > 0 && (
-            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(255,140,71,.1)', border:'1px solid rgba(255,140,71,.25)', borderRadius:20, padding:'4px 11px', color:'#ff8c47' }}>
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(245,158,11,.1)', border:'1px solid rgba(245,158,11,.25)', borderRadius:20, padding:'4px 11px', color:'var(--yellow)' }}>
               🔥 {streak} günlük seri
             </span>
           )}
           {todaySets > 0 && (
-            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(232,255,71,.08)', border:'1px solid rgba(232,255,71,.2)', borderRadius:20, padding:'4px 11px', color:'var(--accent)' }}>
-              💪 {todaySets} set
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.12)', borderRadius:20, padding:'4px 11px', color:'var(--accent)' }}>
+              {todaySets} set
             </span>
           )}
           {todayKcal > 0 && (
-            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(71,255,138,.08)', border:'1px solid rgba(71,255,138,.2)', borderRadius:20, padding:'4px 11px', color:'var(--green)' }}>
-              🍽️ {todayKcal} kcal
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:20, padding:'4px 11px', color:'var(--green)' }}>
+              {todayKcal} kcal
             </span>
           )}
           {profile?.goal && (
-            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(71,200,255,.08)', border:'1px solid rgba(71,200,255,.2)', borderRadius:20, padding:'4px 11px', color:'var(--blue)' }}>
-              🎯 {GOAL_LABELS[profile.goal] || profile.goal}
+            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', borderRadius:20, padding:'4px 11px', color:'var(--blue)' }}>
+              {GOAL_LABELS[profile.goal] || profile.goal}
             </span>
           )}
         </div>
 
-        <p style={{ fontSize:13, color:'var(--text-dim)', lineHeight:1.8, fontFamily:'Inter,sans-serif', maxWidth:460, margin:0 }}>
+        <p style={{ fontSize:13, color:'var(--text-dim)', lineHeight:1.8, fontFamily:"'Space Grotesk',sans-serif", maxWidth:460, margin:0 }}>
           Antrenmanlarını, kalorilerini ve vücut ölçülerini tek yerde takip et.
           {!profile && <strong style={{ color:'var(--accent)' }}> Başlamak için Ayarlar → Profil'i doldur.</strong>}
         </p>
       </div>
 
-      {/* ── HIZLI ERİŞİM ── */}
+      {/* HIZLI ERİŞİM */}
       <div className="section-title">HIZLI ERİŞİM</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:28 }}>
         {QUICK_CARDS.map(card => (
@@ -73,13 +80,16 @@ export default function HomePage() {
             style={{
               padding:'16px 10px', borderRadius:14, cursor:'pointer',
               background:'var(--surface)', border:'1px solid var(--border)',
-              transition:'all .15s', userSelect:'none', textAlign:'center',
+              transition:'all .18s cubic-bezier(.4,0,.2,1)', userSelect:'none',
+              textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', gap:8,
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = card.color; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='var(--border2)'; e.currentTarget.style.background='var(--surface2)'; e.currentTarget.style.transform='translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.background='var(--surface)'; e.currentTarget.style.transform='translateY(0)' }}
           >
-            <div style={{ fontSize:26, marginBottom:8 }}>{card.icon}</div>
-            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:12, letterSpacing:1.5, color:card.color, marginBottom:4 }}>
+            <div style={{ width:40, height:40, borderRadius:10, background:'var(--surface2)', border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Icon name={card.icon} size={20} color="var(--text-dim)" strokeWidth={1.6}/>
+            </div>
+            <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:12, color:'var(--text)', letterSpacing:.2 }}>
               {card.label}
             </div>
             <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--text-muted)', lineHeight:1.5 }}>
@@ -89,7 +99,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* ── GELİŞTİRİCİ ── */}
+      {/* GELİŞTİRİCİ */}
       <div className="section-title">GELİŞTİRİCİ</div>
       <div className="card" style={{ padding:'18px 20px', marginBottom:16 }}>
         <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12 }}>
