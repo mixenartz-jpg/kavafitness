@@ -137,23 +137,20 @@ function MuscleMapSVG({ activeGroup, onSelect }) {
   const side = manualSide !== null ? manualSide : (activeGroup ? autoSide : 'front')
   const handleSide = (s) => setManualSide(p => p === s ? null : s)
   const handleSelect = (id) => { setManualSide(null); onSelect(id) }
-
-  const ac = (id) => activeGroup === id
-  const col = (id) => findMG(id)?.color || '#fff'
-  const ms = (id) => ({
-    fill:        ac(id) ? col(id) + '38' : 'rgba(255,255,255,.0)',
-    stroke:      ac(id) ? col(id)        : 'rgba(255,255,255,.0)',
-    strokeWidth: ac(id) ? '1.5' : '0',
+  const isA = (id) => activeGroup === id
+  const col  = (id) => findMG(id)?.color || '#fff'
+  const rs   = (id) => ({
+    fill:   isA(id) ? col(id)+'44' : 'transparent',
+    stroke: isA(id) ? col(id)      : 'transparent',
+    strokeWidth: '2',
     cursor: 'pointer',
     transition: 'all .18s ease',
-    filter: ac(id) ? `drop-shadow(0 0 5px ${col(id)}88)` : 'none',
+    filter: isA(id) ? `drop-shadow(0 0 6px ${col(id)}aa)` : 'none',
   })
-  // hover için şeffaf tıklama yüzeyi
-  const hs = { fill:'rgba(255,255,255,.0)', stroke:'none', cursor:'pointer' }
 
   return (
     <div style={{ width:'100%', maxWidth:220, margin:'0 auto' }}>
-      <div style={{ display:'flex', gap:6, marginBottom:14, justifyContent:'center' }}>
+      <div style={{ display:'flex', gap:6, marginBottom:12, justifyContent:'center' }}>
         {[['front','ÖN'],['back','ARKA']].map(([s,label]) => (
           <button key={s} onClick={() => handleSide(s)} style={{
             padding:'5px 18px', borderRadius:20,
@@ -166,214 +163,109 @@ function MuscleMapSVG({ activeGroup, onSelect }) {
         ))}
       </div>
 
-      {side === 'front' ? (
-        <svg viewBox="0 0 160 380" xmlns="http://www.w3.org/2000/svg"
-          style={{width:'100%',height:'auto',display:'block'}}>
+      <div style={{ position:'relative', width:'100%', lineHeight:0 }}>
+        <img
+          src={side==='front' ? '/muscle_front.png' : '/muscle_back.png'}
+          alt="kas haritası"
+          style={{
+            width:'100%', display:'block', borderRadius:8,
+            filter:'invert(1) brightness(0.9) contrast(1.1)',
+            mixBlendMode:'screen',
+            userSelect:'none', pointerEvents:'none',
+          }}
+        />
+        {/* ── ÖN OVERLAY (347x581) ── */}
+        {side === 'front' && (
+          <svg viewBox="0 0 347 581" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}
+            xmlns="http://www.w3.org/2000/svg">
 
-          {/* ─── KAS OVERLAY ─── */}
-          {/* GÖĞÜS */}
-          <g onClick={()=>handleSelect('chest')}>
-            <path d="M72,68 Q80,64 88,65 L88,92 Q80,96 72,92 Q66,84 68,74 Z" style={ms('chest')}/>
-            <path d="M88,65 Q96,64 104,68 Q106,74 104,84 Q98,92 88,92 Z" style={ms('chest')}/>
-            <path d="M66,68 Q80,60 104,68 L104,96 Q80,102 66,96 Z" style={hs} onClick={()=>handleSelect('chest')}/>
-          </g>
+            {/* GÖĞÜS */}
+            <g onClick={()=>handleSelect('chest')} style={{cursor:'pointer'}}>
+              <ellipse cx="149" cy="142" rx="32" ry="48" style={rs('chest')}/>
+              <ellipse cx="209" cy="142" rx="32" ry="48" style={rs('chest')}/>
+            </g>
 
-          {/* OMUZLAR */}
-          <g onClick={()=>handleSelect('shoulders')}>
-            <path d="M52,62 Q60,56 70,60 Q74,68 72,80 Q64,86 56,80 Q50,72 52,62 Z" style={ms('shoulders')}/>
-            <path d="M108,62 Q100,56 90,60 Q86,68 88,80 Q96,86 104,80 Q110,72 108,62 Z" style={ms('shoulders')}/>
-          </g>
+            {/* OMUZLAR */}
+            <g onClick={()=>handleSelect('shoulders')} style={{cursor:'pointer'}}>
+              <ellipse cx="107" cy="141" rx="20" ry="24" style={rs('shoulders')}/>
+              <ellipse cx="250" cy="141" rx="20" ry="24" style={rs('shoulders')}/>
+            </g>
 
-          {/* KOL */}
-          <g onClick={()=>handleSelect('arms')}>
-            <path d="M44,82 Q52,78 56,86 Q58,100 54,114 Q48,120 42,116 Q36,108 38,94 Z" style={ms('arms')}/>
-            <path d="M116,82 Q108,78 104,86 Q102,100 106,114 Q112,120 118,116 Q124,108 122,94 Z" style={ms('arms')}/>
-            <path d="M36,118 Q44,114 48,122 Q50,136 46,148 Q40,154 34,148 Q28,138 30,126 Z" style={ms('arms')}/>
-            <path d="M124,118 Q116,114 112,122 Q110,136 114,148 Q120,154 126,148 Q132,138 130,126 Z" style={ms('arms')}/>
-          </g>
+            {/* KOL */}
+            <g onClick={()=>handleSelect('arms')} style={{cursor:'pointer'}}>
+              <ellipse cx="70"  cy="204" rx="32" ry="58" style={rs('arms')}/>
+              <ellipse cx="287" cy="202" rx="32" ry="58" style={rs('arms')}/>
+              <ellipse cx="44"  cy="283" rx="15" ry="28" style={rs('arms')}/>
+              <ellipse cx="314" cy="283" rx="15" ry="28" style={rs('arms')}/>
+            </g>
 
-          {/* CORE */}
-          <g onClick={()=>handleSelect('core')}>
-            <path d="M70,96 Q80,92 90,96 Q94,104 94,120 Q92,136 88,144 Q80,148 72,144 Q68,136 66,120 Q66,104 70,96 Z" style={ms('core')}/>
-            <path d="M60,100 Q68,96 72,104 Q72,120 68,134 Q62,140 56,134 Q50,124 52,110 Z" style={ms('core')}/>
-            <path d="M100,100 Q92,96 88,104 Q88,120 92,134 Q98,140 104,134 Q110,124 108,110 Z" style={ms('core')}/>
-          </g>
+            {/* CORE */}
+            <g onClick={()=>handleSelect('core')} style={{cursor:'pointer'}}>
+              <ellipse cx="178" cy="254" rx="40" ry="72" style={rs('core')}/>
+              <ellipse cx="122" cy="249" rx="24" ry="66" style={rs('core')}/>
+              <ellipse cx="235" cy="249" rx="24" ry="66" style={rs('core')}/>
+            </g>
 
-          {/* BACAKLAR */}
-          <g onClick={()=>handleSelect('legs')}>
-            <path d="M66,160 Q74,156 80,160 Q82,176 80,196 Q78,210 72,214 Q66,212 62,200 Q58,182 62,166 Z" style={ms('legs')}/>
-            <path d="M94,160 Q86,156 80,160 Q78,176 80,196 Q82,210 88,214 Q94,212 98,200 Q102,182 98,166 Z" style={ms('legs')}/>
-            <path d="M62,218 Q70,214 76,220 Q78,236 74,254 Q70,264 64,262 Q58,256 58,240 Z" style={ms('legs')}/>
-            <path d="M98,218 Q90,214 84,220 Q82,236 86,254 Q90,264 96,262 Q102,256 102,240 Z" style={ms('legs')}/>
-          </g>
+            {/* BACAKLAR */}
+            <g onClick={()=>handleSelect('legs')} style={{cursor:'pointer'}}>
+              <ellipse cx="147" cy="384" rx="33" ry="72" style={rs('legs')}/>
+              <ellipse cx="211" cy="384" rx="33" ry="72" style={rs('legs')}/>
+              <ellipse cx="134" cy="504" rx="22" ry="50" style={rs('legs')}/>
+              <ellipse cx="223" cy="504" rx="22" ry="50" style={rs('legs')}/>
+            </g>
+          </svg>
+        )}
 
-          {/* ─── VÜCUT HATLARI ─── */}
-          <g fill="none" stroke="rgba(255,255,255,.28)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-            {/* Baş */}
-            <ellipse cx="80" cy="22" rx="14" ry="17"/>
-            {/* Boyun */}
-            <line x1="74" y1="38" x2="72" y2="48"/>
-            <line x1="86" y1="38" x2="88" y2="48"/>
-            <path d="M72,48 Q80,52 88,48"/>
-            {/* Köprücük */}
-            <path d="M72,48 Q64,50 58,56" stroke="rgba(255,255,255,.18)"/>
-            <path d="M88,48 Q96,50 102,56" stroke="rgba(255,255,255,.18)"/>
-            {/* Sol omuz/kol dış */}
-            <path d="M46,60 Q40,70 38,84 Q36,98 38,112 Q40,124 44,132"/>
-            {/* Sol kol iç */}
-            <path d="M60,64 Q56,74 54,88 Q52,100 54,112 Q56,120 58,126"/>
-            {/* Sol önkol */}
-            <path d="M44,132 Q38,144 36,156 Q34,166 36,174"/>
-            <path d="M58,126 Q56,138 56,150 Q56,160 58,168"/>
-            {/* Sol el */}
-            <path d="M36,174 Q32,178 30,184 Q32,190 38,190 Q44,188 46,182"/>
-            <path d="M58,168 Q58,174 56,180"/>
-            {/* Sağ omuz/kol dış */}
-            <path d="M114,60 Q120,70 122,84 Q124,98 122,112 Q120,124 116,132"/>
-            {/* Sağ kol iç */}
-            <path d="M100,64 Q104,74 106,88 Q108,100 106,112 Q104,120 102,126"/>
-            {/* Sağ önkol */}
-            <path d="M116,132 Q122,144 124,156 Q126,166 124,174"/>
-            <path d="M102,126 Q104,138 104,150 Q104,160 102,168"/>
-            {/* Sağ el */}
-            <path d="M124,174 Q128,178 130,184 Q128,190 122,190 Q116,188 114,182"/>
-            <path d="M102,168 Q102,174 104,180"/>
-            {/* Gövde sol */}
-            <path d="M46,60 Q42,72 40,88 Q40,108 44,128 Q48,144 52,156"/>
-            {/* Gövde sağ */}
-            <path d="M114,60 Q118,72 120,88 Q120,108 116,128 Q112,144 108,156"/>
-            {/* Alt gövde */}
-            <path d="M52,156 Q56,164 62,168 Q70,172 80,172 Q90,172 98,168 Q104,164 108,156"/>
-            {/* Kasık */}
-            <path d="M66,168 Q72,174 80,176 Q88,174 94,168"/>
-            <path d="M72,174 L70,184"/>
-            <path d="M88,174 L90,184"/>
-            {/* Sol bacak dış */}
-            <path d="M52,156 Q46,170 44,190 Q42,210 44,230 Q46,248 50,262"/>
-            {/* Sol bacak iç */}
-            <path d="M70,184 Q68,198 68,216 Q68,232 70,248 Q72,260 74,266"/>
-            {/* Sol baldır */}
-            <path d="M50,262 Q48,276 50,292 Q52,306 56,314"/>
-            <path d="M74,266 Q74,280 72,294 Q70,308 68,316"/>
-            {/* Sol diz */}
-            <path d="M50,262 Q60,258 74,266" stroke="rgba(255,255,255,.18)"/>
-            {/* Sol ayak */}
-            <path d="M56,314 Q52,320 50,328 Q54,332 64,332 Q72,330 74,322 Q72,316 68,316"/>
-            {/* Sağ bacak dış */}
-            <path d="M108,156 Q114,170 116,190 Q118,210 116,230 Q114,248 110,262"/>
-            {/* Sağ bacak iç */}
-            <path d="M90,184 Q92,198 92,216 Q92,232 90,248 Q88,260 86,266"/>
-            {/* Sağ baldır */}
-            <path d="M110,262 Q112,276 110,292 Q108,306 104,314"/>
-            <path d="M86,266 Q86,280 88,294 Q90,308 92,316"/>
-            {/* Sağ diz */}
-            <path d="M110,262 Q100,258 86,266" stroke="rgba(255,255,255,.18)"/>
-            {/* Sağ ayak */}
-            <path d="M104,314 Q108,320 110,328 Q106,332 96,332 Q88,330 86,322 Q88,316 92,316"/>
-            {/* Abs */}
-            <path d="M74,104 Q80,102 86,104" stroke="rgba(255,255,255,.14)"/>
-            <path d="M74,114 Q80,112 86,114" stroke="rgba(255,255,255,.14)"/>
-            <path d="M74,124 Q80,122 86,124" stroke="rgba(255,255,255,.14)"/>
-            <path d="M74,134 Q80,132 86,134" stroke="rgba(255,255,255,.14)"/>
-            <line x1="80" y1="98" x2="80" y2="148" stroke="rgba(255,255,255,.1)"/>
-          </g>
-        </svg>
-      ) : (
-        <svg viewBox="0 0 160 380" xmlns="http://www.w3.org/2000/svg"
-          style={{width:'100%',height:'auto',display:'block'}}>
+        {/* ── ARKA OVERLAY (346x585) ── */}
+        {side === 'back' && (
+          <svg viewBox="0 0 346 585" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}
+            xmlns="http://www.w3.org/2000/svg">
 
-          {/* ─── KAS OVERLAY ARKA ─── */}
-          {/* SIRT */}
-          <g onClick={()=>handleSelect('back')}>
-            <path d="M66,56 Q80,50 94,56 Q98,68 94,84 Q86,92 80,94 Q74,92 66,84 Q62,68 66,56 Z" style={ms('back')}/>
-            <path d="M56,90 Q64,86 68,94 Q70,110 66,124 Q60,132 52,128 Q44,120 46,106 Z" style={ms('back')}/>
-            <path d="M104,90 Q96,86 92,94 Q90,110 94,124 Q100,132 108,128 Q116,120 114,106 Z" style={ms('back')}/>
-            <path d="M68,96 Q80,92 92,96 Q96,110 92,126 Q86,136 80,138 Q74,136 68,126 Q64,110 68,96 Z" style={ms('back')}/>
-          </g>
+            {/* SIRT */}
+            <g onClick={()=>handleSelect('back')} style={{cursor:'pointer'}}>
+              <ellipse cx="174" cy="124" rx="62" ry="46" style={rs('back')}/>
+              <ellipse cx="94"  cy="207" rx="32" ry="64" style={rs('back')}/>
+              <ellipse cx="254" cy="198" rx="32" ry="54" style={rs('back')}/>
+              <ellipse cx="174" cy="279" rx="46" ry="40" style={rs('back')}/>
+            </g>
 
-          {/* OMUZLAR */}
-          <g onClick={()=>handleSelect('shoulders')}>
-            <path d="M50,60 Q58,54 68,58 Q72,68 70,80 Q62,86 54,80 Q46,72 50,60 Z" style={ms('shoulders')}/>
-            <path d="M110,60 Q102,54 92,58 Q88,68 90,80 Q98,86 106,80 Q114,72 110,60 Z" style={ms('shoulders')}/>
-          </g>
+            {/* OMUZLAR */}
+            <g onClick={()=>handleSelect('shoulders')} style={{cursor:'pointer'}}>
+              <ellipse cx="102" cy="138" rx="18" ry="18" style={rs('shoulders')}/>
+              <ellipse cx="240" cy="139" rx="18" ry="18" style={rs('shoulders')}/>
+            </g>
 
-          {/* KOL */}
-          <g onClick={()=>handleSelect('arms')}>
-            <path d="M42,82 Q50,78 54,86 Q56,100 52,114 Q46,120 40,114 Q34,104 36,92 Z" style={ms('arms')}/>
-            <path d="M118,82 Q110,78 106,86 Q104,100 108,114 Q114,120 120,114 Q126,104 124,92 Z" style={ms('arms')}/>
-            <path d="M34,118 Q42,114 46,122 Q48,136 44,148 Q38,154 32,148 Q26,138 28,126 Z" style={ms('arms')}/>
-            <path d="M126,118 Q118,114 114,122 Q112,136 116,148 Q122,154 128,148 Q134,138 132,126 Z" style={ms('arms')}/>
-          </g>
+            {/* KOL */}
+            <g onClick={()=>handleSelect('arms')} style={{cursor:'pointer'}}>
+              <ellipse cx="62"  cy="202" rx="30" ry="56" style={rs('arms')}/>
+              <ellipse cx="283" cy="207" rx="28" ry="48" style={rs('arms')}/>
+              <ellipse cx="41"  cy="284" rx="22" ry="36" style={rs('arms')}/>
+              <ellipse cx="301" cy="284" rx="22" ry="36" style={rs('arms')}/>
+            </g>
 
-          {/* BACAKLAR */}
-          <g onClick={()=>handleSelect('legs')}>
-            <path d="M62,162 Q70,158 76,162 Q80,178 78,198 Q76,212 68,216 Q60,212 58,198 Q54,180 58,166 Z" style={ms('legs')}/>
-            <path d="M98,162 Q90,158 84,162 Q80,178 82,198 Q84,212 92,216 Q100,212 102,198 Q106,180 102,166 Z" style={ms('legs')}/>
-            <path d="M58,220 Q66,216 72,222 Q74,238 70,256 Q66,266 60,264 Q54,258 54,242 Z" style={ms('legs')}/>
-            <path d="M102,220 Q94,216 88,222 Q86,238 90,256 Q94,266 100,264 Q106,258 106,242 Z" style={ms('legs')}/>
-          </g>
+            {/* BACAKLAR */}
+            <g onClick={()=>handleSelect('legs')} style={{cursor:'pointer'}}>
+              <ellipse cx="144" cy="359" rx="32" ry="46" style={rs('legs')}/>
+              <ellipse cx="203" cy="359" rx="30" ry="46" style={rs('legs')}/>
+              <ellipse cx="131" cy="427" rx="24" ry="34" style={rs('legs')}/>
+              <ellipse cx="213" cy="427" rx="26" ry="34" style={rs('legs')}/>
+              <ellipse cx="126" cy="507" rx="20" ry="52" style={rs('legs')}/>
+              <ellipse cx="217" cy="507" rx="22" ry="52" style={rs('legs')}/>
+            </g>
 
-          {/* CORE (glute) */}
-          <g onClick={()=>handleSelect('core')}>
-            <path d="M66,140 Q80,134 94,140 Q100,152 96,168 Q88,178 80,180 Q72,178 64,168 Q60,152 66,140 Z" style={ms('core')}/>
-          </g>
-
-          {/* ─── VÜCUT HATLARI ARKA ─── */}
-          <g fill="none" stroke="rgba(255,255,255,.28)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-            <ellipse cx="80" cy="22" rx="14" ry="17"/>
-            <line x1="74" y1="38" x2="72" y2="48"/>
-            <line x1="86" y1="38" x2="88" y2="48"/>
-            <path d="M72,48 Q80,52 88,48"/>
-            <path d="M72,48 Q62,50 56,58"/>
-            <path d="M88,48 Q98,50 104,58"/>
-            {/* Trapez V */}
-            <path d="M60,60 L80,90 L100,60" stroke="rgba(255,255,255,.2)"/>
-            {/* Kürek kemikleri */}
-            <path d="M68,72 Q64,84 66,96" stroke="rgba(255,255,255,.16)"/>
-            <path d="M92,72 Q96,84 94,96" stroke="rgba(255,255,255,.16)"/>
-            {/* Kollar */}
-            <path d="M44,62 Q38,72 36,86 Q34,100 36,114 Q38,124 42,132"/>
-            <path d="M58,64 Q54,74 52,88 Q50,100 52,112 Q54,122 56,128"/>
-            <path d="M116,62 Q122,72 124,86 Q126,100 124,114 Q122,124 118,132"/>
-            <path d="M102,64 Q106,74 108,88 Q110,100 108,112 Q106,122 104,128"/>
-            <path d="M42,132 Q36,144 34,158 Q32,168 34,176"/>
-            <path d="M56,128 Q54,140 54,152 Q54,162 56,170"/>
-            <path d="M118,132 Q124,144 126,158 Q128,168 126,176"/>
-            <path d="M104,128 Q106,140 106,152 Q106,162 104,170"/>
-            {/* El */}
-            <path d="M34,176 Q30,180 28,186 Q30,190 36,190 Q42,188 44,182"/>
-            <path d="M126,176 Q130,180 132,186 Q130,190 124,190 Q118,188 116,182"/>
-            {/* Gövde */}
-            <path d="M44,62 Q40,76 38,94 Q36,114 40,134 Q44,150 50,162"/>
-            <path d="M116,62 Q120,76 122,94 Q124,114 120,134 Q116,150 110,162"/>
-            <path d="M50,162 Q54,170 60,176 Q70,182 80,184 Q90,182 100,176 Q106,170 110,162"/>
-            {/* Pelvis */}
-            <path d="M64,178 Q72,186 80,188 Q88,186 96,178"/>
-            {/* Bacaklar */}
-            <path d="M50,162 Q44,178 42,198 Q40,218 42,238 Q44,254 48,266"/>
-            <path d="M66,182 Q64,198 64,216 Q64,232 66,248 Q68,260 70,268"/>
-            <path d="M110,162 Q116,178 118,198 Q120,218 118,238 Q116,254 112,266"/>
-            <path d="M94,182 Q96,198 96,216 Q96,232 94,248 Q92,260 90,268"/>
-            <path d="M48,266 Q46,280 48,296 Q50,308 54,316"/>
-            <path d="M70,268 Q70,282 68,296 Q66,308 64,316"/>
-            <path d="M112,266 Q114,280 112,296 Q110,308 106,316"/>
-            <path d="M90,268 Q90,282 92,296 Q94,308 96,316"/>
-            {/* Diz */}
-            <path d="M48,266 Q58,262 70,268" stroke="rgba(255,255,255,.16)"/>
-            <path d="M112,266 Q102,262 90,268" stroke="rgba(255,255,255,.16)"/>
-            {/* Ayak */}
-            <path d="M54,316 Q50,322 48,330 Q52,334 62,334 Q70,332 72,324 Q70,318 64,316"/>
-            <path d="M106,316 Q110,322 112,330 Q108,334 98,334 Q90,332 88,324 Q90,318 96,316"/>
-            {/* Omurga */}
-            <line x1="80" y1="52" x2="80" y2="138" stroke="rgba(255,255,255,.1)"/>
-          </g>
-        </svg>
-      )}
+            {/* CORE (glute) */}
+            <g onClick={()=>handleSelect('core')} style={{cursor:'pointer'}}>
+              <ellipse cx="144" cy="359" rx="30" ry="44" style={rs('core')}/>
+              <ellipse cx="203" cy="359" rx="28" ry="44" style={rs('core')}/>
+            </g>
+          </svg>
+        )}
+      </div>
 
       {activeGroup && (
-        <div style={{textAlign:'center',marginTop:10,
-          fontFamily:"'Space Mono',monospace",fontSize:10,letterSpacing:2.5,
-          color:col(activeGroup),fontWeight:700}}>
+        <div style={{ textAlign:'center', marginTop:10,
+          fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:2.5,
+          color: col(activeGroup), fontWeight:700 }}>
           {findMG(activeGroup)?.label?.toUpperCase()}
         </div>
       )}
