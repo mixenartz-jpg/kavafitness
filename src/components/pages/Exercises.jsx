@@ -131,111 +131,21 @@ const MUSCLE_GROUPS = [
 
 // ── Gerçekçi İnsan Silüeti SVG ──
 function MuscleMapSVG({ activeGroup, onSelect }) {
-  const findMG = (id) => MUSCLE_GROUPS.find(m => m.id === id)
+  const findMG  = (id) => MUSCLE_GROUPS.find(m => m.id === id)
   const [manualSide, setManualSide] = useState(null)
   const autoSide = activeGroup === 'back' ? 'back' : 'front'
   const side = manualSide !== null ? manualSide : (activeGroup ? autoSide : 'front')
-
-  const handleSide = (s) => setManualSide(p => p === s ? null : s)
+  const handleSide   = (s) => setManualSide(p => p === s ? null : s)
   const handleSelect = (id) => { setManualSide(null); onSelect(id) }
 
-  // ── ÖN (347x581, merkez x=179) ──
-  // Koordinatlar piksel analizi ile ölçüldü
-  const FRONT = [
-    { id:'chest', paths:[
-      // Sol göğüs — x:112-179, y:108-185
-      'M 118 108 C 145 100 178 104 178 104 L 176 172 C 158 182 130 176 114 162 C 102 150 106 122 118 108 Z',
-      // Sağ göğüs — x:179-246, y:108-185  
-      'M 240 108 C 213 100 180 104 180 104 L 182 172 C 200 182 228 176 244 162 C 256 150 252 122 240 108 Z',
-    ]},
-    { id:'shoulders', paths:[
-      // Sol omuz — x:86-118, y:100-160
-      'M 88 105 C 100 96 118 100 122 114 C 126 130 120 150 108 158 C 94 164 80 154 78 138 C 76 120 84 108 88 105 Z',
-      // Sağ omuz — x:240-272, y:100-160
-      'M 270 105 C 258 96 240 100 236 114 C 232 130 238 150 250 158 C 264 164 278 154 280 138 C 282 120 274 108 270 105 Z',
-    ]},
-    { id:'arms', paths:[
-      // Sol üst kol — x:56-90, y:155-255
-      'M 60 158 C 74 152 90 158 94 172 C 98 192 94 218 86 232 C 78 244 62 244 54 228 C 46 212 48 188 56 168 Z',
-      // Sağ üst kol — x:268-302, y:155-255
-      'M 298 158 C 284 152 268 158 264 172 C 260 192 264 218 272 232 C 280 244 296 244 304 228 C 312 212 310 188 302 168 Z',
-      // Sol önkol — x:35-60, y:252-330
-      'M 38 255 C 52 248 64 254 68 268 C 72 286 68 310 60 322 C 52 330 38 328 32 312 C 26 294 28 270 38 255 Z',
-      // Sağ önkol — x:288-323, y:252-330
-      'M 320 255 C 306 248 294 254 290 268 C 286 286 290 310 298 322 C 306 330 320 328 326 312 C 332 294 330 270 320 255 Z',
-    ]},
-    { id:'core', paths:[
-      // Rectus abdominis — x:148-210, y:178-320
-      'M 152 180 C 168 174 190 174 206 180 C 214 196 214 228 210 265 C 206 295 196 318 179 322 C 162 318 152 295 148 265 C 144 228 144 196 152 180 Z',
-      // Sol oblique — x:114-152, y:190-305  
-      'M 116 194 C 132 186 150 190 154 206 C 156 228 152 262 144 285 C 136 302 118 306 106 292 C 94 276 96 250 104 224 C 108 206 112 196 116 194 Z',
-      // Sağ oblique — x:206-244, y:190-305
-      'M 242 194 C 226 186 208 190 204 206 C 202 228 206 262 214 285 C 222 302 240 306 252 292 C 264 276 262 250 254 224 C 250 206 246 196 242 194 Z',
-    ]},
-    { id:'legs', paths:[
-      // Sol quad — x:108-172, y:322-455
-      'M 112 325 C 136 318 162 326 168 344 C 174 368 170 408 162 438 C 154 460 136 468 118 456 C 100 442 96 410 98 376 C 100 348 106 330 112 325 Z',
-      // Sağ quad — x:186-250, y:322-455
-      'M 246 325 C 222 318 196 326 190 344 C 184 368 188 408 196 438 C 204 460 222 468 240 456 C 258 442 262 410 260 376 C 258 348 252 330 246 325 Z',
-      // Sol baldır — x:112-162, y:455-555
-      'M 116 458 C 138 452 156 460 162 476 C 168 498 164 530 154 548 C 144 560 124 560 114 546 C 104 530 102 500 106 474 Z',
-      // Sağ baldır — x:196-246, y:455-555
-      'M 242 458 C 220 452 202 460 196 476 C 190 498 194 530 204 548 C 214 560 234 560 244 546 C 254 530 256 500 252 474 Z',
-    ]},
-  ]
-
-  // ── ARKA (346x585, merkez x=171) ──
-  const BACK = [
-    { id:'back', paths:[
-      // Trapez — x:112-229, y:90-165
-      'M 118 92 C 142 82 200 82 224 92 C 234 108 230 138 220 154 C 202 166 140 166 122 154 C 112 138 108 108 118 92 Z',
-      // Sol lat — x:63-118, y:160-270
-      'M 66 164 C 84 156 110 162 118 178 C 126 198 122 235 112 256 C 102 272 80 274 64 258 C 48 240 50 210 56 182 Z',
-      // Sağ lat — x:224-280, y:160-270
-      'M 276 164 C 258 156 232 162 224 178 C 216 198 220 235 230 256 C 240 272 262 274 278 258 C 294 240 292 210 286 182 Z',
-      // Alt sırt — x:122-220, y:262-320
-      'M 126 265 C 148 258 194 258 216 265 C 224 282 220 308 210 320 C 196 330 146 330 132 320 C 122 308 118 282 126 265 Z',
-    ]},
-    { id:'shoulders', paths:[
-      // Sol arka delt — x:63-118, y:92-165
-      'M 66 96 C 82 82 112 88 120 104 C 128 122 122 146 108 156 C 90 162 68 152 60 134 C 54 116 60 100 66 96 Z',
-      // Sağ arka delt — x:224-280, y:92-165
-      'M 276 96 C 260 82 230 88 222 104 C 214 122 220 146 234 156 C 252 162 274 152 282 134 C 288 116 282 100 276 96 Z',
-    ]},
-    { id:'arms', paths:[
-      // Sol tricep — x:45-90, y:160-260
-      'M 48 164 C 66 156 86 164 90 180 C 94 200 88 228 78 244 C 68 256 48 254 38 236 C 28 218 32 192 40 172 Z',
-      // Sağ tricep — x:252-298, y:160-260
-      'M 294 164 C 276 156 256 164 252 180 C 248 200 254 228 264 244 C 274 256 294 254 304 236 C 314 218 310 192 302 172 Z',
-      // Sol önkol arka — x:22-52, y:255-328
-      'M 26 258 C 42 250 56 258 60 274 C 64 294 58 318 48 328 C 36 336 20 330 14 312 C 8 292 12 268 26 258 Z',
-      // Sağ önkol arka — x:290-320, y:255-328
-      'M 316 258 C 300 250 286 258 282 274 C 278 294 284 318 294 328 C 306 336 322 330 328 312 C 334 292 330 268 316 258 Z',
-    ]},
-    { id:'legs', paths:[
-      // Sol hamstring — x:108-168, y:322-455
-      'M 112 325 C 136 318 160 328 166 346 C 172 372 166 412 156 440 C 146 460 126 466 108 452 C 90 436 88 402 92 366 C 96 342 104 328 112 325 Z',
-      // Sağ hamstring — x:174-234, y:322-455
-      'M 230 325 C 206 318 182 328 176 346 C 170 372 176 412 186 440 C 196 460 216 466 234 452 C 252 436 254 402 250 366 C 246 342 238 328 230 325 Z',
-      // Sol baldır arka — x:105-156, y:455-555
-      'M 110 458 C 132 450 150 460 156 478 C 162 500 156 532 144 550 C 132 562 110 560 100 544 C 90 526 92 494 98 470 Z',
-      // Sağ baldır arka — x:186-237, y:455-555
-      'M 232 458 C 210 450 192 460 186 478 C 180 500 186 532 198 550 C 210 562 232 560 242 544 C 252 526 250 494 244 470 Z',
-    ]},
-    { id:'core', paths:[
-      // Glute — x:118-224, y:318-390
-      'M 124 322 C 148 314 194 314 218 322 C 228 342 226 370 216 386 C 200 400 142 400 126 386 C 116 370 114 342 124 322 Z',
-    ]},
-  ]
-
-  const regions = side === 'front' ? FRONT : BACK
-  const imgSrc  = side === 'front' ? '/muscle_front.png' : '/muscle_back.png'
-  const vBox    = side === 'front' ? '0 0 347 581' : '0 0 346 585'
+  const c = (id) => activeGroup === id
+    ? { fill: `${findMG(id)?.color}50`, stroke: findMG(id)?.color, strokeWidth: '1.8', filter: `drop-shadow(0 0 5px ${findMG(id)?.color}aa)`, cursor: 'pointer', transition: 'all .2s' }
+    : { fill: 'rgba(255,255,255,.0)', stroke: 'rgba(255,255,255,.0)', strokeWidth: '0', cursor: 'pointer', transition: 'all .2s' }
 
   return (
-    <div style={{ width:'100%', maxWidth:220, margin:'0 auto' }}>
-      {/* Ön / Arka toggle */}
-      <div style={{ display:'flex', gap:6, marginBottom:12, justifyContent:'center' }}>
+    <div style={{ width:'100%', maxWidth:240, margin:'0 auto' }}>
+      {/* Ön / Arka */}
+      <div style={{ display:'flex', gap:6, marginBottom:14, justifyContent:'center' }}>
         {[['front','ÖN'],['back','ARKA']].map(([s,label]) => (
           <button key={s} onClick={() => handleSide(s)} style={{
             padding:'5px 18px', borderRadius:20,
@@ -248,37 +158,187 @@ function MuscleMapSVG({ activeGroup, onSelect }) {
         ))}
       </div>
 
-      {/* Görsel + Overlay */}
-      <div style={{ position:'relative', width:'100%', lineHeight:0 }}>
-        <img src={imgSrc} alt="Kas haritası" style={{
-          width:'100%', display:'block', borderRadius:8,
-          filter:'invert(1) brightness(0.9) contrast(1.05)',
-          mixBlendMode:'screen',
-          userSelect:'none', pointerEvents:'none',
-        }}/>
-        <svg viewBox={vBox} xmlns="http://www.w3.org/2000/svg"
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}>
-          {regions.map(({ id, paths }) => {
-            const isActive = activeGroup === id
-            const color = findMG(id)?.color || '#fff'
-            return (
-              <g key={id} onClick={() => handleSelect(id)} style={{ cursor:'pointer' }}>
-                {paths.map((d, i) => (
-                  <path key={i} d={d}
-                    fill={isActive ? `${color}44` : 'rgba(255,255,255,.0)'}
-                    stroke={isActive ? color : 'rgba(255,255,255,.0)'}
-                    strokeWidth={isActive ? '2' : '0'}
-                    style={{ transition:'all .2s', filter: isActive ? `drop-shadow(0 0 5px ${color}99)` : 'none' }}
-                  />
-                ))}
-              </g>
-            )
-          })}
-        </svg>
-      </div>
+      <svg viewBox="0 0 200 520" xmlns="http://www.w3.org/2000/svg"
+        style={{ width:'100%', height:'auto', display:'block' }}>
+
+        {/* ══ STATIK VÜCUT OUTLINE ══ */}
+        <g fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.1" strokeLinejoin="round" strokeLinecap="round">
+
+          {/* Baş */}
+          <path d="M 100 12 C 86 12 77 20 76 31 C 75 42 79 52 85 56 C 88 58 90 62 90 66 L 110 66 C 110 62 112 58 115 56 C 121 52 125 42 124 31 C 123 20 114 12 100 12 Z"/>
+          {/* Boyun */}
+          <path d="M 90 66 C 90 70 88 74 88 76 L 112 76 C 112 74 110 70 110 66"/>
+          {/* Trapez / omuz hattı */}
+          <path d="M 88 76 C 80 78 70 82 62 90 C 55 97 52 106 52 114"/>
+          <path d="M 112 76 C 120 78 130 82 138 90 C 145 97 148 106 148 114"/>
+          {/* Göğüs yan */}
+          <path d="M 52 114 C 50 125 50 138 52 150 C 54 160 56 168 60 174"/>
+          <path d="M 148 114 C 150 125 150 138 148 150 C 146 160 144 168 140 174"/>
+          {/* Göğüs orta hat */}
+          <path d="M 88 76 C 90 82 96 86 100 86 C 104 86 110 82 112 76"/>
+          <line x1="100" y1="86" x2="100" y2="178" strokeDasharray="2,3" strokeOpacity=".3"/>
+          {/* Göğüs kas çizgileri */}
+          <path d="M 88 96 C 92 92 100 90 108 96"/>
+          <path d="M 86 108 C 90 104 100 102 110 108"/>
+          <path d="M 86 120 C 90 116 100 114 110 120"/>
+          {/* Gövde yan hatlar */}
+          <path d="M 60 174 C 58 185 57 196 60 205 C 63 212 68 220 72 226"/>
+          <path d="M 140 174 C 142 185 143 196 140 205 C 137 212 132 220 128 226"/>
+          {/* Karın kas bölmeleri */}
+          <path d="M 86 138 C 88 136 100 135 114 138"/>
+          <path d="M 85 152 C 88 150 100 149 112 152"/>
+          <path d="M 85 165 C 88 163 100 162 112 165"/>
+          <path d="M 88 178 C 90 176 100 175 110 178"/>
+          {/* Pelvis hattı */}
+          <path d="M 72 226 C 78 234 88 238 100 239 C 112 238 122 234 128 226"/>
+          {/* Kasık */}
+          <path d="M 88 238 C 92 244 96 248 100 250"/>
+          <path d="M 112 238 C 108 244 104 248 100 250"/>
+          {/* Sol bacak */}
+          <path d="M 72 226 C 68 238 66 254 67 272 C 68 290 70 308 72 322"/>
+          <path d="M 92 240 C 90 255 89 272 90 290 C 91 308 92 318 93 326"/>
+          {/* Diz sol */}
+          <path d="M 72 322 C 74 330 78 335 83 337 C 88 338 92 336 93 326"/>
+          <path d="M 75 337 C 76 342 77 348 78 352"/>
+          <path d="M 85 338 C 86 343 86 348 86 352"/>
+          {/* Sol alt bacak */}
+          <path d="M 78 352 C 75 368 74 385 76 400 C 77 410 80 418 82 424"/>
+          <path d="M 86 352 C 85 368 84 385 85 400 C 86 410 88 418 89 424"/>
+          {/* Sol ayak */}
+          <path d="M 82 424 C 78 428 72 432 68 435 C 64 438 62 442 64 446 C 68 450 86 452 92 448 C 96 445 96 440 94 435 C 92 430 90 426 89 424"/>
+          {/* Sağ bacak */}
+          <path d="M 128 226 C 132 238 134 254 133 272 C 132 290 130 308 128 322"/>
+          <path d="M 108 240 C 110 255 111 272 110 290 C 109 308 108 318 107 326"/>
+          {/* Diz sağ */}
+          <path d="M 128 322 C 126 330 122 335 117 337 C 112 338 108 336 107 326"/>
+          <path d="M 125 337 C 124 342 123 348 122 352"/>
+          <path d="M 115 338 C 114 343 114 348 114 352"/>
+          {/* Sağ alt bacak */}
+          <path d="M 122 352 C 125 368 126 385 124 400 C 123 410 120 418 118 424"/>
+          <path d="M 114 352 C 115 368 116 385 115 400 C 114 410 112 418 111 424"/>
+          {/* Sağ ayak */}
+          <path d="M 118 424 C 122 428 128 432 132 435 C 136 438 138 442 136 446 C 132 450 114 452 108 448 C 104 445 104 440 106 435 C 108 430 110 426 111 424"/>
+          {/* Sol kol */}
+          <path d="M 52 114 C 44 118 38 126 34 136 C 30 146 30 158 32 168 C 34 176 38 182 42 186"/>
+          <path d="M 62 118 C 56 122 52 130 50 140 C 48 150 48 162 50 172 C 52 180 56 186 60 190"/>
+          {/* Sol dirsek */}
+          <path d="M 42 186 C 40 192 40 198 42 202 C 44 206 48 207 52 205"/>
+          <path d="M 60 190 C 62 196 62 202 60 206 C 58 210 54 210 52 205"/>
+          {/* Sol ön kol */}
+          <path d="M 42 202 C 38 214 36 228 37 240 C 38 250 40 258 44 264"/>
+          <path d="M 52 205 C 50 218 50 232 51 244 C 52 254 54 262 58 268"/>
+          {/* Sol el */}
+          <path d="M 44 264 C 42 270 40 276 40 282 C 40 288 44 292 50 293"/>
+          <path d="M 58 268 C 60 274 60 280 58 286 C 56 290 52 292 50 293"/>
+          <path d="M 40 282 C 38 286 37 290 39 293 M 44 285 C 43 290 43 294 45 296 M 48 287 C 47 292 47 296 49 298 M 52 286 C 52 291 52 295 53 297"/>
+          {/* Sağ kol */}
+          <path d="M 148 114 C 156 118 162 126 166 136 C 170 146 170 158 168 168 C 166 176 162 182 158 186"/>
+          <path d="M 138 118 C 144 122 148 130 150 140 C 152 150 152 162 150 172 C 148 180 144 186 140 190"/>
+          {/* Sağ dirsek */}
+          <path d="M 158 186 C 160 192 160 198 158 202 C 156 206 152 207 148 205"/>
+          <path d="M 140 190 C 138 196 138 202 140 206 C 142 210 146 210 148 205"/>
+          {/* Sağ ön kol */}
+          <path d="M 158 202 C 162 214 164 228 163 240 C 162 250 160 258 156 264"/>
+          <path d="M 148 205 C 150 218 150 232 149 244 C 148 254 146 262 142 268"/>
+          {/* Sağ el */}
+          <path d="M 156 264 C 158 270 160 276 160 282 C 160 288 156 292 150 293"/>
+          <path d="M 142 268 C 140 274 140 280 142 286 C 144 290 148 292 150 293"/>
+          <path d="M 160 282 C 162 286 163 290 161 293 M 156 285 C 157 290 157 294 155 296 M 152 287 C 153 292 153 296 151 298 M 148 286 C 148 291 148 295 147 297"/>
+        </g>
+
+        {/* ══ KAS BÖLGELERİ — tıklanabilir ══ */}
+
+        {/* GÖĞÜS */}
+        {side === 'front' && <>
+          <path d="M 89 80 C 78 84 66 92 62 106 C 58 118 62 132 70 140 C 78 148 90 150 98 148 L 98 88 C 95 84 92 80 89 80 Z"
+            style={c('chest')} onClick={() => handleSelect('chest')}/>
+          <path d="M 111 80 C 122 84 134 92 138 106 C 142 118 138 132 130 140 C 122 148 110 150 102 148 L 102 88 C 105 84 108 80 111 80 Z"
+            style={c('chest')} onClick={() => handleSelect('chest')}/>
+        </>}
+
+        {/* OMUZLAR */}
+        {side === 'front' && <>
+          <path d="M 56 92 C 48 96 42 104 40 114 C 38 124 42 134 50 140 C 56 144 62 144 66 140 C 70 134 72 124 70 114 C 68 104 63 94 56 92 Z"
+            style={c('shoulders')} onClick={() => handleSelect('shoulders')}/>
+          <path d="M 144 92 C 152 96 158 104 160 114 C 162 124 158 134 150 140 C 144 144 138 144 134 140 C 130 134 128 124 130 114 C 132 104 137 94 144 92 Z"
+            style={c('shoulders')} onClick={() => handleSelect('shoulders')}/>
+        </>}
+        {side === 'back' && <>
+          <path d="M 56 92 C 46 98 40 108 40 118 C 40 128 46 136 56 140 C 64 142 72 138 76 130 C 78 122 76 110 68 100 C 64 94 60 90 56 92 Z"
+            style={c('shoulders')} onClick={() => handleSelect('shoulders')}/>
+          <path d="M 144 92 C 154 98 160 108 160 118 C 160 128 154 136 144 140 C 136 142 128 138 124 130 C 122 122 124 110 132 100 C 136 94 140 90 144 92 Z"
+            style={c('shoulders')} onClick={() => handleSelect('shoulders')}/>
+        </>}
+
+        {/* KOL */}
+        <path d="M 36 138 C 30 142 26 152 26 162 C 26 172 30 180 36 186 C 40 190 46 190 50 186 C 54 180 56 170 54 160 C 52 150 46 140 40 138 C 38 138 37 138 36 138 Z"
+          style={c('arms')} onClick={() => handleSelect('arms')}/>
+        <path d="M 164 138 C 170 142 174 152 174 162 C 174 172 170 180 164 186 C 160 190 154 190 150 186 C 146 180 144 170 146 160 C 148 150 154 140 160 138 C 162 138 163 138 164 138 Z"
+          style={c('arms')} onClick={() => handleSelect('arms')}/>
+        <path d="M 34 200 C 28 208 26 220 27 232 C 28 242 32 250 38 256 C 42 260 48 260 52 256 C 56 250 58 240 56 228 C 54 218 48 206 42 200 C 39 198 36 198 34 200 Z"
+          style={c('arms')} onClick={() => handleSelect('arms')}/>
+        <path d="M 166 200 C 172 208 174 220 173 232 C 172 242 168 250 162 256 C 158 260 152 260 148 256 C 144 250 142 240 144 228 C 146 218 152 206 158 200 C 161 198 164 198 166 200 Z"
+          style={c('arms')} onClick={() => handleSelect('arms')}/>
+
+        {/* CORE */}
+        {side === 'front' && <>
+          <path d="M 88 132 C 84 138 82 148 82 158 C 82 168 84 177 88 182 C 92 186 100 188 108 184 C 114 180 116 170 116 160 C 116 150 114 140 110 134 C 106 128 94 128 88 132 Z"
+            style={c('core')} onClick={() => handleSelect('core')}/>
+          <path d="M 70 142 C 64 148 62 158 63 168 C 64 178 68 186 74 190 C 80 194 86 192 88 186 C 86 178 84 168 84 158 C 84 150 86 142 88 136 C 82 136 74 138 70 142 Z"
+            style={c('core')} onClick={() => handleSelect('core')}/>
+          <path d="M 130 142 C 136 148 138 158 137 168 C 136 178 132 186 126 190 C 120 194 114 192 112 186 C 114 178 116 168 116 158 C 116 150 114 142 112 136 C 118 136 126 138 130 142 Z"
+            style={c('core')} onClick={() => handleSelect('core')}/>
+        </>}
+        {side === 'back' && <>
+          <path d="M 86 230 C 82 238 82 248 84 256 C 86 264 90 270 96 272 C 102 274 108 270 112 262 C 116 254 116 244 114 236 C 112 228 106 224 100 224 C 94 224 88 226 86 230 Z"
+            style={c('core')} onClick={() => handleSelect('core')}/>
+        </>}
+
+        {/* SIRT */}
+        {side === 'back' && <>
+          <path d="M 76 82 C 68 86 64 94 64 104 C 64 112 68 120 76 126 C 84 130 94 132 100 130 L 100 78 C 92 76 82 78 76 82 Z"
+            style={c('back')} onClick={() => handleSelect('back')}/>
+          <path d="M 124 82 C 132 86 136 94 136 104 C 136 112 132 120 124 126 C 116 130 106 132 100 130 L 100 78 C 108 76 118 78 124 82 Z"
+            style={c('back')} onClick={() => handleSelect('back')}/>
+          <path d="M 68 128 C 58 134 52 146 52 158 C 52 170 58 180 68 186 C 76 190 86 190 92 184 L 92 130 C 84 128 74 126 68 128 Z"
+            style={c('back')} onClick={() => handleSelect('back')}/>
+          <path d="M 132 128 C 142 134 148 146 148 158 C 148 170 142 180 132 186 C 124 190 114 190 108 184 L 108 130 C 116 128 126 126 132 128 Z"
+            style={c('back')} onClick={() => handleSelect('back')}/>
+          <path d="M 88 190 C 84 198 84 208 86 216 C 88 224 92 228 100 228 C 108 228 112 224 114 216 C 116 208 116 198 112 190 C 108 186 92 186 88 190 Z"
+            style={c('back')} onClick={() => handleSelect('back')}/>
+        </>}
+
+        {/* BACAK */}
+        {side === 'front' && <>
+          <path d="M 68 240 C 62 252 60 268 62 284 C 64 298 68 310 74 320 C 80 328 88 332 94 328 C 98 322 100 312 100 302 L 100 242 C 92 238 76 234 68 240 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+          <path d="M 132 240 C 138 252 140 268 138 284 C 136 298 132 310 126 320 C 120 328 112 332 106 328 C 102 322 100 312 100 302 L 100 242 C 108 238 124 234 132 240 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+          <path d="M 74 360 C 70 372 70 386 72 400 C 74 412 78 422 83 428 C 88 432 94 430 96 424 C 98 416 98 404 96 392 C 94 380 88 368 82 360 C 80 358 76 358 74 360 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+          <path d="M 126 360 C 130 372 130 386 128 400 C 126 412 122 422 117 428 C 112 432 106 430 104 424 C 102 416 102 404 104 392 C 106 380 112 368 118 360 C 120 358 124 358 126 360 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+        </>}
+        {side === 'back' && <>
+          <path d="M 68 240 C 62 254 60 270 62 286 C 64 300 70 312 78 320 C 86 326 94 324 98 316 C 100 308 100 296 100 284 L 100 242 C 90 238 74 234 68 240 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+          <path d="M 132 240 C 138 254 140 270 138 286 C 136 300 130 312 122 320 C 114 326 106 324 102 316 C 100 308 100 296 100 284 L 100 242 C 110 238 126 234 132 240 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+          <path d="M 76 362 C 72 376 72 392 74 406 C 76 418 80 428 86 432 C 92 434 96 430 98 422 C 100 412 98 400 96 388 C 94 376 88 364 82 360 C 80 360 77 360 76 362 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+          <path d="M 124 362 C 128 376 128 392 126 406 C 124 418 120 428 114 432 C 108 434 104 430 102 422 C 100 412 102 400 104 388 C 106 376 112 364 118 360 C 120 360 123 360 124 362 Z"
+            style={c('legs')} onClick={() => handleSelect('legs')}/>
+        </>}
+
+        {/* KARDIYO — tüm gövdeye tıklama */}
+        <path d="M 85 90 L 115 90 L 128 240 L 100 248 L 72 240 Z"
+          style={{...c('cardio'), fill:'rgba(255,255,255,.0)', stroke:'rgba(255,255,255,.0)'}}
+          onClick={() => handleSelect('cardio')}/>
+
+      </svg>
 
       {activeGroup && (
-        <div style={{ textAlign:'center', marginTop:10,
+        <div style={{ textAlign:'center', marginTop:8,
           fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:2.5,
           color: findMG(activeGroup)?.color, fontWeight:700 }}>
           {findMG(activeGroup)?.label?.toUpperCase()}
