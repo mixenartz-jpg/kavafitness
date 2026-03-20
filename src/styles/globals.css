@@ -196,3 +196,248 @@ input::placeholder, textarea::placeholder { color:var(--text-muted); }
 .week-strip-row { -ms-overflow-style:none; scrollbar-width:none; }
 [data-theme="light"] .card { box-shadow:0 1px 3px rgba(0,0,0,.05); }
 [data-theme="light"] .btn-primary { color:#ffffff; }
+
+/* ════════════════════════════════════════════
+   PREMIUM AMBIENT & MİKRO ANİMASYONLAR
+   ════════════════════════════════════════════ */
+
+/* ── Loş beyaz ambient ışık — body arka plan ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* Yumuşak radyal ışık — sağ üst köşeden geliyor */
+  background:
+    radial-gradient(ellipse 60% 40% at 80% -5%,  rgba(255,255,255,.028) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 15% 100%, rgba(255,255,255,.014) 0%, transparent 65%);
+}
+
+[data-theme="light"] body::after {
+  background:
+    radial-gradient(ellipse 60% 40% at 80% -5%,  rgba(0,0,0,.018) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 15% 100%, rgba(0,0,0,.010) 0%, transparent 65%);
+}
+
+/* ── Card — premium hover glow ── */
+.card {
+  transition: border-color .22s ease, box-shadow .22s ease, transform .18s ease;
+}
+.card:hover {
+  border-color: rgba(255,255,255,.12);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 8px 32px rgba(0,0,0,.35);
+}
+[data-theme="light"] .card:hover {
+  border-color: rgba(0,0,0,.14);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.08);
+}
+
+/* ── Btn-primary — shimmer efekti ── */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.18) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform .0s;
+}
+.btn-primary:hover::after {
+  transform: translateX(100%);
+  transition: transform .55s ease;
+}
+.btn-primary:active {
+  transform: scale(.97) translateY(0) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08) !important;
+}
+
+/* ── Input focus — premium glow ── */
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(255,255,255,.35);
+  box-shadow: 0 0 0 3px rgba(255,255,255,.06), 0 1px 8px rgba(255,255,255,.04);
+}
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  border-color: rgba(0,0,0,.4);
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+}
+
+/* ── Yeni animasyonlar ── */
+
+/* Sayfa geçişi — staggered reveal */
+@keyframes staggerFade {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tıklama ripple */
+@keyframes ripple {
+  from { transform: scale(0); opacity: .4; }
+  to   { transform: scale(2.5); opacity: 0; }
+}
+
+/* Işık tarama */
+@keyframes sweep {
+  from { transform: translateX(-100%) skewX(-15deg); }
+  to   { transform: translateX(300%)  skewX(-15deg); }
+}
+
+/* Soft pulsing glow */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.0); }
+  50%       { box-shadow: 0 0 16px 2px rgba(255,255,255,.06); }
+}
+
+/* Floating — hafif yüzer */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+
+/* Scale bounce — tıklama geri bildirimi */
+@keyframes tapBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(.94); }
+  70%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+/* Slide up smooth — modal / panel */
+@keyframes slideUpSmooth {
+  from { opacity: 0; transform: translateY(24px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+/* Fade blur in */
+@keyframes fadeBlurIn {
+  from { opacity: 0; filter: blur(4px); transform: scale(.98); }
+  to   { opacity: 1; filter: blur(0px); transform: scale(1); }
+}
+
+/* ── Utility sınıfları ── */
+.animate-fade        { animation: fadeIn      .32s cubic-bezier(.4,0,.2,1) both; }
+.animate-fade-scale  { animation: fadeBlurIn  .3s  cubic-bezier(.4,0,.2,1) both; }
+.animate-slide-up    { animation: slideUpSmooth .34s cubic-bezier(.34,1.28,.64,1) both; }
+.animate-slide-right { animation: slideInRight .3s cubic-bezier(.4,0,.2,1) both; }
+.animate-slide-left  { animation: slideInLeft  .3s cubic-bezier(.4,0,.2,1) both; }
+.animate-pop         { animation: tapBounce   .32s cubic-bezier(.4,0,.2,1) both; }
+
+/* Stagger yardımcıları */
+.stagger-1 { animation-delay: .04s; }
+.stagger-2 { animation-delay: .08s; }
+.stagger-3 { animation-delay: .12s; }
+.stagger-4 { animation-delay: .16s; }
+.stagger-5 { animation-delay: .20s; }
+
+/* ── Interaktif elementler — tıklama geri bildirimi ── */
+button:active, [role="button"]:active {
+  transform: scale(.96);
+}
+
+/* Nav butonları — aktif bounce */
+nav button:active {
+  transform: scale(.88) translateY(1px);
+  transition: transform .1s ease;
+}
+
+/* ── Tıklanabilir kart — premium press efekti ── */
+.card-interactive {
+  cursor: pointer;
+  transition: all .18s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+}
+.card-interactive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.04) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+.card-interactive:hover::before { opacity: 1; }
+.card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06);
+}
+.card-interactive:active {
+  transform: scale(.98) translateY(0);
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+
+/* ── Subtle sweep — yükleme efekti ── */
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--surface2) 25%,
+    var(--surface3) 50%,
+    var(--surface2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Section title — premium underline ── */
+.section-title::after {
+  background: linear-gradient(90deg, var(--border2), transparent);
+  height: 1px;
+}
+
+/* ── Scrollbar — daha ince ve soft ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.08);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,.14);
+}
+
+/* ── Page — yumuşak üst gradient ── */
+.page {
+  /* hafif yukarı ışık */
+  background-image: radial-gradient(ellipse 80% 20% at 50% 0%, rgba(255,255,255,.018) 0%, transparent 100%);
+}
+
+/* ── Bottom nav — premium glass effect ── */
+nav[style*="position:fixed"] {
+  background: rgba(8,8,8,.88) !important;
+  backdrop-filter: blur(28px) saturate(1.4) !important;
+  border-top: 1px solid rgba(255,255,255,.06) !important;
+  box-shadow: 0 -1px 0 rgba(255,255,255,.04), 0 -8px 32px rgba(0,0,0,.3);
+}
+
+/* ── Modal/Panel açılışı — upgrade ── */
+.modal-box { animation: slideUpSmooth .32s cubic-bezier(.34,1.18,.64,1); }
+
+/* ── Input — premium glass ── */
+input[type="text"], input[type="number"], input[type="password"],
+input[type="date"], input[type="email"], select, textarea {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(4px);
+}
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] input[type="date"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background: rgba(0,0,0,.02);
+  border: 1px solid rgba(0,0,0,.1);
+}
+
+/* ── Light tema arka plan ── */
+[data-theme="light"] body::after {
+  background:
+    radial-gradient(ellipse 70% 35% at 85% 0%, rgba(200,200,220,.12) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 25% at 10% 100%, rgba(200,200,220,.08) 0%, transparent 60%);
+}

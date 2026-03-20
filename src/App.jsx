@@ -136,7 +136,9 @@ export default function App() {
       )}
       <Header />
       <div style={{ paddingBottom: 72 }}>
-        {pages[activeTab] ?? <TodayPage />}
+        <div key={activeTab} className="animate-fade">
+          {pages[activeTab] ?? <TodayPage />}
+        </div>
       </div>
       <BottomNav />
       <Toast />
