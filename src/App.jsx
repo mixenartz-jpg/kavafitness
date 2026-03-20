@@ -22,6 +22,7 @@ import Onboarding from './components/Onboarding'
 import DaySummaryPage from './components/pages/DaySummary'
 import BottomNav from './components/BottomNav'
 import AchievementsPage from './components/pages/Achievements'
+import ExercisesPage from './components/pages/Exercises'
 import TourGuide from './components/TourGuide'
 
 export default function App() {
@@ -119,6 +120,7 @@ export default function App() {
     recognize:<RecognizePage />,
     foodrecognize:<FoodRecognizePage />,
     achievements:<AchievementsPage />,
+    exercises:<ExercisesPage />,
     download: <DownloadPage />,
   }
 
