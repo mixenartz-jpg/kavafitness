@@ -131,137 +131,152 @@ const MUSCLE_GROUPS = [
 
 // ── Gerçekçi İnsan Silüeti SVG ──
 function MuscleMapSVG({ activeGroup, onSelect }) {
-  const [side, setSide] = useState('front')
   const findMG = (id) => MUSCLE_GROUPS.find(m => m.id === id)
 
-  // ── Ön yüz overlay bölgeleri (viewBox 347x581) ──
+  // Hangi kas grubu hangi tarafta görünmeli?
+  const BACK_GROUPS = ['back', 'legs_back']  // sırt seçilince arka göster
+
+  // Aktif gruba göre otomatik side belirle
+  const autoSide = activeGroup === 'back' ? 'back' : 'front'
+  const [manualSide, setManualSide] = useState(null)
+  const side = manualSide !== null ? manualSide : (activeGroup ? autoSide : 'front')
+
+  // Toggle tıklanınca manuel override
+  const handleSideToggle = (s) => setManualSide(prev => prev === s ? null : s)
+
+  // Kas grubu seçilince manuel override sıfırla (otomatik çalışsın)
+  const handleGroupSelect = (id) => {
+    setManualSide(null)
+    onSelect(id)
+  }
+
+  // ── ÖN YÜZ (347x581) ──
   const FRONT_REGIONS = [
-    // GÖĞÜS — y:81-185, gövde ortası x:100-247
     { id:'chest', paths:[
-      'M 118 95 Q 174 82 174 82 L 174 165 Q 155 178 130 172 Q 108 162 105 140 Q 102 118 118 95 Z',
-      'M 229 95 Q 173 82 173 82 L 173 165 Q 192 178 217 172 Q 239 162 242 140 Q 245 118 229 95 Z',
+      // Sol göğüs
+      'M 120 108 Q 174 95 174 95 L 174 168 Q 152 180 128 172 Q 108 160 106 138 Q 104 116 120 108 Z',
+      // Sağ göğüs
+      'M 228 108 Q 174 95 174 95 L 174 168 Q 196 180 220 172 Q 240 160 242 138 Q 244 116 228 108 Z',
     ]},
-    // OMUZLAR — sol x:60-118, sağ x:229-287
     { id:'shoulders', paths:[
-      'M 62 90 Q 80 75 108 82 Q 122 90 125 108 Q 126 128 112 138 Q 96 146 78 136 Q 60 122 62 90 Z',
-      'M 285 90 Q 267 75 239 82 Q 225 90 222 108 Q 221 128 235 138 Q 251 146 269 136 Q 287 122 285 90 Z',
+      // Sol omuz
+      'M 68 98 Q 88 84 114 92 Q 126 102 126 122 Q 124 142 108 150 Q 88 152 72 138 Q 56 122 68 98 Z',
+      // Sağ omuz
+      'M 280 98 Q 260 84 234 92 Q 222 102 222 122 Q 224 142 240 150 Q 260 152 276 138 Q 292 122 280 98 Z',
     ]},
-    // KOL — sol x:28-78, sağ x:269-319
     { id:'arms', paths:[
-      // Sol üst kol
-      'M 58 142 Q 76 138 82 152 Q 88 175 84 198 Q 80 215 68 216 Q 54 214 48 196 Q 42 174 48 155 Q 52 145 58 142 Z',
+      // Sol üst kol (bicep)
+      'M 56 154 Q 76 148 84 162 Q 90 184 86 206 Q 82 220 68 222 Q 52 220 46 200 Q 40 178 50 162 Z',
       // Sol ön kol
-      'M 42 220 Q 58 216 65 228 Q 70 248 66 270 Q 62 285 50 284 Q 36 280 32 260 Q 28 238 38 224 Z',
-      // Sağ üst kol
-      'M 289 142 Q 271 138 265 152 Q 259 175 263 198 Q 267 215 279 216 Q 293 214 299 196 Q 305 174 299 155 Q 295 145 289 142 Z',
+      'M 42 228 Q 60 222 66 236 Q 72 258 68 282 Q 62 296 48 294 Q 34 288 30 266 Q 26 244 38 232 Z',
+      // Sağ üst kol (bicep)
+      'M 292 154 Q 272 148 264 162 Q 258 184 262 206 Q 266 220 280 222 Q 296 220 302 200 Q 308 178 298 162 Z',
       // Sağ ön kol
-      'M 305 220 Q 289 216 282 228 Q 277 248 281 270 Q 285 285 297 284 Q 311 280 315 260 Q 319 238 309 224 Z',
+      'M 306 228 Q 288 222 282 236 Q 276 258 280 282 Q 286 296 300 294 Q 314 288 318 266 Q 322 244 310 232 Z',
     ]},
-    // CORE — y:185-330, x:110-237
     { id:'core', paths:[
-      // Rectus abdominis (merkez)
-      'M 148 188 Q 174 182 199 188 Q 210 200 210 225 Q 210 260 205 295 Q 200 318 174 325 Q 148 318 143 295 Q 138 260 138 225 Q 138 200 148 188 Z',
+      // Rectus abdominis
+      'M 148 178 Q 174 170 200 178 Q 210 195 210 224 Q 210 262 204 296 Q 196 316 174 320 Q 152 316 144 296 Q 138 262 138 224 Q 138 195 148 178 Z',
       // Sol oblique
-      'M 108 192 Q 132 186 145 198 Q 148 225 145 258 Q 140 280 125 285 Q 108 282 100 262 Q 94 240 100 215 Q 104 198 108 192 Z',
+      'M 108 190 Q 136 182 146 196 Q 148 224 144 258 Q 138 280 120 284 Q 102 280 96 258 Q 90 234 98 210 Q 102 194 108 190 Z',
       // Sağ oblique
-      'M 239 192 Q 215 186 202 198 Q 199 225 202 258 Q 207 280 222 285 Q 239 282 247 262 Q 253 240 247 215 Q 243 198 239 192 Z',
+      'M 240 190 Q 212 182 202 196 Q 200 224 204 258 Q 210 280 228 284 Q 246 280 252 258 Q 258 234 250 210 Q 246 194 240 190 Z',
     ]},
-    // BACAK — y:330-540
     { id:'legs', paths:[
       // Sol quad
-      'M 110 335 Q 140 328 158 340 Q 165 372 163 410 Q 160 440 152 458 Q 140 468 126 462 Q 110 452 105 422 Q 98 388 100 358 Q 103 340 110 335 Z',
+      'M 112 330 Q 146 322 162 336 Q 168 370 164 410 Q 158 442 146 456 Q 130 462 114 450 Q 98 434 96 402 Q 92 366 104 342 Z',
       // Sağ quad
-      'M 237 335 Q 207 328 189 340 Q 182 372 184 410 Q 187 440 195 458 Q 207 468 221 462 Q 237 452 242 422 Q 249 388 247 358 Q 244 340 237 335 Z',
+      'M 236 330 Q 202 322 186 336 Q 180 370 184 410 Q 190 442 202 456 Q 218 462 234 450 Q 250 434 252 402 Q 256 366 244 342 Z',
       // Sol baldır
-      'M 108 468 Q 130 462 148 472 Q 155 495 152 528 Q 148 552 135 558 Q 118 558 110 540 Q 102 518 104 492 Q 105 475 108 468 Z',
+      'M 108 462 Q 134 456 150 468 Q 156 494 150 528 Q 144 552 128 556 Q 110 554 104 532 Q 96 506 102 480 Z',
       // Sağ baldır
-      'M 239 468 Q 217 462 199 472 Q 192 495 195 528 Q 199 552 212 558 Q 229 558 237 540 Q 245 518 243 492 Q 242 475 239 468 Z',
+      'M 240 462 Q 214 456 198 468 Q 192 494 198 528 Q 204 552 220 556 Q 238 554 244 532 Q 252 506 246 480 Z',
+    ]},
+    { id:'cardio', paths:[
+      // Tüm vücut merkezi tıklama alanı
+      'M 110 90 Q 174 80 238 90 L 245 320 Q 200 340 174 342 Q 148 340 104 320 Z',
     ]},
   ]
 
-  // ── Arka yüz overlay bölgeleri (viewBox 346x585) ──
+  // ── ARKA YÜZ (346x585) ──
   const BACK_REGIONS = [
-    // SIRT — trapez + latissimus
     { id:'back', paths:[
-      // Trapez (üst merkez)
-      'M 118 85 Q 173 72 228 85 Q 238 105 232 130 Q 210 148 173 152 Q 136 148 114 130 Q 108 105 118 85 Z',
-      // Sol latissimus
-      'M 96 148 Q 118 142 130 155 Q 136 180 132 215 Q 128 235 112 240 Q 94 238 85 218 Q 76 194 82 165 Q 86 150 96 148 Z',
-      // Sağ latissimus
-      'M 250 148 Q 228 142 216 155 Q 210 180 214 215 Q 218 235 234 240 Q 252 238 261 218 Q 270 194 264 165 Q 260 150 250 148 Z',
-      // Alt sırt (erector spinae)
-      'M 138 240 Q 173 234 208 240 Q 215 268 210 298 Q 200 318 173 322 Q 146 318 136 298 Q 131 268 138 240 Z',
+      // Trapez
+      'M 116 90 Q 173 76 230 90 Q 240 112 234 138 Q 210 154 173 158 Q 136 154 112 138 Q 106 112 116 90 Z',
+      // Sol lat
+      'M 94 154 Q 118 148 132 162 Q 138 188 132 220 Q 126 240 108 244 Q 88 240 80 218 Q 72 192 80 166 Z',
+      // Sağ lat
+      'M 252 154 Q 228 148 214 162 Q 208 188 214 220 Q 220 240 238 244 Q 258 240 266 218 Q 274 192 266 166 Z',
+      // Alt sırt
+      'M 136 248 Q 173 240 210 248 Q 218 276 212 306 Q 200 326 173 330 Q 146 326 134 306 Q 128 276 136 248 Z',
     ]},
-    // OMUZLAR (arka)
     { id:'shoulders', paths:[
-      'M 60 90 Q 82 75 112 84 Q 126 95 126 118 Q 124 138 108 146 Q 88 148 70 134 Q 54 118 60 90 Z',
-      'M 286 90 Q 264 75 234 84 Q 220 95 220 118 Q 222 138 238 146 Q 258 148 276 134 Q 292 118 286 90 Z',
+      // Sol arka omuz (delt)
+      'M 58 96 Q 82 80 114 90 Q 128 102 126 126 Q 122 148 104 154 Q 82 154 66 138 Q 50 120 58 96 Z',
+      // Sağ arka omuz
+      'M 288 96 Q 264 80 232 90 Q 218 102 220 126 Q 224 148 242 154 Q 264 154 280 138 Q 296 120 288 96 Z',
     ]},
-    // KOL (arka — tricep)
     { id:'arms', paths:[
-      'M 56 148 Q 74 144 80 158 Q 86 182 80 206 Q 74 220 60 220 Q 44 218 40 198 Q 34 174 44 158 Z',
-      'M 290 148 Q 272 144 266 158 Q 260 182 266 206 Q 272 220 286 220 Q 302 218 306 198 Q 312 174 302 158 Z',
+      // Sol tricep
+      'M 52 158 Q 74 152 82 166 Q 88 190 82 214 Q 76 228 60 228 Q 44 226 38 204 Q 32 180 44 166 Z',
+      // Sağ tricep
+      'M 294 158 Q 272 152 264 166 Q 258 190 264 214 Q 270 228 286 228 Q 302 226 308 204 Q 314 180 302 166 Z',
       // Sol ön kol arka
-      'M 38 226 Q 54 222 60 234 Q 65 256 60 278 Q 55 292 42 290 Q 28 286 25 266 Q 22 244 34 230 Z',
-      'M 308 226 Q 292 222 286 234 Q 281 256 286 278 Q 291 292 304 290 Q 318 286 321 266 Q 324 244 312 230 Z',
+      'M 36 234 Q 56 228 62 242 Q 68 266 62 290 Q 56 304 40 302 Q 24 296 20 272 Q 16 248 30 238 Z',
+      // Sağ ön kol arka
+      'M 310 234 Q 290 228 284 242 Q 278 266 284 290 Q 290 304 306 302 Q 322 296 326 272 Q 330 248 316 238 Z',
     ]},
-    // BACAK (arka — hamstring + baldır)
     { id:'legs', paths:[
       // Sol hamstring
-      'M 105 335 Q 138 328 155 342 Q 160 375 156 415 Q 151 445 138 458 Q 122 464 108 452 Q 94 436 92 405 Q 88 370 98 345 Z',
+      'M 106 336 Q 140 328 158 344 Q 164 378 158 418 Q 152 448 136 460 Q 118 464 104 450 Q 88 432 86 400 Q 82 362 98 342 Z',
       // Sağ hamstring
-      'M 241 335 Q 208 328 191 342 Q 186 375 190 415 Q 195 445 208 458 Q 224 464 238 452 Q 252 436 254 405 Q 258 370 248 345 Z',
-      // Sol baldır arka (gastrocnemius)
-      'M 100 464 Q 126 458 145 470 Q 150 496 146 530 Q 140 555 124 558 Q 106 556 98 534 Q 90 508 95 480 Z',
+      'M 240 336 Q 206 328 188 344 Q 182 378 188 418 Q 194 448 210 460 Q 228 464 242 450 Q 258 432 260 400 Q 264 362 248 342 Z',
+      // Sol baldır arka
+      'M 98 466 Q 126 460 146 474 Q 152 500 146 534 Q 138 558 120 560 Q 100 558 92 534 Q 84 506 90 480 Z',
       // Sağ baldır arka
-      'M 246 464 Q 220 458 201 470 Q 196 496 200 530 Q 206 555 222 558 Q 240 556 248 534 Q 256 508 251 480 Z',
+      'M 248 466 Q 220 460 200 474 Q 194 500 200 534 Q 208 558 226 560 Q 246 558 254 534 Q 262 506 256 480 Z',
     ]},
-    // CORE arka (lumbar)
     { id:'core', paths:[
-      'M 140 242 Q 173 236 206 242 Q 212 265 208 292 Q 198 312 173 316 Q 148 312 138 292 Q 134 265 140 242 Z',
+      // Glute / lumbar
+      'M 130 330 Q 173 322 216 330 Q 222 360 218 390 Q 206 414 173 418 Q 140 414 128 390 Q 124 360 130 330 Z',
     ]},
   ]
 
-  const regions   = side === 'front' ? FRONT_REGIONS : BACK_REGIONS
-  const imgSrc    = side === 'front' ? '/muscle_front.png' : '/muscle_back.png'
-  const viewBox   = side === 'front' ? '0 0 347 581' : '0 0 346 585'
+  const regions = side === 'front' ? FRONT_REGIONS : BACK_REGIONS
+  const imgSrc  = side === 'front' ? '/muscle_front.png' : '/muscle_back.png'
+  const vBox    = side === 'front' ? '0 0 347 581' : '0 0 346 585'
 
   return (
-    <div style={{ width:'100%', maxWidth:240, margin:'0 auto' }}>
+    <div style={{ width:'100%', maxWidth:230, margin:'0 auto' }}>
 
       {/* Ön / Arka toggle */}
       <div style={{ display:'flex', gap:6, marginBottom:12, justifyContent:'center' }}>
         {[['front','ÖN'],['back','ARKA']].map(([s, label]) => (
-          <button key={s} onClick={() => { setSide(s); onSelect(null) }} style={{
+          <button key={s} onClick={() => handleSideToggle(s)} style={{
             padding:'5px 18px', borderRadius:20,
             border:`1px solid ${side===s ? 'var(--accent)' : 'var(--border)'}`,
             background: side===s ? 'var(--accent-dim)' : 'transparent',
             color: side===s ? 'var(--accent)' : 'var(--text-muted)',
             fontFamily:"'Space Mono',monospace", fontSize:9, letterSpacing:2,
             cursor:'pointer', transition:'all .15s',
-          }}>
-            {label}
-          </button>
+          }}>{label}</button>
         ))}
       </div>
 
-      {/* Görsel + Overlay */}
+      {/* Görsel + overlay */}
       <div style={{ position:'relative', width:'100%' }}>
         <img
           src={imgSrc}
           alt="Kas haritası"
           style={{
             width:'100%', display:'block', borderRadius:8,
-            // Beyaz bg → şeffaf: invert ile beyaz→siyah, screen ile siyah bg'ye karışır
-            filter:'invert(1) brightness(0.85) contrast(1.1)',
+            filter:'invert(1) brightness(0.88) contrast(1.05)',
             mixBlendMode:'screen',
             userSelect:'none', pointerEvents:'none',
           }}
         />
-
-        {/* Tıklanabilir SVG overlay */}
         <svg
-          viewBox={viewBox}
+          viewBox={vBox}
           xmlns="http://www.w3.org/2000/svg"
           style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}
         >
@@ -269,22 +284,17 @@ function MuscleMapSVG({ activeGroup, onSelect }) {
             const isActive = activeGroup === region.id
             const color    = findMG(region.id)?.color || '#fff'
             return (
-              <g key={region.id} onClick={() => onSelect(region.id)} style={{ cursor:'pointer' }}>
+              <g key={region.id} onClick={() => handleGroupSelect(region.id)} style={{ cursor:'pointer' }}>
                 {region.paths.map((d, i) => (
-                  <path
-                    key={i} d={d}
-                    fill={isActive ? `${color}45` : 'transparent'}
-                    stroke={isActive ? color : 'transparent'}
-                    strokeWidth={isActive ? '2.5' : '0'}
+                  <path key={i} d={d}
+                    fill={isActive ? `${color}42` : 'rgba(255,255,255,0.01)'}
+                    stroke={isActive ? color : 'rgba(255,255,255,0)'}
+                    strokeWidth={isActive ? '2' : '0'}
                     style={{
-                      transition: 'all .2s ease',
-                      filter: isActive ? `drop-shadow(0 0 5px ${color}88)` : 'none',
+                      transition:'all .2s ease',
+                      filter: isActive ? `drop-shadow(0 0 4px ${color}aa)` : 'none',
                     }}
                   />
-                ))}
-                {/* Hover için geniş şeffaf tıklama alanı */}
-                {region.paths.map((d, i) => (
-                  <path key={`hit-${i}`} d={d} fill="transparent" strokeWidth="0"/>
                 ))}
               </g>
             )
@@ -299,7 +309,7 @@ function MuscleMapSVG({ activeGroup, onSelect }) {
           fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:2.5,
           color: findMG(activeGroup)?.color, fontWeight:700,
         }}>
-          {findMG(activeGroup)?.label?.toUpperCase()} SEÇİLDİ
+          {findMG(activeGroup)?.label?.toUpperCase()}
         </div>
       )}
     </div>
