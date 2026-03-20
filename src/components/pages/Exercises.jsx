@@ -131,132 +131,155 @@ const MUSCLE_GROUPS = [
 
 // ── Gerçekçi İnsan Silüeti SVG ──
 function MuscleMapSVG({ activeGroup, onSelect }) {
-  const getStyle = (id) => ({
+  const mg = (id) => MUSCLE_GROUPS.find(m => m.id === id)
+  const active = (id) => activeGroup === id
+
+  const regionStyle = (id) => ({
     cursor: 'pointer',
-    transition: 'all .2s',
-    fill: activeGroup === id ? `${MUSCLE_GROUPS.find(m=>m.id===id)?.color}55` : 'rgba(255,255,255,.04)',
-    stroke: activeGroup === id ? MUSCLE_GROUPS.find(m=>m.id===id)?.color : 'rgba(255,255,255,.12)',
-    strokeWidth: activeGroup === id ? 1.5 : 0.8,
+    fill:        active(id) ? `${mg(id)?.color}40` : 'rgba(255,255,255,.0)',
+    stroke:      active(id) ?  mg(id)?.color        : 'rgba(255,255,255,.18)',
+    strokeWidth: active(id) ? '1.8' : '0.9',
+    transition:  'all .2s ease',
   })
 
+  const click = (id) => () => onSelect(id)
+
   return (
-    <svg viewBox="0 0 200 460" xmlns="http://www.w3.org/2000/svg"
-      style={{ width:'100%', maxWidth:220, height:'auto', display:'block' }}>
+    <svg viewBox="60 10 180 490" xmlns="http://www.w3.org/2000/svg"
+      style={{ width:'100%', maxWidth:200, height:'auto', display:'block', margin:'0 auto' }}>
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
 
-      {/* ── Statik vücut outline ── */}
-      <g fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="0.5">
+      {/* ════ BODY OUTLINE ════ */}
+      <g fill="none" stroke="rgba(255,255,255,.22)" strokeWidth="1.2" strokeLinejoin="round">
         {/* Baş */}
-        <ellipse cx="100" cy="32" rx="18" ry="22"/>
+        <path d="M138 10 Q122 10 118 24 Q114 38 118 48 Q122 58 138 60 Q154 60 158 48 Q162 38 158 24 Q154 10 138 10 Z"/>
         {/* Boyun */}
-        <rect x="93" y="52" width="14" height="12" rx="3"/>
-        {/* Omurga referans */}
-        <line x1="100" y1="64" x2="100" y2="220" strokeDasharray="2,3" stroke="rgba(255,255,255,.06)"/>
-      </g>
-
-      {/* ── Tıklanabilir KAS BÖLGELERİ ── */}
-
-      {/* GÖĞÜS - sol */}
-      <ellipse cx="88" cy="96" rx="16" ry="20"
-        style={getStyle('chest')} onClick={() => onSelect('chest')}/>
-      {/* GÖĞÜS - sağ */}
-      <ellipse cx="112" cy="96" rx="16" ry="20"
-        style={getStyle('chest')} onClick={() => onSelect('chest')}/>
-
-      {/* OMUZ - sol */}
-      <ellipse cx="68" cy="80" rx="13" ry="15" transform="rotate(-15,68,80)"
-        style={getStyle('shoulders')} onClick={() => onSelect('shoulders')}/>
-      {/* OMUZ - sağ */}
-      <ellipse cx="132" cy="80" rx="13" ry="15" transform="rotate(15,132,80)"
-        style={getStyle('shoulders')} onClick={() => onSelect('shoulders')}/>
-
-      {/* SIRT - trapez üst */}
-      <path d="M75 68 Q100 62 125 68 L122 82 Q100 78 78 82 Z"
-        style={getStyle('back')} onClick={() => onSelect('back')}/>
-      {/* SIRT - lat sol */}
-      <path d="M72 90 Q66 115 70 145 Q76 150 82 145 Q84 115 82 88 Z"
-        style={getStyle('back')} onClick={() => onSelect('back')}/>
-      {/* SIRT - lat sağ */}
-      <path d="M128 90 Q134 115 130 145 Q124 150 118 145 Q116 115 118 88 Z"
-        style={getStyle('back')} onClick={() => onSelect('back')}/>
-
-      {/* KOL - bicep sol */}
-      <ellipse cx="58" cy="118" rx="9" ry="20" transform="rotate(-8,58,118)"
-        style={getStyle('arms')} onClick={() => onSelect('arms')}/>
-      {/* KOL - bicep sağ */}
-      <ellipse cx="142" cy="118" rx="9" ry="20" transform="rotate(8,142,118)"
-        style={getStyle('arms')} onClick={() => onSelect('arms')}/>
-      {/* KOL - tricep sol */}
-      <ellipse cx="54" cy="118" rx="7" ry="18" transform="rotate(-8,54,118)"
-        style={{...getStyle('arms'), fill: activeGroup==='arms' ? 'rgba(139,92,246,.3)' : 'rgba(255,255,255,.02)'}}
-        onClick={() => onSelect('arms')}/>
-      {/* KOL - ön kol sol */}
-      <ellipse cx="52" cy="160" rx="7" ry="20" transform="rotate(-10,52,160)"
-        style={getStyle('arms')} onClick={() => onSelect('arms')}/>
-      {/* KOL - ön kol sağ */}
-      <ellipse cx="148" cy="160" rx="7" ry="20" transform="rotate(10,148,160)"
-        style={getStyle('arms')} onClick={() => onSelect('arms')}/>
-
-      {/* CORE - rectus abdominis */}
-      <rect x="88" y="118" width="24" height="35" rx="5"
-        style={getStyle('core')} onClick={() => onSelect('core')}/>
-      {/* CORE - alt */}
-      <rect x="90" y="152" width="20" height="20" rx="4"
-        style={getStyle('core')} onClick={() => onSelect('core')}/>
-      {/* CORE - oblique sol */}
-      <ellipse cx="80" cy="145" rx="9" ry="18" transform="rotate(-15,80,145)"
-        style={getStyle('core')} onClick={() => onSelect('core')}/>
-      {/* CORE - oblique sağ */}
-      <ellipse cx="120" cy="145" rx="9" ry="18" transform="rotate(15,120,145)"
-        style={getStyle('core')} onClick={() => onSelect('core')}/>
-
-      {/* BACAK - quad sol */}
-      <ellipse cx="88" cy="285" rx="18" ry="50"
-        style={getStyle('legs')} onClick={() => onSelect('legs')}/>
-      {/* BACAK - quad sağ */}
-      <ellipse cx="112" cy="285" rx="18" ry="50"
-        style={getStyle('legs')} onClick={() => onSelect('legs')}/>
-      {/* BACAK - hamstring sol */}
-      <ellipse cx="86" cy="290" rx="14" ry="44"
-        style={{...getStyle('legs'), fill: activeGroup==='legs' ? 'rgba(34,197,94,.25)' : 'rgba(255,255,255,.02)'}}
-        onClick={() => onSelect('legs')}/>
-      {/* BACAK - hamstring sağ */}
-      <ellipse cx="114" cy="290" rx="14" ry="44"
-        style={{...getStyle('legs'), fill: activeGroup==='legs' ? 'rgba(34,197,94,.25)' : 'rgba(255,255,255,.02)'}}
-        onClick={() => onSelect('legs')}/>
-      {/* BACAK - alt bacak sol */}
-      <ellipse cx="87" cy="383" rx="11" ry="32"
-        style={getStyle('legs')} onClick={() => onSelect('legs')}/>
-      {/* BACAK - alt bacak sağ */}
-      <ellipse cx="113" cy="383" rx="11" ry="32"
-        style={getStyle('legs')} onClick={() => onSelect('legs')}/>
-
-      {/* ── Vücut dış hattı (dekoratif, tıklanamaz) ── */}
-      <g fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="1">
-        {/* Gövde ana hat */}
-        <path d="M78 64 Q60 72 55 90 Q48 120 50 145 Q52 175 58 198 Q62 218 68 228 L75 228 Q80 175 82 145"/>
-        <path d="M122 64 Q140 72 145 90 Q152 120 150 145 Q148 175 142 198 Q138 218 132 228 L125 228 Q120 175 118 145"/>
-        <path d="M68 228 Q72 255 76 270 Q80 290 86 335 Q88 355 88 410"/>
-        <path d="M132 228 Q128 255 124 270 Q120 290 114 335 Q112 355 112 410"/>
+        <path d="M130 58 Q130 66 128 70 L148 70 Q146 66 146 58"/>
+        {/* Omuz hattı */}
+        <path d="M100 72 Q114 68 128 70 L148 70 Q162 68 176 72 Q188 76 192 88 Q196 100 190 108 L182 108 Q186 98 184 88 Q182 80 176 78 L148 74"/>
+        <path d="M100 72 Q94 74 90 80 Q86 88 88 100 L96 108 Q94 98 96 88 Q98 80 100 78 L128 74"/>
+        {/* Gövde yan */}
+        <path d="M96 108 Q88 130 88 155 Q88 175 92 192 Q96 208 98 220"/>
+        <path d="M180 108 Q188 130 188 155 Q188 175 184 192 Q180 208 178 220"/>
         {/* Pelvis */}
-        <path d="M75 218 Q88 228 100 230 Q112 228 125 218"/>
-        {/* Boyun-omuz */}
-        <path d="M93 52 Q80 58 74 65"/>
-        <path d="M107 52 Q120 58 126 65"/>
+        <path d="M98 220 Q102 232 114 238 Q126 244 138 244 Q150 244 162 238 Q174 232 178 220"/>
+        {/* Kasık */}
+        <path d="M114 238 Q118 248 124 252 Q130 256 138 256"/>
+        <path d="M162 238 Q158 248 152 252 Q146 256 138 256"/>
+        {/* Sol bacak dış */}
+        <path d="M98 220 Q92 240 90 265 Q88 295 90 330 Q92 355 92 380 Q92 400 92 415"/>
+        {/* Sol bacak iç */}
+        <path d="M114 238 Q112 265 112 295 Q112 325 112 355 Q112 380 112 415"/>
+        {/* Sağ bacak dış */}
+        <path d="M178 220 Q184 240 186 265 Q188 295 186 330 Q184 355 184 380 Q184 400 184 415"/>
+        {/* Sağ bacak iç */}
+        <path d="M162 238 Q164 265 164 295 Q164 325 164 355 Q164 380 164 415"/>
+        {/* Diz çizgisi sol */}
+        <path d="M90 330 Q100 335 112 330"/>
+        {/* Diz çizgisi sağ */}
+        <path d="M186 330 Q176 335 164 330"/>
         {/* Ayaklar */}
-        <ellipse cx="87" cy="418" rx="13" ry="6"/>
-        <ellipse cx="113" cy="418" rx="13" ry="6"/>
-        {/* Eller */}
-        <ellipse cx="46" cy="196" rx="8" ry="10"/>
-        <ellipse cx="154" cy="196" rx="8" ry="10"/>
+        <path d="M92 415 Q88 420 84 422 Q78 424 80 428 Q88 432 102 432 Q110 430 112 424 Q112 418 112 415"/>
+        <path d="M184 415 Q188 420 192 422 Q198 424 196 428 Q188 432 174 432 Q166 430 164 424 Q164 418 164 415"/>
+        {/* Sol kol dış */}
+        <path d="M96 108 Q86 120 80 140 Q76 158 76 175 Q76 188 78 198"/>
+        {/* Sol kol iç */}
+        <path d="M100 108 Q94 122 90 142 Q88 160 88 175 Q88 188 90 198"/>
+        {/* Sol ön kol */}
+        <path d="M78 198 Q70 215 68 232 Q66 248 68 262 Q70 272 76 276"/>
+        <path d="M90 198 Q84 215 84 232 Q84 248 84 262 Q84 272 80 276"/>
+        {/* Sol el */}
+        <path d="M76 276 Q70 280 68 286 Q68 292 74 294 Q80 296 84 292 Q86 288 84 280"/>
+        {/* Sağ kol dış */}
+        <path d="M180 108 Q190 120 196 140 Q200 158 200 175 Q200 188 198 198"/>
+        {/* Sağ kol iç */}
+        <path d="M176 108 Q182 122 186 142 Q188 160 188 175 Q188 188 186 198"/>
+        {/* Sağ ön kol */}
+        <path d="M198 198 Q206 215 208 232 Q210 248 208 262 Q206 272 200 276"/>
+        <path d="M186 198 Q192 215 192 232 Q192 248 192 262 Q192 272 196 276"/>
+        {/* Sağ el */}
+        <path d="M200 276 Q206 280 208 286 Q208 292 202 294 Q196 296 192 292 Q190 288 192 280"/>
       </g>
 
-      {/* Aktif grup etiketi */}
+      {/* ════ KAS OVERLAY BÖLGELERİ (tıklanabilir) ════ */}
+
+      {/* GÖĞÜS */}
+      <g style={regionStyle('chest')} onClick={click('chest')}>
+        <path d="M128 72 Q128 78 126 85 Q120 98 114 105 Q108 110 104 110 Q100 110 98 106 Q96 100 98 92 Q102 82 112 76 Q120 72 128 72 Z"/>
+        <path d="M148 72 Q148 78 150 85 Q156 98 162 105 Q168 110 172 110 Q176 110 178 106 Q180 100 178 92 Q174 82 164 76 Q156 72 148 72 Z"/>
+        <path d="M128 72 L148 72 L148 80 L138 82 L128 80 Z"/>
+      </g>
+
+      {/* OMUZLAR */}
+      <g style={regionStyle('shoulders')} onClick={click('shoulders')}>
+        <path d="M100 72 Q94 74 90 80 Q86 88 88 98 Q90 106 96 108 Q100 108 102 104 Q104 96 104 88 Q104 80 100 72 Z"/>
+        <path d="M176 72 Q182 74 186 80 Q190 88 188 98 Q186 106 180 108 Q176 108 174 104 Q172 96 172 88 Q172 80 176 72 Z"/>
+        <path d="M100 72 Q108 68 128 70 L128 76 Q114 74 100 78 Z"/>
+        <path d="M176 72 Q168 68 148 70 L148 76 Q162 74 176 78 Z"/>
+      </g>
+
+      {/* SIRT (trapez + lat) */}
+      <g style={regionStyle('back')} onClick={click('back')}>
+        <path d="M110 72 Q104 76 100 82 Q96 92 96 108 L100 108 Q100 96 104 86 Q108 78 114 74 Z"/>
+        <path d="M166 72 Q172 76 176 82 Q180 92 180 108 L176 108 Q176 96 172 86 Q168 78 162 74 Z"/>
+        <path d="M110 72 Q124 68 138 68 Q152 68 166 72 L164 80 Q150 76 138 76 Q126 76 112 80 Z"/>
+        <path d="M98 110 Q90 130 90 155 Q90 172 94 188 Q94 142 96 118 Z"/>
+        <path d="M178 110 Q186 130 186 155 Q186 172 182 188 Q182 142 180 118 Z"/>
+      </g>
+
+      {/* KOL (bicep + tricep + önkol) */}
+      <g style={regionStyle('arms')} onClick={click('arms')}>
+        <path d="M96 108 Q86 120 80 138 Q76 155 78 170 Q80 182 84 190 Q90 170 90 148 Q90 128 98 112 Z"/>
+        <path d="M180 108 Q190 120 196 138 Q200 155 198 170 Q196 182 192 190 Q186 170 186 148 Q186 128 178 112 Z"/>
+        <path d="M78 195 Q72 212 70 228 Q68 244 70 258 Q74 270 78 276 Q80 268 82 258 Q84 246 84 232 Q84 218 82 204 Z"/>
+        <path d="M198 195 Q204 212 206 228 Q208 244 206 258 Q202 270 198 276 Q196 268 194 258 Q192 246 192 232 Q192 218 194 204 Z"/>
+      </g>
+
+      {/* CORE (rectus abdominis + oblique) */}
+      <g style={regionStyle('core')} onClick={click('core')}>
+        <path d="M120 110 Q114 115 112 125 Q110 138 112 152 Q114 165 118 175 Q124 182 130 182 Q136 182 138 175 Q140 165 142 152 Q144 138 142 125 Q140 115 134 110 Z"/>
+        <path d="M108 115 Q100 125 98 140 Q96 158 100 172 Q104 182 110 185 Q112 174 112 160 Q112 142 114 125 Z"/>
+        <path d="M168 115 Q176 125 178 140 Q180 158 176 172 Q172 182 166 185 Q164 174 164 160 Q164 142 162 125 Z"/>
+        {/* Abs bölmeleri */}
+        {activeGroup === 'core' && <>
+          <line x1="120" y1="125" x2="156" y2="125" stroke={mg('core')?.color} strokeWidth="0.6" strokeOpacity="0.5"/>
+          <line x1="120" y1="140" x2="156" y2="140" stroke={mg('core')?.color} strokeWidth="0.6" strokeOpacity="0.5"/>
+          <line x1="120" y1="155" x2="156" y2="155" stroke={mg('core')?.color} strokeWidth="0.6" strokeOpacity="0.5"/>
+          <line x1="138" y1="110" x2="138" y2="175" stroke={mg('core')?.color} strokeWidth="0.6" strokeOpacity="0.5"/>
+        </>}
+      </g>
+
+      {/* BACAK (quad + hamstring + baldır) */}
+      <g style={regionStyle('legs')} onClick={click('legs')}>
+        {/* Sol quad */}
+        <path d="M98 222 Q90 245 90 270 Q90 298 92 322 Q96 340 102 352 Q108 342 110 322 Q112 298 112 270 Q112 245 108 222 Z"/>
+        {/* Sağ quad */}
+        <path d="M178 222 Q186 245 186 270 Q186 298 184 322 Q180 340 174 352 Q168 342 166 322 Q164 298 164 270 Q164 245 168 222 Z"/>
+        {/* Sol iç+dış düz */}
+        <path d="M92 355 Q90 375 90 395 Q90 408 92 415 L112 415 Q112 408 112 395 Q112 375 112 355 Z"/>
+        {/* Sağ iç+dış düz */}
+        <path d="M184 355 Q186 375 186 395 Q186 408 184 415 L164 415 Q164 408 164 395 Q164 375 164 355 Z"/>
+        {/* Sol quad iç */}
+        <path d="M108 222 Q114 245 114 270 Q114 298 112 322 Q110 298 112 270 Q112 245 108 222 Z" fill={activeGroup==='legs' ? 'rgba(34,197,94,.2)' : 'none'} stroke="none"/>
+        {/* Kas çizgileri */}
+        {activeGroup === 'legs' && <>
+          <path d="M98 250 Q104 260 110 250" stroke={mg('legs')?.color} strokeWidth="0.7" fill="none" strokeOpacity="0.6"/>
+          <path d="M178 250 Q172 260 166 250" stroke={mg('legs')?.color} strokeWidth="0.7" fill="none" strokeOpacity="0.6"/>
+        </>}
+      </g>
+
+      {/* Aktif etiket */}
       {activeGroup && (() => {
-        const mg = MUSCLE_GROUPS.find(m => m.id === activeGroup)
+        const m = mg(activeGroup)
         return (
-          <text x="100" y="450" textAnchor="middle" fontSize="10" fontWeight="600"
-            fontFamily="Space Grotesk, sans-serif" fill={mg?.color || 'white'} opacity="0.9">
-            {mg?.label} seçildi
+          <text x="138" y="450" textAnchor="middle" fontSize="11" fontWeight="700"
+            fontFamily="Space Grotesk, sans-serif" fill={m?.color} letterSpacing="1">
+            {m?.label?.toUpperCase()}
           </text>
         )
       })()}
