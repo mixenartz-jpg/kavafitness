@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 
-// ── Ana 4 sekme ──
 const MAIN_TABS = [
   { id:'home',    icon:'🏠', label:'Ana Sayfa' },
   { id:'today',   icon:'🏋️', label:'Antrenman' },
@@ -9,139 +8,159 @@ const MAIN_TABS = [
   { id:'account', icon:'👤', label:'Profil'    },
 ]
 
-// ── "Daha Fazla" menüsündeki sekmeler ──
 const MORE_SECTIONS = [
   {
     label: 'SPOR',
-    color: '#e8ff47',
+    color: 'var(--accent)',
     items: [
-      { id:'templates', icon:'📋', label:'Şablonlar'       },
-      { id:'history',   icon:'📅', label:'Geçmiş'          },
-      { id:'progress',  icon:'📊', label:'İlerleme'        },
+      { id:'templates', icon:'📋', label:'Şablonlar'      },
+      { id:'history',   icon:'📅', label:'Geçmiş'         },
+      { id:'progress',  icon:'📊', label:'İlerleme'       },
     ],
   },
   {
     label: 'DİYET & AI',
-    color: '#47ff8a',
+    color: 'var(--green)',
     items: [
-      { id:'goals',         icon:'🎯', label:'Makro Hedefler'    },
-      { id:'aicoach',       icon:'🤖', label:'AI Koçu'           },
-      { id:'coach',         icon:'⭐', label:'Kişisel Koç'       },
-      { id:'foodrecognize', icon:'🍽️', label:'Yemek Tanıma'      },
+      { id:'goals',         icon:'🎯', label:'Makro Hedefler' },
+      { id:'aicoach',       icon:'🤖', label:'AI Koçu'        },
+      { id:'coach',         icon:'⭐', label:'Kişisel Koç'    },
+      { id:'foodrecognize', icon:'🍽️', label:'Yemek Tanıma'   },
     ],
   },
   {
     label: 'DİĞER',
-    color: 'var(--text-muted)',
+    color: 'var(--text-dim)',
     items: [
-      { id:'achievements', icon:'🏅', label:'Başarılar'        },
-      { id:'settings',     icon:'⚙️',  label:'Ayarlar'         },
-      { id:'share',        icon:'📤', label:'Paylaş'           },
-      { id:'recognize',    icon:'📷', label:'Egzersiz Tanıma'  },
-      { id:'download',     icon:'⬇️', label:'Uygulamayı İndir' },
+      { id:'achievements', icon:'🏅', label:'Başarılar'       },
+      { id:'settings',     icon:'⚙️',  label:'Ayarlar'        },
+      { id:'share',        icon:'📤', label:'Paylaş'          },
+      { id:'recognize',    icon:'📷', label:'Egzersiz Tanıma' },
+      { id:'download',     icon:'⬇️', label:'İndir'          },
     ],
   },
 ]
 
 export default function BottomNav() {
-  const { activeTab, setActiveTab, theme, setTheme, requestNotifPermission, notifPermission } = useApp()
+  const { activeTab, setActiveTab, theme, setTheme } = useApp()
   const [moreOpen, setMoreOpen] = useState(false)
-  const [notifStatus, setNotifStatus] = useState(notifPermission || 'default')
+  const panelRef = useRef(null)
 
-  // More menüsü açıkken scroll kilitle
   useEffect(() => {
-    document.body.style.overflow = moreOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    if (!moreOpen) return
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setMoreOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
   }, [moreOpen])
 
-  const handleTab = (id) => {
-    setActiveTab(id)
-    setMoreOpen(false)
-  }
+  const handleTab = (id) => { setActiveTab(id); setMoreOpen(false) }
 
-  const handleNotif = async () => {
-    const r = await requestNotifPermission()
-    setNotifStatus(r)
-  }
-
-  // Aktif sekmenin "daha fazla" menüsünde olup olmadığını kontrol et
-  const moreIds = MORE_SECTIONS.flatMap(s => s.items.map(i => i.id))
+  const moreIds   = MORE_SECTIONS.flatMap(s => s.items.map(i => i.id))
   const moreActive = moreIds.includes(activeTab)
+
+  const labelStyle = (active) => ({
+    fontFamily: "'Space Grotesk', sans-serif",
+    fontWeight: 500,
+    fontSize: 11,
+    letterSpacing: .2,
+    color: active ? 'var(--accent)' : 'var(--text-muted)',
+    transition: 'color .15s',
+    marginTop: 1,
+  })
 
   return (
     <>
-      {/* ── Backdrop ── */}
+      {/* Backdrop */}
       {moreOpen && (
         <div
           onClick={() => setMoreOpen(false)}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,.6)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,.5)',
+            backdropFilter: 'blur(3px)',
             zIndex: 198,
+            animation: 'fadeIn .2s ease',
           }}
         />
       )}
 
-      {/* ── "Daha Fazla" Sheet ── */}
-      <div style={{
-        position: 'fixed',
-        left: 0, right: 0, bottom: 60,
-        zIndex: 199,
-        background: 'var(--surface)',
-        borderTop: '1px solid var(--border)',
-        borderRadius: '20px 20px 0 0',
-        padding: '16px 16px 8px',
-        boxShadow: '0 -8px 40px rgba(0,0,0,.5)',
-        transform: moreOpen ? 'translateY(0)' : 'translateY(110%)',
-        transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
-        maxHeight: '70vh',
-        overflowY: 'auto',
-      }}>
-        {/* Tutamaç */}
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+      {/* ── Sağ Panel ── */}
+      <div
+        ref={panelRef}
+        style={{
+          position: 'fixed',
+          top: 0, right: 0, bottom: 60,
+          width: 260,
+          zIndex: 199,
+          background: 'var(--surface)',
+          borderLeft: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          transform: moreOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
+          boxShadow: moreOpen ? '-12px 0 48px rgba(0,0,0,.6)' : 'none',
+        }}
+      >
+        {/* Panel başlık */}
+        <div style={{
+          padding: '20px 18px 14px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--text)', letterSpacing: .3 }}>
+            Menü
+          </span>
+          <button
+            onClick={() => setMoreOpen(false)}
+            style={{
+              background: 'var(--surface2)', border: '1px solid var(--border)',
+              borderRadius: 8, width: 28, height: 28, cursor: 'pointer',
+              color: 'var(--text-muted)', fontSize: 14, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >✕</button>
+        </div>
 
-        {/* Tema + Bildirim hızlı aksiyonlar */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {/* Tema toggle */}
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             style={{
-              flex: 1, padding: '10px 8px', borderRadius: 12,
+              width: '100%', padding: '9px 12px', borderRadius: 10,
               border: '1px solid var(--border)', background: 'var(--surface2)',
-              color: 'var(--text)', cursor: 'pointer', fontSize: 13,
-              fontFamily: 'Space Mono,monospace', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', gap: 6,
+              color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12,
+              fontFamily: "'Space Grotesk',sans-serif", fontWeight: 500,
+              display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            {theme === 'dark' ? '☀️ Açık Tema' : '🌙 Koyu Tema'}
-          </button>
-          <button
-            onClick={handleNotif}
-            style={{
-              flex: 1, padding: '10px 8px', borderRadius: 12,
-              border: `1px solid ${notifStatus === 'granted' ? 'rgba(71,255,138,.3)' : notifStatus === 'denied' ? 'rgba(255,71,71,.3)' : 'rgba(255,140,71,.3)'}`,
-              background: 'var(--surface2)',
-              color: notifStatus === 'granted' ? 'var(--green)' : notifStatus === 'denied' ? 'var(--red)' : '#ff8c47',
-              cursor: 'pointer', fontSize: 12,
-              fontFamily: 'Space Mono,monospace', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            🔔 {notifStatus === 'granted' ? 'Bildirim Açık' : notifStatus === 'denied' ? 'Engelli' : 'Bildirimleri Aç'}
+            <span style={{ fontSize: 15 }}>{theme === 'dark' ? '☀️' : '🌙'}</span>
+            {theme === 'dark' ? 'Açık Tema' : 'Koyu Tema'}
           </button>
         </div>
 
         {/* Menü bölümleri */}
-        {MORE_SECTIONS.map(section => (
-          <div key={section.label} style={{ marginBottom: 16 }}>
-            <div style={{
-              fontFamily: 'Space Mono,monospace', fontSize: 9,
-              letterSpacing: 3, color: section.color,
-              marginBottom: 8, paddingLeft: 4,
-            }}>
-              {section.label}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+        <div style={{ flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {MORE_SECTIONS.map(section => (
+            <div key={section.label}>
+              {/* Bölüm başlığı */}
+              <div style={{
+                fontFamily: "'Space Mono',monospace", fontSize: 9,
+                letterSpacing: 2.5, color: 'var(--text-muted)',
+                padding: '8px 6px 5px',
+                textTransform: 'uppercase',
+              }}>
+                {section.label}
+              </div>
+              {/* İtemler */}
               {section.items.map(item => {
                 const active = activeTab === item.id
                 return (
@@ -149,35 +168,52 @@ export default function BottomNav() {
                     key={item.id}
                     onClick={() => handleTab(item.id)}
                     style={{
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', gap: 5,
-                      padding: '12px 4px', borderRadius: 12, cursor: 'pointer',
-                      background: active ? `${section.color}14` : 'var(--surface2)',
-                      border: `1px solid ${active ? section.color + '40' : 'var(--border)'}`,
-                      transition: 'all .15s', userSelect: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 11,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      background: active ? 'var(--surface3)' : 'transparent',
+                      transition: 'background .15s',
+                      userSelect: 'none',
                     }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--surface2)' }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                   >
-                    <span style={{ fontSize: 22 }}>{item.icon}</span>
+                    <span style={{ fontSize: 17, lineHeight: 1, width: 22, textAlign: 'center' }}>{item.icon}</span>
                     <span style={{
-                      fontFamily: 'Space Mono,monospace', fontSize: 9,
-                      color: active ? section.color : 'var(--text-muted)',
-                      textAlign: 'center', lineHeight: 1.3,
+                      fontFamily: "'Space Grotesk',sans-serif",
+                      fontWeight: active ? 600 : 400,
+                      fontSize: 13,
+                      color: active ? 'var(--text)' : 'var(--text-dim)',
+                      flex: 1,
                     }}>
                       {item.label}
                     </span>
+                    {active && (
+                      <div style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: 'var(--accent)', flexShrink: 0,
+                      }} />
+                    )}
                   </div>
                 )
               })}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
-        {/* Instagram linki */}
-        <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+        {/* Instagram */}
+        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)' }}>
           <a
             href="https://instagram.com/slmbnmixo"
             target="_blank" rel="noreferrer"
-            style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Space Mono,monospace', textDecoration: 'none', opacity: .6 }}
+            style={{
+              fontSize: 11, color: 'var(--text-muted)',
+              fontFamily: "'Space Grotesk',sans-serif",
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, opacity: .6,
+            }}
           >
             📸 @slmbnmixo
           </a>
@@ -188,8 +224,8 @@ export default function BottomNav() {
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         height: 60,
-        background: 'rgba(10,10,10,.96)',
-        backdropFilter: 'blur(20px)',
+        background: 'rgba(8,8,8,.97)',
+        backdropFilter: 'blur(24px)',
         borderTop: '1px solid var(--border)',
         display: 'flex', alignItems: 'stretch',
         zIndex: 200,
@@ -205,70 +241,60 @@ export default function BottomNav() {
                 flex: 1, border: 'none', background: 'transparent',
                 cursor: 'pointer', display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 3,
-                position: 'relative', transition: 'all .15s',
+                position: 'relative', transition: 'opacity .15s',
               }}
             >
-              {/* Aktif gösterge çizgisi */}
               {active && (
                 <div style={{
-                  position: 'absolute', top: 0, left: '20%', right: '20%',
-                  height: 2, borderRadius: '0 0 2px 2px',
+                  position: 'absolute', top: 0, left: '25%', right: '25%',
+                  height: 2, borderRadius: '0 0 3px 3px',
                   background: 'var(--accent)',
+                  animation: 'fadeIn .2s ease',
                 }} />
               )}
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{tab.icon}</span>
               <span style={{
-                fontFamily: 'Space Mono,monospace', fontSize: 9,
-                letterSpacing: 0.5,
-                color: active ? 'var(--accent)' : 'var(--text-muted)',
-                transition: 'color .15s',
+                fontSize: 20, lineHeight: 1,
+                filter: active ? 'none' : 'grayscale(0.3)',
+                opacity: active ? 1 : 0.5,
+                transition: 'opacity .15s',
               }}>
-                {tab.label}
+                {tab.icon}
               </span>
+              <span style={labelStyle(active)}>{tab.label}</span>
             </button>
           )
         })}
 
-        {/* Daha Fazla butonu */}
+        {/* Daha Fazla */}
         <button
           onClick={() => setMoreOpen(p => !p)}
           style={{
             flex: 1, border: 'none', background: 'transparent',
             cursor: 'pointer', display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 3,
-            position: 'relative', transition: 'all .15s',
+            position: 'relative', transition: 'opacity .15s',
           }}
         >
-          {/* More menüsünde aktif bir sekme varsa gösterge */}
           {moreActive && !moreOpen && (
             <div style={{
-              position: 'absolute', top: 0, left: '20%', right: '20%',
-              height: 2, borderRadius: '0 0 2px 2px',
+              position: 'absolute', top: 0, left: '25%', right: '25%',
+              height: 2, borderRadius: '0 0 3px 3px',
               background: 'var(--accent)',
             }} />
           )}
-          {/* 3 nokta ikonu */}
-          <div style={{ display: 'flex', gap: 3, alignItems: 'center', height: 22 }}>
-            {[0,1,2].map(i => (
-              <div
-                key={i}
-                style={{
-                  width: 4, height: 4, borderRadius: '50%',
-                  background: moreOpen || moreActive ? 'var(--accent)' : 'var(--text-muted)',
-                  transition: 'all .15s',
-                  transform: moreOpen ? 'scale(1.2)' : 'scale(1)',
-                }}
-              />
+          {/* Hamburger ikonu */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3.5, height: 20, justifyContent: 'center' }}>
+            {[1,0.7,0.4].map((w, i) => (
+              <div key={i} style={{
+                width: 16 * w, height: 1.5, borderRadius: 2,
+                background: moreOpen || moreActive ? 'var(--accent)' : 'var(--text-muted)',
+                opacity: moreOpen || moreActive ? 1 : 0.5,
+                transition: 'all .2s',
+                alignSelf: 'center',
+              }} />
             ))}
           </div>
-          <span style={{
-            fontFamily: 'Space Mono,monospace', fontSize: 9,
-            letterSpacing: 0.5,
-            color: moreOpen || moreActive ? 'var(--accent)' : 'var(--text-muted)',
-            transition: 'color .15s',
-          }}>
-            Daha Fazla
-          </span>
+          <span style={labelStyle(moreOpen || moreActive)}>Menü</span>
         </button>
       </nav>
     </>
