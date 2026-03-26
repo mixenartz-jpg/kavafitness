@@ -35,21 +35,17 @@ export default function AuthScreen() {
       const realEmail = snap.data().email
       const oldEmail  = snap.data().oldEmail || null
 
-      // Önce ana emaili dene, başarısız olursa yedek emaili dene
-      // (email değişikliği henüz doğrulanmamış olabilir)
       let cred
       try {
         cred = await signInWithEmailAndPassword(auth, realEmail, password)
       } catch (firstErr) {
         if (oldEmail && (firstErr.code === 'auth/invalid-credential' || firstErr.code === 'auth/wrong-password')) {
-          // Yeni email henüz doğrulanmamış, eski emaille dene
           cred = await signInWithEmailAndPassword(auth, oldEmail, password)
         } else {
           throw firstErr
         }
       }
 
-      // E-posta doğrulama kontrolü
       if (!cred.user.emailVerified) {
         await auth.signOut()
         setLoading(false)
@@ -75,7 +71,6 @@ export default function AuthScreen() {
 
     setLoading(true)
     try {
-      // Kullanıcı adı var mı?
       const snap = await getDoc(doc(db, 'usernames', username))
       if (snap.exists()) { setLoading(false); return setError('Bu kullanıcı adı zaten alınmış.') }
 
@@ -91,7 +86,7 @@ export default function AuthScreen() {
         email,
         createdAt: new Date(),
       })
-      // Önce verify ekranını göster, sonra çıkış yap
+      
       setVerifyPending(true)
       setLoading(false)
       await auth.signOut()
@@ -132,73 +127,163 @@ export default function AuthScreen() {
 
   return (
     <div style={{
-      position:'fixed', inset:0, background:'var(--bg)',
-      display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000,
-      padding:'16px',
+      position: 'fixed', inset: 0,
+      background: 'linear-gradient(135deg, rgba(12,12,12,1) 0%, rgba(20,20,20,1) 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      padding: '16px', overflow: 'hidden'
     }}>
-      <div style={{
-        width:'min(420px,100%)', background:'var(--surface)',
-        border:'1px solid var(--border)', borderRadius:20, padding:'32px 28px',
-        maxHeight:'90vh', overflowY:'auto',
-      }}>
+      <style>{`
+        .auth-glass-card {
+          position: relative;
+          background: rgba(22, 22, 24, 0.6);
+          backdrop-filter: blur(28px);
+          -webkit-backdrop-filter: blur(28px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+          z-index: 10;
+        }
+        .auth-glow-bg {
+          position: absolute;
+          width: 400px; height: 400px;
+          background: var(--accent, #e8ff47);
+          filter: blur(180px);
+          opacity: 0.08;
+          border-radius: 50%;
+          top: -20%; left: -20%;
+          pointer-events: none;
+          z-index: 0;
+          animation: authPulse 8s infinite alternate;
+        }
+        .auth-glow-bg-2 {
+          position: absolute;
+          width: 300px; height: 300px;
+          background: #ff8c47;
+          filter: blur(160px);
+          opacity: 0.05;
+          border-radius: 50%;
+          bottom: -10%; right: -10%;
+          pointer-events: none;
+          z-index: 0;
+        }
+        @keyframes authPulse {
+          0% { transform: scale(1); opacity: 0.08; }
+          100% { transform: scale(1.1); opacity: 0.12; }
+        }
+        .auth-magic-input {
+          width: 100%;
+          background: rgba(0, 0, 0, 0.25);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          color: white;
+          border-radius: 12px;
+          padding: 14px 16px;
+          font-family: 'Inter', 'Space Mono', monospace;
+          font-size: 14px;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          outline: none;
+        }
+        .auth-magic-input:focus {
+          border-color: var(--accent, #e8ff47);
+          box-shadow: 0 0 0 4px rgba(232, 255, 71, 0.1);
+          background: rgba(0, 0, 0, 0.4);
+        }
+        .auth-magic-input::placeholder {
+          color: rgba(255,255,255,0.3);
+        }
+        .auth-btn {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .auth-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(232, 255, 71, 0.25);
+        }
+        .auth-btn:active:not(:disabled) {
+          transform: translateY(0px);
+        }
+        .auth-alert-error {
+          animation: slideDownIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideDownIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      
+      <div className="auth-glow-bg" />
+      <div className="auth-glow-bg-2" />
 
-        {/* Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:6 }}>
-          <img src="/logo.png" alt="KavaFit" style={{ height:52, width:'auto' }} />
-          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:34, letterSpacing:4, color:'var(--accent)' }}>
-            KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
+      <div className="auth-glass-card" style={{
+        width:'min(440px,100%)', borderRadius: 24, padding: '40px 32px',
+        maxHeight:'90vh', overflowY:'auto'
+      }}>
+        {/* Header / Logo */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom: 32 }}>
+          <img src="/logo.png" alt="KavaFit" style={{ height: 64, width: 'auto', marginBottom: 12, filter: 'drop-shadow(0 4px 12px rgba(232,255,71,0.2))' }} />
+          <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize: 42, letterSpacing: 4, color: 'white', lineHeight: 1 }}>
+            KAVA<span style={{ color:'var(--accent, #e8ff47)' }}>FIT</span>
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: 'Space Mono, monospace', marginTop: 4, letterSpacing: 1 }}>
+            EVRİMİNİ SEN YÖNET
           </div>
         </div>
-        <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginBottom:16 }}>
-          Spor & Beslenme Takip Uygulaması
-        </div>
 
-        {/* E-posta doğrulama bekleme ekranı */}
+        {/* Verification Pending View */}
         {verifyPending ? (
-          <div style={{ textAlign:'center', padding:'8px 0' }}>
-            <div style={{ fontSize:48, marginBottom:16 }}>📧</div>
-            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:3, marginBottom:10 }}>
+          <div style={{ textAlign:'center', padding:'8px 0', animation: 'slideDownIn 0.4s ease' }}>
+            <div style={{ 
+              width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,140,71,0.1)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+              border: '1px solid rgba(255,140,71,0.3)', fontSize: 36
+            }}>📧</div>
+            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize: 26, letterSpacing: 3, marginBottom: 12, color: 'white' }}>
               MAİL ADRESİNİZİ DOĞRULAYIN
             </div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', lineHeight:1.8, marginBottom:16 }}>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, marginBottom: 24 }}>
               <b style={{ color:'var(--accent)' }}>{email}</b> adresine doğrulama maili gönderdik.
               <br />Maildeki linke tıkladıktan sonra giriş yapabilirsin.
             </div>
             <div style={{
-              background:'rgba(255,140,71,.08)', border:'1px solid rgba(255,140,71,.2)',
-              borderRadius:8, padding:'12px 14px', marginBottom:20,
-              display:'flex', alignItems:'center', gap:10,
+              background:'linear-gradient(135deg, rgba(255,140,71,.08) 0%, rgba(255,140,71,.15) 100%)', 
+              border:'1px solid rgba(255,140,71,.3)',
+              borderRadius: 16, padding:'16px', marginBottom:24,
+              display:'flex', alignItems:'flex-start', gap:12,
             }}>
-              <span style={{ fontSize:22, flexShrink:0 }}>📬</span>
+              <span style={{ fontSize:20, flexShrink:0, marginTop: 2 }}>📬</span>
               <div style={{ textAlign:'left' }}>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2, color:'#ff8c47', marginBottom:4 }}>
-                  LÜTFEN MAİL ADRESİNİZİ DOĞRULAYIN
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:1, color:'#ff8c47', marginBottom:4 }}>
+                  SPAM KLASÖRÜNÜ KONTROL EDİN
                 </div>
-                <div style={{ fontSize:11, color:'#ff8c47', fontFamily:'Space Mono,monospace', fontWeight:'bold' }}>
-                  ⚠️ SPAM / GEREKSIZ KLASÖRÜNÜ KONTROL EDİN!
-                </div>
-                <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', marginTop:3 }}>
-                  Mail bazen spam'e düşebilir, mutlaka kontrol et.
+                <div style={{ fontSize: 12, color:'rgba(255,255,255,0.6)', fontFamily:'Inter, sans-serif', lineHeight: 1.5 }}>
+                  Eğer ana kutunuza düşmediyse mail gereksiz veya spam kutunuza gitmiş olabilir. Lütfen mutlaka kontrol edin.
                 </div>
               </div>
             </div>
-            <button onClick={() => { setVerifyPending(false); setMode('login'); setEmail(''); setPassword('') }}
-              className="btn btn-primary" style={{ width:'100%', padding:12 }}>
+            <button className="auth-btn" onClick={() => { setVerifyPending(false); setMode('login'); setEmail(''); setPassword('') }}
+              style={{ 
+                width:'100%', padding: 14, background: 'var(--accent)', color: '#0a0a0a',
+                fontFamily: 'Bebas Neue, sans-serif', fontSize: 16, letterSpacing: 2,
+                borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 600
+               }}>
               Giriş Ekranına Dön
             </button>
           </div>
         ) : (
-          <>
+          <div style={{ animation: 'slideDownIn 0.3s ease' }}>
             {/* Tabs */}
             {mode !== 'forgot' && (
-              <div style={{ display:'flex', background:'var(--surface2)', borderRadius:8, padding:3, marginBottom:22 }}>
+              <div style={{ 
+                display:'flex', background:'rgba(0,0,0,0.4)', borderRadius: 14, padding: 4, marginBottom: 28,
+                border: '1px solid rgba(255,255,255,0.05)'
+              }}>
                 {[['login','GİRİŞ YAP'],['register','KAYIT OL']].map(([m, lbl]) => (
                   <button key={m} onClick={() => switchMode(m)} style={{
-                    flex:1, padding:8, borderRadius:6, border:'none', cursor:'pointer',
-                    fontFamily:'Bebas Neue,sans-serif', fontSize:13, letterSpacing:2,
-                    background: mode===m ? 'var(--accent)' : 'transparent',
-                    color: mode===m ? '#0a0a0a' : 'var(--text-muted)',
-                    transition:'all .2s',
+                    flex:1, padding: 10, borderRadius: 10, border:'none', cursor:'pointer',
+                    fontFamily:'Bebas Neue, sans-serif', fontSize: 14, letterSpacing: 2,
+                    background: mode===m ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    color: mode===m ? 'white' : 'rgba(255,255,255,0.4)',
+                    boxShadow: mode===m ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+                    transition:'all .3s cubic-bezier(0.16, 1, 0.3, 1)',
                   }}>{lbl}</button>
                 ))}
               </div>
@@ -206,118 +291,137 @@ export default function AuthScreen() {
 
             {/* Şifremi unuttum başlık */}
             {mode === 'forgot' && (
-              <div style={{ marginBottom:20 }}>
-                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, marginBottom:6 }}>🔑 ŞİFREMİ UNUTTUM</div>
-                <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', lineHeight:1.6, marginBottom:8 }}>
-                  Kullanıcı adını gir, kayıtlı e-postana sıfırlama bağlantısı göndereceğiz.
-                </div>
-                <div style={{ background:'rgba(255,140,71,.12)', border:'2px solid rgba(255,140,71,.4)', borderRadius:7, padding:'10px 14px', fontFamily:'Space Mono,monospace' }}>
-                  <div style={{ fontSize:12, color:'#ff8c47', fontWeight:'bold', marginBottom:2 }}>⚠️ SPAM KLASÖRÜNÜ KONTROL ET!</div>
-                  <div style={{ fontSize:10, color:'var(--text-muted)' }}>Mail spam/gereksiz klasörüne düşmüş olabilir.</div>
+              <div style={{ marginBottom: 28, textAlign: 'center' }}>
+                <div style={{ 
+                  width: 56, height: 56, borderRadius: '50%', background: 'rgba(56, 182, 255, 0.1)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+                  border: '1px solid rgba(56, 182, 255, 0.2)', fontSize: 24
+                }}>🔑</div>
+                <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize: 22, letterSpacing: 2, marginBottom: 8, color: 'white' }}>ŞİFREMİ UNUTTUM</div>
+                <div style={{ fontSize: 13, color:'rgba(255,255,255,0.6)', fontFamily:'Inter, sans-serif', lineHeight: 1.6 }}>
+                  Kullanıcı adınızı girin, şifre sıfırlama talimatlarını e-posta adresinize gönderelim.
                 </div>
               </div>
             )}
 
-            {/* Hata / Başarı */}
+            {/* Feedback Alerts */}
             {error && error !== 'EMAIL_NOT_VERIFIED' && (
-              <div style={{ background:'rgba(255,71,71,.1)', border:'1px solid rgba(255,71,71,.3)', borderRadius:8,
-                padding:'10px 14px', fontSize:12, color:'var(--red)', fontFamily:'Space Mono,monospace', marginBottom:14 }}>
-                {error}
+              <div className="auth-alert-error" style={{ 
+                background:'rgba(255,71,71,.08)', border:'1px solid rgba(255,71,71,.2)', borderRadius: 12,
+                padding:'12px 16px', fontSize: 13, color:'#ff4747', fontFamily:'Inter, sans-serif', marginBottom: 20,
+                display: 'flex', alignItems: 'center', gap: 10
+              }}>
+                <span>⚠️</span> {error}
               </div>
             )}
             {success && (
-              <div style={{ background:'rgba(71,255,138,.1)', border:'1px solid rgba(71,255,138,.3)', borderRadius:8,
-                padding:'10px 14px', fontSize:12, color:'var(--green)', fontFamily:'Space Mono,monospace', marginBottom:14 }}>
-                {success}
+              <div className="auth-alert-error" style={{ 
+                background:'rgba(71,255,138,.08)', border:'1px solid rgba(71,255,138,.2)', borderRadius: 12,
+                padding:'12px 16px', fontSize: 13, color:'#47ff8a', fontFamily:'Inter, sans-serif', marginBottom: 20,
+                display: 'flex', alignItems: 'center', gap: 10
+              }}>
+                <span>✓</span> {success}
               </div>
             )}
 
-            {/* Kullanıcı adı */}
-            <div className="form-group" style={{ marginBottom:12 }}>
-              <span className="flabel">Kullanıcı Adı</span>
-              <input type="text" value={username} placeholder="örn. slmbn"
-                onChange={e => setUsername(e.target.value.toLowerCase())}
-                onKeyDown={e => e.key==='Enter' && (mode==='register' ? document.getElementById('email-inp')?.focus() : document.getElementById('pw-inp')?.focus())}
-                maxLength={20} autoComplete="username" />
-              {mode === 'register' && (
-                <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>
-                  2-20 karakter · harf, rakam, _
-                </span>
-              )}
-            </div>
-
-            {/* E-posta — kayıt modunda */}
-            {mode === 'register' && (
-              <div className="form-group" style={{ marginBottom:12 }}>
-                <span className="flabel">E-Posta</span>
-                <input id="email-inp" type="email" value={email} placeholder="örn. sen@gmail.com"
-                  onChange={e => setEmail(e.target.value)}
-                  onKeyDown={e => e.key==='Enter' && document.getElementById('pw-inp')?.focus()}
-                  autoComplete="email" />
-                <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>
-                  Doğrulama ve şifre sıfırlama için kullanılır
-                </span>
-              </div>
-            )}
-
-            {/* Şifre */}
-            {mode !== 'forgot' && (
-              <div className="form-group" style={{ marginBottom: mode==='login' ? 8 : 18 }}>
-                <span className="flabel">Şifre</span>
-                <input id="pw-inp" type="password" value={password} placeholder="••••••••"
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key==='Enter' && handleSubmit()}
-                  minLength={6} autoComplete="current-password" />
+            {/* Inputs Form */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
+              {/* Kullanıcı adı */}
+              <div>
+                <div style={{ fontSize: 12, fontFamily: 'Space Mono, monospace', color: 'rgba(255,255,255,0.5)', marginBottom: 6, letterSpacing: 0.5 }}>
+                  KULLANICI ADI
+                </div>
+                <input className="auth-magic-input" type="text" value={username} placeholder="örn. slmbn"
+                  onChange={e => setUsername(e.target.value.toLowerCase())}
+                  onKeyDown={e => e.key==='Enter' && (mode==='register' ? document.getElementById('email-inp')?.focus() : document.getElementById('pw-inp')?.focus())}
+                  maxLength={20} autoComplete="username" />
                 {mode === 'register' && (
-                  <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'Space Mono,monospace' }}>En az 6 karakter</span>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', fontFamily:'Inter, sans-serif', marginTop: 6 }}>
+                    2-20 karakter aralığında, sadece küçük harf, rakam ve alt çizgi kullanın.
+                  </div>
                 )}
               </div>
-            )}
 
-            {/* Şifremi unuttum linki */}
-            {mode === 'login' && (
-              <div style={{ textAlign:'right', marginBottom:14 }}>
-                <button onClick={() => switchMode('forgot')} style={{
-                  background:'none', border:'none', cursor:'pointer',
-                  fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace',
-                  textDecoration:'underline', textUnderlineOffset:2,
-                }}>Şifremi unuttum</button>
-              </div>
-            )}
+              {/* E-posta */}
+              {mode === 'register' && (
+                <div>
+                  <div style={{ fontSize: 12, fontFamily: 'Space Mono, monospace', color: 'rgba(255,255,255,0.5)', marginBottom: 6, letterSpacing: 0.5 }}>
+                    E-POSTA ADRESİ
+                  </div>
+                  <input className="auth-magic-input" id="email-inp" type="email" value={email} placeholder="örn. sen@gmail.com"
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyDown={e => e.key==='Enter' && document.getElementById('pw-inp')?.focus()}
+                    autoComplete="email" />
+                </div>
+              )}
 
-            {/* Ana buton */}
-            <button onClick={handleSubmit} disabled={loading} style={{
-              width:'100%', padding:13,
-              background: mode==='forgot' ? 'var(--blue)' : 'var(--accent)',
-              color:'#0a0a0a',
-              fontFamily:'Bebas Neue,sans-serif', fontSize:15, letterSpacing:2,
-              border:'none', borderRadius:8,
+              {/* Şifre */}
+              {mode !== 'forgot' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, fontFamily: 'Space Mono, monospace', color: 'rgba(255,255,255,0.5)', letterSpacing: 0.5 }}>
+                      ŞİFRE
+                    </div>
+                    {mode === 'login' && (
+                      <button onClick={() => switchMode('forgot')} style={{
+                        background:'none', border:'none', cursor:'pointer',
+                        fontSize: 12, color:'rgba(255,255,255,0.4)', fontFamily:'Inter, sans-serif',
+                        transition: 'color 0.2s'
+                      }} onMouseOver={e => e.target.style.color='white'} onMouseOut={e => e.target.style.color='rgba(255,255,255,0.4)'}>
+                        Şifremi unuttum?
+                      </button>
+                    )}
+                  </div>
+                  <input className="auth-magic-input" id="pw-inp" type="password" value={password} placeholder="••••••••"
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => e.key==='Enter' && handleSubmit()}
+                    minLength={6} autoComplete="current-password" />
+                </div>
+              )}
+            </div>
+
+            {/* Action Button */}
+            <button className="auth-btn" onClick={handleSubmit} disabled={loading} style={{
+              width:'100%', padding: '14px 16px',
+              background: mode==='forgot' ? '#38b6ff' : 'var(--accent, #e8ff47)',
+              color: '#0a0a0a',
+              fontFamily:'Bebas Neue, sans-serif', fontSize: 18, letterSpacing: 2,
+              border:'none', borderRadius: 12,
               cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? .6 : 1,
-              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              transition:'all .2s',
+              opacity: loading ? 0.7 : 1,
+              display:'flex', alignItems:'center', justifyContent:'center', gap: 10,
+              boxShadow: mode==='forgot' ? '0 4px 14px rgba(56, 182, 255, 0.3)' : '0 4px 14px rgba(232, 255, 71, 0.2)'
             }}>
-              {loading && <span className="spinner" style={{ borderTopColor:'#0a0a0a', width:16, height:16 }} />}
-              {loading ? 'LÜTFEN BEKLEYİN...'
+              {loading && <span className="spinner" style={{ borderTopColor:'#0a0a0a', width:18, height:18, border: '2px solid rgba(0,0,0,0.1)', borderTop: '2px solid #000', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
+              {loading ? 'BEKLEYİN...'
                 : mode==='login'    ? 'GİRİŞ YAP'
-                : mode==='register' ? 'KAYIT OL'
-                : 'SIFIRLAMA MAİLİ GÖNDER'}
+                : mode==='register' ? 'HESAP OLUŞTUR'
+                : 'SIFIRLAMA BAĞLANTISI GÖNDER'}
             </button>
 
-            {/* Alt linkler */}
-            <div style={{ textAlign:'center', marginTop:14, display:'flex', flexDirection:'column', gap:6 }}>
-              {mode === 'forgot' && (
+            {/* Auth Footer Links */}
+            <div style={{ textAlign:'center', marginTop: 24 }}>
+              {mode === 'forgot' ? (
                 <button onClick={() => switchMode('login')} style={{
                   background:'none', border:'none', cursor:'pointer',
-                  fontSize:12, color:'var(--text-muted)', fontFamily:'Space Mono,monospace',
-                }}>← Giriş ekranına dön</button>
+                  fontSize: 13, color:'rgba(255,255,255,0.6)', fontFamily:'Inter, sans-serif',
+                  transition: 'color 0.2s'
+                }}>
+                  ← Giriş ekranına dön
+                </button>
+              ) : (
+                <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
+                  style={{ fontSize: 12, color:'rgba(255,255,255,0.3)', fontFamily:'Inter, sans-serif', textDecoration:'none', transition: 'color 0.2s' }}
+                  onMouseOver={e => e.target.style.color='rgba(255,255,255,0.6)'} onMouseOut={e => e.target.style.color='rgba(255,255,255,0.3)'}>
+                  Yardıma mı ihtiyacın var? İletişime geç
+                </a>
               )}
-              <a href="https://instagram.com/slmbnmixo" target="_blank" rel="noreferrer"
-                style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'Space Mono,monospace', textDecoration:'none', opacity:.6 }}>
-                Sorun mu var? @slmbnmixo
-              </a>
             </div>
-          </>
+            
+            <style>{`
+              @keyframes spin { 100% { transform: rotate(360deg); } }
+            `}</style>
+          </div>
         )}
       </div>
     </div>

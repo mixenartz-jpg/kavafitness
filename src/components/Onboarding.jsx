@@ -77,7 +77,14 @@ export default function Onboarding({ onComplete }) {
 
   const handleComplete = () => {
     const tdee = calcTDEE()
-    const profileData = { ...form, tdee, completedAt: Date.now() }
+    
+    // YENİ: targetWeight boş bırakılmışsa tahmini olanı ata
+    let finalTargetWeight = form.targetWeight;
+    if (!finalTargetWeight && form.weight && (form.goal === 'lose' || form.goal === 'gain' || form.goal === 'cut')) {
+       finalTargetWeight = String(Math.round(+form.weight * (form.goal === 'lose' || form.goal === 'cut' ? 0.9 : 1.1)));
+    }
+    
+    const profileData = { ...form, targetWeight: finalTargetWeight, tdee, completedAt: Date.now() }
     saveProfile(profileData)
 
     // İlk vücut ölçümü kaydet
@@ -97,10 +104,10 @@ export default function Onboarding({ onComplete }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
       zIndex: 2000, padding: 20, overflowY: 'auto',
     }}>
-      <div style={{ width: 'min(520px,100%)', animation: 'fadeIn .3s ease' }}>
+      <div style={{ margin: 'auto', width: 'min(520px,100%)', animation: 'fadeIn .3s ease' }}>
 
         {/* Progress bar */}
         <div style={{ marginBottom: 32 }}>
