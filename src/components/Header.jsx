@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { Trophy } from 'lucide-react'
 
 
 const DAYS = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt']
@@ -77,6 +78,27 @@ export default function Header() {
           }}>
             KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
           </div>
+        </div>
+
+        {/* Center/Left: Liderlik Tablosu Kalıcı Linki */}
+        <div 
+          onClick={() => setActiveTab('leaderboard')}
+          style={{ 
+            display:'flex', alignItems:'center', gap:6, cursor:'pointer',
+            padding:'6px 10px', borderRadius:20,
+            background:'rgba(234,179,8,0.1)', border:'1px solid rgba(234,179,8,0.2)',
+            transition: 'all 0.2s', marginLeft: 'auto', marginRight: 8
+          }}
+          className="hover:bg-yellow-500/20 hover:shadow-[0_0_15px_rgba(234,179,8,0.3)] group"
+        >
+          <Trophy size={14} className="text-yellow-500 group-hover:scale-110 transition-transform" />
+          <span style={{ 
+            fontFamily:'Space Mono,monospace', fontSize:10, 
+            letterSpacing: 1, color:'var(--yellow)', textTransform: 'uppercase',
+            fontWeight: 600
+          }}>
+            <span className="hide-mobile">Sıralama</span>
+          </span>
         </div>
 
         {/* Right: Geri Bildirim */}

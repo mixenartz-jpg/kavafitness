@@ -5,6 +5,7 @@ import {
   Dumbbell,
   Flame,
   Brain,
+  Trophy,
   TrendingUp,
   History,
   Settings,
@@ -13,21 +14,35 @@ import {
   Zap,
   Droplets
 } from 'lucide-react'
+import ProfileUpload from '../ProfileUpload'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../firebase'
+import { useEffect } from 'react'
 
 const GOAL_LABELS = { lose: 'Kilo Ver', gain: 'Kilo Al', cut: 'Yağ Yak', maintain: 'Koru' }
 
 const quickActions = [
   { id: 'today', title: 'Antrenman', icon: Dumbbell, color: '#60a5fa', bgColor: 'rgba(96,165,250,0.1)' },
+  { id: 'leaderboard', title: 'Lig: Sıran', icon: Trophy, color: '#eab308', bgColor: 'rgba(234,179,8,0.1)' },
   { id: 'calorie', title: 'Kalori', icon: Flame, color: '#fb923c', bgColor: 'rgba(251,146,60,0.1)' },
-  { id: 'aicoach', title: 'AI Koç', icon: Brain, color: '#c084fc', bgColor: 'rgba(192,132,252,0.1)' },
+  { id: 'aicoach', title: 'Yapay Zeka', icon: Brain, color: '#c084fc', bgColor: 'rgba(192,132,252,0.1)' },
   { id: 'progress', title: 'İlerleme', icon: TrendingUp, color: '#4ade80', bgColor: 'rgba(74,222,128,0.1)' },
   { id: 'history', title: 'Geçmiş', icon: History, color: '#22d3ee', bgColor: 'rgba(34,211,238,0.1)' },
-  { id: 'settings', title: 'Ayarlar', icon: Settings, color: '#94a3b8', bgColor: 'rgba(148,163,184,0.1)' },
 ]
 
 export default function HomePage() {
-  const { setActiveTab, streak, profile, exercises, foods, water, totalXP, getXpLevel } = useApp()
+  const { uid, setActiveTab, streak, profile, exercises, foods, water, totalXP, getXpLevel } = useApp()
   const [isStatsExpanded, setIsStatsExpanded] = useState(false)
+  const [isProfileUploadOpen, setIsProfileUploadOpen] = useState(false)
+  const [userPhoto, setUserPhoto] = useState(null)
+
+  useEffect(() => {
+    if(!uid) return;
+    getDoc(doc(db, 'users', uid)).then(snap => {
+      if(snap.exists() && snap.data().photoURL) setUserPhoto(snap.data().photoURL)
+    })
+  }, [uid, isProfileUploadOpen])
 
   const todayKcal = Math.round(foods.reduce((s, f) => s + (+f.kcal || 0), 0))
   const todaySets = exercises.reduce((s, e) => s + e.sets.length, 0)
@@ -103,10 +118,49 @@ export default function HomePage() {
           </div>
 
           <div style={{
-            position: 'absolute', top: 16, left: 20,
-            fontFamily: "'Space Grotesk',sans-serif", fontSize: 13, color: 'var(--text-dim)', fontWeight: 500
+            position: 'absolute', top: 16, left: 20, right: 20,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
           }}>
-            {greeting()}{nameText}
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13, color: 'var(--text-dim)', fontWeight: 500 }}>
+              {greeting()}{nameText}
+            </div>
+            
+            <button onClick={() => setIsProfileUploadOpen(true)} className="rounded-full ring-2 ring-cyan-500/30 hover:ring-cyan-500 transition-all cursor-pointer shadow-xl">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={userPhoto || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}&backgroundColor=18181b`} />
+                <AvatarFallback>Me</AvatarFallback>
+              </Avatar>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── CHALLENGE KARTI (LİDERLİK TABLOSU) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+        style={{ marginBottom: 24 }}
+        onClick={() => setActiveTab('leaderboard')}
+      >
+        <div className="relative overflow-hidden rounded-2xl cursor-pointer group border border-yellow-500/20 bg-zinc-900/50 p-4 transition-all hover:border-yellow-500/50 hover:shadow-[0_0_25px_rgba(234,179,8,0.2)]">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-transparent to-purple-500/10 opacity-50 group-hover:opacity-100 transition-opacity" />
+          
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/20 group-hover:scale-110 transition-all">
+              <Trophy className="w-6 h-6 text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.6)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-200 text-lg uppercase tracking-wider mb-1">
+                Mücadeleye Katıl
+              </h3>
+              <p className="text-zinc-400 text-xs text-balance">
+                Bölgendeki sporcularla yarış, küme atla ve zirveye yerleş!
+              </p>
+            </div>
+            <div className="flex-shrink-0 pr-2">
+              <ChevronDown className="w-5 h-5 text-yellow-500/50 -rotate-90 group-hover:text-yellow-400 transition-colors" />
+            </div>
           </div>
         </div>
       </motion.div>
@@ -253,6 +307,7 @@ export default function HomePage() {
         </div>
       </motion.div>
 
+      <ProfileUpload open={isProfileUploadOpen} onOpenChange={setIsProfileUploadOpen} />
     </div>
   )
 }

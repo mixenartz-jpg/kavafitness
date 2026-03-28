@@ -1,0 +1,79 @@
+{
+  "name": "KavaFit Liderlik Tablosu Görüntüleme (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "kava_leaderboard",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "cff8bf71-419b-4f9e-a8f8-b4b0e8c4e5ce",
+      "name": "Leaderboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "kava_leaderboard_hook_id_123"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "value2": "leaderboard_view"
+            }
+          ]
+        }
+      },
+      "id": "e98e2db6-24d1-44dc-9d8a-6b876fc1eb77",
+      "name": "If Leaderboard View",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5865bb74-de7b-4a5f-b52b-313bafb4815a",
+      "name": "Log Action (Replace with Slack/Gmail)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        680,
+        280
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Leaderboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "If Leaderboard View",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Leaderboard View": {
+      "main": [
+        [
+          {
+            "node": "Log Action (Replace with Slack/Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

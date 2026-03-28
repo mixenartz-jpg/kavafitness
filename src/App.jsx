@@ -24,6 +24,7 @@ import BottomNav from './components/BottomNav'
 import AchievementsPage from './components/pages/Achievements'
 import ExercisesPage from './components/pages/Exercises'
 import TourGuide from './components/TourGuide'
+import LeaderboardPage from './components/pages/Leaderboard'
 
 export default function App() {
   const { user, loading, activeTab, profile, profileLoaded, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
@@ -122,6 +123,7 @@ export default function App() {
     achievements:<AchievementsPage />,
     exercises:<ExercisesPage />,
     download: <DownloadPage />,
+    leaderboard: <LeaderboardPage />
   }
 
   return (

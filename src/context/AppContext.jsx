@@ -51,6 +51,14 @@ export const XP_LEVELS = [
   { level:8,  minXP:8000,  title:'Ölümsüz',         icon:'⚔️' },
 ]
 
+export const LEAGUE_LEVELS = [
+  { minXP: 0,     maxXP: 999,   name: 'Bronz Lig',        color: 'text-amber-700' },
+  { minXP: 1000,  maxXP: 3499,  name: 'Gümüş Lig',      color: 'text-slate-400' },
+  { minXP: 3500,  maxXP: 6999,  name: 'Altın Lig',        color: 'text-yellow-400' },
+  { minXP: 7000,  maxXP: 11999, name: 'Elit Lig',         color: 'text-cyan-400' },
+  { minXP: 12000, maxXP: 999999,name: 'Şampiyonluk Ligi', color: 'text-purple-500' },
+]
+
 export function getXpLevel(xp) {
   let current = XP_LEVELS[0]
   for (const l of XP_LEVELS) { if (xp >= l.minXP) current = l }
@@ -59,7 +67,11 @@ export function getXpLevel(xp) {
   const progress = next
     ? Math.round(((xp - current.minXP) / (next.minXP - current.minXP)) * 100)
     : 100
-  return { ...current, next, progress, xp }
+
+  let league = LEAGUE_LEVELS[0]
+  for (const l of LEAGUE_LEVELS) { if (xp >= l.minXP && xp <= l.maxXP) league = l }
+
+  return { ...current, next, progress, xp, league }
 }
 
 // XP ile unlocklanabilen persona'lar
@@ -300,6 +312,13 @@ export function AppProvider({ children }) {
     // XP & Rozetleri yükle
     setTotalXP(ls.get(userId,'kavafit_xp', 0))
     setEarnedBadges(ls.get(userId,'kavafit_badges', []))
+    
+    // Fotoğraf kontrolü veya user dokümanı güncellemesi
+    getDoc(doc(db, 'users', userId)).then(snap => {
+      if(snap.exists() && snap.data().xp === undefined) {
+         setDoc(doc(db, 'users', userId), { xp: ls.get(userId,'kavafit_xp', 0) }, { merge: true })
+      }
+    })
 
     const t=localStorage.getItem('kavafit_theme')||'dark'
     _setTheme(t); document.documentElement.setAttribute('data-theme',t)
@@ -401,12 +420,16 @@ export function AppProvider({ children }) {
 
   const isFavFood = useCallback((name) => favFoods.some(f=>f.name===name), [favFoods])
 
-  // ── XP Kazanma — ÖNCE tanımlanmalı, diğerleri bunu kullanıyor ──
+  // ── XP Kazanma ve Firebase Senk ──
   const earnXP = useCallback((amount, reason = '') => {
     if (!uid) return
     setTotalXP(prev => {
       const newXP = prev + amount
       ls.set(uid, 'kavafit_xp', newXP)
+      
+      // Firestore'u güncelle (debounce yerine ufak bir asenkron çağrı, Leaderboard için kritik)
+      setDoc(doc(db, 'users', uid), { xp: newXP }, { merge: true }).catch(console.error)
+
       setXpPopup({ amount, reason })
       setTimeout(() => setXpPopup(null), 2200)
       return newXP

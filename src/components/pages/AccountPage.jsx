@@ -6,8 +6,9 @@ import {
   reauthenticateWithCredential, EmailAuthProvider, deleteUser,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore'
-import PixelAvatar from '../PixelAvatar'
-
+import { Camera } from 'lucide-react'
+import ProfileUpload from '../ProfileUpload'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
 // ── Yardımcı componentler — DIŞARIDA tanımlı (re-mount önlemek için) ──
 function Section({ title, color, children }) {
   return (
@@ -54,6 +55,8 @@ export default function AccountPage() {
   const [accountLoading, setAccountLoading]       = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [usernameLastChanged, setUsernameLastChanged] = useState(null)
+  const [isProfileUploadOpen, setIsProfileUploadOpen] = useState(false)
+  const [userPhoto, setUserPhoto]                 = useState(null)
 
   // ✅ FIX: useState → useEffect (önceki hali her render'da çalışıyordu)
   useEffect(() => {
@@ -62,9 +65,10 @@ export default function AccountPage() {
       if (s.exists()) {
         setCurrentUsername(s.data().username || '')
         setUsernameLastChanged(s.data().usernameLastChanged || null)
+        setUserPhoto(s.data().photoURL || null)
       }
     })
-  }, [uid])
+  }, [uid, isProfileUploadOpen])
 
   const reauth = async (password) => {
     const credential = EmailAuthProvider.credential(user.email, password)
@@ -187,14 +191,23 @@ export default function AccountPage() {
         borderRadius:14, padding:'16px 20px', marginBottom:24,
         display:'flex', alignItems:'center', gap:20, flexWrap:'wrap',
       }}>
-        {/* Pixel Avatar */}
+        {/* Avatar Upload Trigger */}
         <div
-          onClick={() => setActiveTab('achievements')}
-          style={{ cursor:'pointer', flexShrink:0 }}
-          title="Başarılar sayfasına git"
+          onClick={() => setIsProfileUploadOpen(true)}
+          className="relative group cursor-pointer flex-shrink-0"
+          title="Profil Fotoğrafı Yükle (+18 SafeSearch Filtresi Aktif)"
         >
-          <PixelAvatar totalXP={totalXP} size={64} animate={true} />
+          <div className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-500/50 scale-100 group-hover:scale-110 group-hover:border-cyan-400 transition-all duration-300" />
+          <Avatar className="h-16 w-16 md:h-20 md:w-20 ring-4 ring-black/50 overflow-hidden bg-zinc-900 group-hover:opacity-80 transition-opacity">
+            <AvatarImage src={userPhoto || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}&backgroundColor=18181b`} className="object-cover" />
+            <AvatarFallback>{currentUsername?.charAt(0)?.toUpperCase() || 'Me'}</AvatarFallback>
+          </Avatar>
+          <div className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 bg-black/40 backdrop-blur-[2px] transition-all">
+            <Camera className="w-6 h-6 text-white drop-shadow-md" />
+          </div>
         </div>
+        <ProfileUpload open={isProfileUploadOpen} onOpenChange={setIsProfileUploadOpen} />
+
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:22, letterSpacing:2, color:'var(--accent)', marginBottom:2 }}>
             @{currentUsername || '...'}
