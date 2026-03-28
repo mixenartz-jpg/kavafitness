@@ -68,9 +68,9 @@ const QUICK_PROMPTS = [
   'Kahvaltıda ne yemeliyim kilo vermek için?',
 ]
 const PERSONAS = [
-  { id: 'friendly', name: 'Destekleyici', icon: '😊', prompt: 'Arkadaş canlısı, destekleyici ve motive edici bir fitness asistanısın. Emojiler kullan ve yüreklendirici ol.' },
-  { id: 'sergeant', name: 'Askeri Koç', icon: '🎖️', prompt: 'Acımasız, disiplinli bir askeri koçsun. Kısa, sert ve tavizsiz konuş. "Asker" de.' },
-  { id: 'philosophical', name: 'Filozof', icon: '🧘', prompt: 'Bilge, sakin ve felsefik bir koçsun. Vücut ve zihin bütünlüğünden, stoacı felsefeden bahset.' }
+  { id: 'friendly', name: 'Destekleyici', icon: '😊', prompt: 'Arkadaş canlısı, destekleyici ve motive edici fitness asistanısın. Emojilerle motive et. Kullanıcıya DENGELİ ve yardımcı olacak kadar açıklayıcı (3-4 kısa paragraf) bilgi ver. Detaylı, karmaşık bir program veya uzun vadeli beslenme planı sorulursa cümlenin sonuna "Bana sorduğun bu detaylı konu için menüdeki Kişisel Koç\'u denemeni çok isterim, sana özel destansı planlar yapabilir!" şeklinde sevimli bir yönlendirme ekle.' },
+  { id: 'sergeant', name: 'Askeri Koç', icon: '🎖️', prompt: 'Acımasız, disiplinli askeri koçsun. "Asker" diye hitap et. Tokat gibi, net ve vurucu tavsiyeler ver (Maks 3-4 paragraf). Gevşekliğe tahammülün yok. Eğer detaylı/uzun bir program isterlerse zayıflıklarını yüzlerine vurup "Detaylı plan arıyorsan burada mızmızlanma, git yeteneğini Kişisel Koç\'la şekillendir, o sana göre!" diyerek fırçala ve yönlendir.' },
+  { id: 'philosophical', name: 'Filozof', icon: '🧘', prompt: 'Bilge, sakin ve felsefik bir koçsun. Vücut ve zihin bütünlüğünden, stoacı felsefeden bahset. Yeterince doyurucu ve edebi ama okunabilir (3-4 kısa paragraf) tavsiyeler ver. Kapsamlı yol haritası arıyorlarsa son cümlede "Eğer zihnindeki büyük resmi daha derin planlarla çizmek istiyorsan, içsel yolculuğuna Kişisel Koç ile devam etmeni öneririm." diyerek bilgece yönlendir.' }
 ]
 
 function ToolButton({ icon, label, onClick }) {
@@ -137,7 +137,7 @@ export default function AiCoachPage() {
     if (isAiBanned() || aiRemaining() <= 0) { showToast('⏳ Günlük AI hakkın doldu.', 'error'); return }
     const act = ACTIVITIES.find(a=>a.id===activity)
     setKcalResult(kcal); setCalcTips(null); setCalcLoad(true)
-    const prompt=`Kalori koçu: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal. Türkçe, maks 3 kısa madde. SADECE bu antrenman için yorum yap.`
+    const prompt=`Kalori koçu: ${gender==='male'?'Erkek':'Kadın'}, ${weight}kg, ${act.label}, ${duration}dk → ~${kcal}kcal. Türkçe, kesinlikle MAKSİMUM 2 KISA CÜMLE. SADECE bu antrenman için pratik yorum yap.`
     try {
       const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:400})
       if (reply) { checkAndUseAiCredit('kalori'); setCalcTips(reply) }
@@ -224,13 +224,13 @@ Sadece JSON:
     const prompt=`Beslenme uzmanısın. Bugünkü yemekleri analiz et.
 Hedef: ${goalMap[profile?.goal]||'Genel sağlık'} | Kalori hedefi: ${goals.kcal}kcal | Protein: ${goals.protein}g
 Yemekler:\n${list}
+Yok.
 Toplam: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g P, ${Math.round(tot.fat)}g Y, ${Math.round(tot.carb)}g K
-Türkçe analiz:
-1. ✅ OLUMLU NOKTALAR (2-3 madde)
-2. ⚠️ EKSİK/FAZLA (2-3 madde)
-3. 🍽️ YARIN İÇİN 3 ÖĞÜN ÖNERİSİ
-4. 💡 GENEL TAVSİYE (1-2 cümle)
-Eksiksiz yaz.`
+Türkçe analiz için destan yazma, ÇOK KISA VE VURUCU OL:
+1. ✅ OLUMLU (En fazla 1 kısa madde)
+2. ⚠️ EKSİK/FAZLA (En fazla 1 kısa madde)
+3. 💡 TAVSİYE (Maksimum 2 cümle)
+Eksiksiz ama çok kısa yaz.`
     try {
       const reply = await geminiCall([{parts:[{text:prompt}]}], {maxOutputTokens:1000})
       if (reply) { checkAndUseAiCredit('diyet'); setDietResult(reply) }
