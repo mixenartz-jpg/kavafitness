@@ -67,37 +67,18 @@ const QUICK_PROMPTS = [
   'Vejetaryen protein kaynakları neler?',
   'Kahvaltıda ne yemeliyim kilo vermek için?',
 ]
-const TABS = [
-  { id:'chat',    icon:'💬', label:'SOHBET'          },
-  { id:'plan',    icon:'📋', label:'ANTRENMAN PLANI' },
-  { id:'diet',    icon:'🥗', label:'DİYET ANALİZİ'  },
-  { id:'calorie', icon:'🔥', label:'KALORİ HESAP'   },
+const PERSONAS = [
+  { id: 'friendly', name: 'Destekleyici', icon: '😊', prompt: 'Arkadaş canlısı, destekleyici ve motive edici bir fitness asistanısın. Emojiler kullan ve yüreklendirici ol.' },
+  { id: 'sergeant', name: 'Askeri Koç', icon: '🎖️', prompt: 'Acımasız, disiplinli bir askeri koçsun. Kısa, sert ve tavizsiz konuş. "Asker" de.' },
+  { id: 'philosophical', name: 'Filozof', icon: '🧘', prompt: 'Bilge, sakin ve felsefik bir koçsun. Vücut ve zihin bütünlüğünden, stoacı felsefeden bahset.' }
 ]
 
-// ── Hak Göstergesi ──
-function CreditBar({ remaining, banned, limit }) {
-  if (banned) return (
-    <div style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'rgba(255,71,71,.07)',border:'1px solid rgba(255,71,71,.2)',borderRadius:9,marginBottom:16 }}>
-      <span style={{fontSize:16,flexShrink:0}}>🚫</span>
-      <div style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--red)',lineHeight:1.6}}>
-        <b>Bugün AI özelliklerinden yararlanamazsın.</b><br/>
-        <span style={{opacity:.75}}>Uygunsuz içerik tespit edildi. Yarın sıfırlanır.</span>
-      </div>
-    </div>
-  )
+function ToolButton({ icon, label, onClick }) {
   return (
-    <div style={{ display:'flex',alignItems:'center',gap:12,padding:'9px 14px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:9,marginBottom:16 }}>
-      <div style={{display:'flex',gap:5,flexShrink:0}}>
-        {Array.from({length:limit}).map((_,i) => (
-          <div key={i} style={{width:9,height:9,borderRadius:'50%',background:i<remaining?'var(--accent)':'var(--border)',transition:'background .3s'}}/>
-        ))}
-      </div>
-      <div style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--text-muted)'}}>
-        <b style={{color:remaining>0?'var(--accent)':'var(--red)'}}>{remaining}</b>
-        <span> / {limit} günlük AI hakkı kaldı</span>
-        {remaining===0 && <span style={{color:'var(--red)'}}> — yarın yenilenir</span>}
-      </div>
-    </div>
+    <button onClick={onClick} style={{ display:'flex', alignItems:'center', gap: 8, padding:'8px 14px', background:'var(--surface2)', border:'1px solid rgba(255,255,255,0.05)', borderRadius: 20, cursor:'pointer', whiteSpace:'nowrap', color:'var(--text)', transition:'all .2s', boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }}>
+      <span style={{ fontSize: 16 }}>{icon}</span>
+      <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize: 14, letterSpacing: 1 }}>{label}</span>
+    </button>
   )
 }
 
@@ -105,7 +86,10 @@ export default function AiCoachPage() {
   const { profile, goals, foods, templates, saveTemplates, genId,
           checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, setActiveTab, showToast } = useApp()
 
-  const [tab, setTab] = useState('chat')
+  const [view, setView] = useState('chat')
+  const [showTools, setShowTools] = useState(false)
+  const [persona, setPersona] = useState('friendly')
+  const [showSettings, setShowSettings] = useState(false)
 
   const remaining = aiRemaining()
   const banned    = isAiBanned()
@@ -174,7 +158,8 @@ export default function AiCoachPage() {
       const tot=foods.reduce((t,f)=>({kcal:t.kcal+(+f.kcal||0),protein:t.protein+(+f.protein||0)}),{kcal:0,protein:0})
       p.push(`Bugün: ${Math.round(tot.kcal)}kcal, ${Math.round(tot.protein)}g protein`)
     }
-    return `Sen KavaFit beslenme asistanısın. Türkçe, detaylı yanıt ver. Yanıtını asla yarıda kesme.\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
+    const selectedPersona = PERSONAS.find(pr=>pr.id===persona) || PERSONAS[0]
+    return `Sen KavaFit beslenme ve antrenman asistanısın. ${selectedPersona.prompt}\n\n${p.length?`Kullanıcı:\n${p.join('\n')}\n\n`:''}`
   }
 
   const sendMessage = async (text) => {
@@ -266,73 +251,111 @@ Eksiksiz yaz.`
   return (
     <div className="page animate-fade" style={{ maxWidth:700 }}>
 
-      {/* Sekme çubuğu */}
-      <div style={{ display:'flex',gap:3,background:'var(--surface2)',borderRadius:10,padding:3,marginBottom:16 }}>
-        {TABS.map(t => <button key={t.id} style={tabStyle(t.id)} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>)}
+      {/* ── BAŞLIK & AYARLAR ── */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background:'linear-gradient(135deg, rgba(71,200,255,0.2), transparent)', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(71,200,255,0.3)', fontSize: 18 }}>
+            🤖
+          </div>
+          <h1 style={{ fontFamily:'Bebas Neue, sans-serif', fontSize: 24, letterSpacing: 1, margin: 0, color:'var(--text)' }}>AiCoach</h1>
+        </div>
+        <button onClick={()=>setShowSettings(!showSettings)} style={{ background: showSettings ? 'rgba(232,255,71,0.1)' : 'var(--surface2)', border: showSettings ? '1px solid rgba(232,255,71,0.3)' : '1px solid var(--border)', borderRadius: '50%', width: 36, height: 36, display:'flex', alignItems:'center', justifyContent:'center', color: showSettings ? 'var(--accent)' : 'var(--text-muted)', transition:'all .2s' }}>
+          ⚙️
+        </button>  
       </div>
 
-      {/* Hak göstergesi */}
-      <CreditBar remaining={remaining} banned={banned} limit={AI_DAILY_LIMIT} />
+      {banned && (
+        <div className="animate-fade" style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'rgba(255,71,71,.07)',border:'1px solid rgba(255,71,71,.2)',borderRadius:9,marginBottom:16 }}>
+          <span style={{fontSize:16,flexShrink:0}}>🚫</span>
+          <div style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--red)',lineHeight:1.6}}>
+            <b>Bugün AI özelliklerinden yararlanamazsın.</b><br/>
+            <span style={{opacity:.75}}>Uygunsuz içerik tespit edildi. Yarın sıfırlanır.</span>
+          </div>
+        </div>
+      )}
 
-      {/* ═══ SOHBET ═══ */}
-      {tab==='chat' && (
+      {/* ── PERSONA SEÇİMİ ── */}
+      {showSettings && !banned && (
+        <div className="animate-fade" style={{ background:'var(--surface2)', borderRadius: 16, padding: 16, marginBottom: 16, border:'1px solid var(--border)', boxShadow:'0 8px 24px rgba(0,0,0,0.2)', position:'relative', zIndex: 11 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12 }}>
+            <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize: 14, letterSpacing: 1, color:'var(--text-muted)' }}>KOÇ PERSONASI</div>
+            <div style={{ fontFamily:'Space Mono, monospace', fontSize: 10, color:'var(--text-muted)' }}><b style={{color:remaining>0?'var(--accent)':'var(--red)'}}>{remaining}</b> / {AI_DAILY_LIMIT} KREDİ</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 8 }}>
+            {PERSONAS.map(p => (
+              <div key={p.id} onClick={()=>{setPersona(p.id);setShowSettings(false)}} style={{ padding:'12px 8px', textAlign:'center', borderRadius: 12, cursor:'pointer', border: persona===p.id ? '1px solid var(--accent)' : '1px solid var(--border)', background: persona===p.id ? 'rgba(232,255,71,0.1)' : 'var(--surface)', transition:'all 0.2s' }}>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{p.icon}</div>
+                <div style={{ fontFamily:'Space Mono, monospace', fontSize: 10, color: persona===p.id ? 'var(--accent)' : 'var(--text-muted)' }}>{p.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── SOHBET EKRANI ── */}
+      {view === 'chat' && (
         <>
-          <div className="section-title">🥗 BESLENME PLANI YARDIMCISI</div>
-          <div className="card" style={{ marginBottom:12, overflow:'hidden' }}>
-            <div style={{ padding:'16px 16px 0',maxHeight:420,overflowY:'auto',display:'flex',flexDirection:'column',gap:12,scrollbarWidth:'thin' }}>
-              {messages.map((msg,i) => (
-                <div key={i} style={{ display:'flex',gap:10,flexDirection:msg.role==='user'?'row-reverse':'row',alignItems:'flex-start' }}>
-                  <div style={{ width:28,height:28,borderRadius:'50%',flexShrink:0,background:msg.role==='user'?'var(--accent)':'rgba(71,200,255,.15)',border:msg.role==='user'?'none':'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:msg.role==='user'?'#0a0a0a':'#47c8ff' }}>
-                    {msg.role==='user'?'👤':'🤖'}
-                  </div>
-                  <div style={{ maxWidth:'78%',background:msg.role==='user'?'rgba(232,255,71,.1)':'var(--surface2)',border:msg.role==='user'?'1px solid rgba(232,255,71,.2)':'1px solid var(--border)',borderRadius:msg.role==='user'?'14px 4px 14px 14px':'4px 14px 14px 14px',padding:'10px 14px' }}>
-                    <div style={{ fontSize:13,lineHeight:1.75,color:msg.role==='user'?'var(--accent)':'var(--text-dim)',fontFamily:'Inter,sans-serif',whiteSpace:'pre-wrap',wordBreak:'break-word' }}>{msg.text}</div>
-                  </div>
+          <div style={{ flex: 1, overflowY:'auto', display:'flex', flexDirection:'column', gap: 16, paddingBottom: 150, paddingTop: 10, scrollbarWidth:'none', position:'relative', zIndex: 1 }}>
+            {messages.map((msg,i) => (
+              <div key={i} style={{ display:'flex',gap:10,flexDirection:msg.role==='user'?'row-reverse':'row',alignItems:'flex-start' }}>
+                <div style={{ width:28,height:28,borderRadius:'50%',flexShrink:0,background:msg.role==='user'?'var(--accent)':'rgba(71,200,255,.15)',border:msg.role==='user'?'none':'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:msg.role==='user'?'#0a0a0a':'#47c8ff' }}>
+                  {msg.role==='user'?'👤':PERSONAS.find(p=>p.id===persona)?.icon||'🤖'}
                 </div>
-              ))}
-              {chatLoad && (
-                <div style={{ display:'flex',gap:10,alignItems:'center' }}>
-                  <div style={{ width:28,height:28,borderRadius:'50%',background:'rgba(71,200,255,.15)',border:'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13 }}>🤖</div>
-                  <div style={{ background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'4px 14px 14px 14px',padding:'12px 16px',display:'flex',gap:5,alignItems:'center' }}>
-                    {[0,.2,.4].map((d,i)=><span key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--text-muted)',animation:`pulse 1.2s ease infinite ${d}s`,display:'inline-block'}}/>)}
-                  </div>
+                <div style={{ maxWidth:'80%',background:msg.role==='user'?'var(--accent)':'var(--surface2)',border:msg.role==='user'?'1px solid var(--accent)':'1px solid var(--border)',borderRadius:msg.role==='user'?'18px 4px 18px 18px':'4px 18px 18px 18px',padding:'12px 16px', boxShadow:msg.role==='user'?'0 4px 12px rgba(232,255,71,0.15)':'none' }}>
+                  <div style={{ fontSize:14,lineHeight:1.6,color:msg.role==='user'?'#0a0a0a':'var(--text)',fontFamily:'Inter,sans-serif',whiteSpace:'pre-wrap',wordBreak:'break-word' }}>{msg.text}</div>
                 </div>
-              )}
-              <div ref={chatEnd}/>
-            </div>
-
-            {/* Hızlı sorular */}
-            <div style={{ padding:'12px 16px 0',display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none' }}>
-              {QUICK_PROMPTS.map((q,i) => (
-                <button key={i} onClick={()=>sendMessage(q)} disabled={chatLoad||blocked}
-                  style={{ padding:'5px 12px',borderRadius:20,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text-muted)',fontFamily:'Space Mono,monospace',fontSize:10,cursor:blocked?'not-allowed':'pointer',whiteSpace:'nowrap',transition:'all .15s',flexShrink:0,opacity:(chatLoad||blocked)?.4:1 }}
-                  onMouseEnter={e=>{ if(!chatLoad&&!blocked){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)'}}
-                >{q}</button>
-              ))}
-            </div>
-
-            {/* Input */}
-            <div style={{ padding:'12px 16px 16px',display:'flex',gap:8,alignItems:'flex-end' }}>
-              <textarea ref={textarea} value={chatInput} onChange={e=>setChatInput(e.target.value)}
+              </div>
+            ))}
+            {chatLoad && (
+              <div style={{ display:'flex',gap:10,alignItems:'center' }}>
+                <div style={{ width:28,height:28,borderRadius:'50%',background:'rgba(71,200,255,.15)',border:'1px solid rgba(71,200,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13 }}>{PERSONAS.find(p=>p.id===persona)?.icon||'🤖'}</div>
+                <div style={{ background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'4px 18px 18px 18px',padding:'14px 18px',display:'flex',gap:6,alignItems:'center' }}>
+                  {[0,.15,.3].map((d,i)=><span key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',animation:`pulse 1.2s ease infinite ${d}s`,display:'inline-block'}}/>)}
+                </div>
+              </div>
+            )}
+            <div ref={chatEnd}/>
+          </div>
+          
+          <div style={{ position:'fixed', bottom: 85, left: 16, right: 16, maxWidth: 668, margin:'0 auto', zIndex: 10 }}>
+            {/* Popover */}
+            {showTools && (
+              <div className="animate-fade" style={{ position:'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 12, display:'flex', gap: 8, overflowX:'auto', scrollbarWidth:'none', padding:'4px' }}>
+                <ToolButton icon="📋" label="Antrenman Planı" onClick={()=>{setView('plan');setShowTools(false)}} />
+                <ToolButton icon="🥗" label="Diyet Analizi" onClick={()=>{setView('diet');setShowTools(false)}} />
+                <ToolButton icon="🔥" label="Kalori Hesapla" onClick={()=>{setView('calorie');setShowTools(false)}} />
+              </div>
+            )}
+            
+            <div style={{ display:'flex', alignItems:'flex-end', gap: 8, background:'var(--surface)', padding:'8px', borderRadius: 28, border:'1px solid var(--border)', boxShadow:'0 12px 32px rgba(0,0,0,0.6)', position:'relative', overflow:'hidden' }}>
+              {chatLoad && <div style={{ position:'absolute', inset: 0, background:'linear-gradient(90deg, transparent, rgba(232,255,71,0.1), transparent)', zIndex: 0, animation:'shimmer 2s infinite' }} />}
+              <button onClick={()=>setShowTools(!showTools)} style={{ width: 44, height: 44, borderRadius:'50%', background:'var(--surface2)', border:'1px solid var(--border)', color:'var(--text)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 1, flexShrink: 0, transition:'transform 0.2s', transform: showTools ? 'rotate(45deg)' : 'none' }}>
+                <span style={{ fontSize: 18 }}>✨</span>
+              </button>
+              <textarea 
+                ref={textarea} value={chatInput} onChange={e=>setChatInput(e.target.value)}
                 onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()} }}
-                placeholder={blocked?'🚫 Bugün AI kullanım hakkın yok.':'Beslenme planı, kalori, diyet... (Enter = gönder)'}
-                disabled={chatLoad||blocked} rows={2}
-                style={{ flex:1,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',fontSize:13,padding:'10px 12px',outline:'none',resize:'none',fontFamily:'Inter,sans-serif',lineHeight:1.5,opacity:blocked?.6:1 }}
-                onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='var(--border)'}/>
-              <button onClick={()=>sendMessage()} disabled={!chatInput.trim()||chatLoad||blocked}
-                style={{ width:42,height:42,borderRadius:10,border:'none',background:chatInput.trim()&&!chatLoad&&!blocked?'var(--accent)':'var(--surface2)',color:chatInput.trim()&&!chatLoad&&!blocked?'#0a0a0a':'var(--text-muted)',cursor:chatInput.trim()&&!chatLoad&&!blocked?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0 }}>
-                {chatLoad?<span className="spinner" style={{width:16,height:16,borderTopColor:'var(--text-muted)'}}/>:'↑'}
+                placeholder={blocked?'🚫 Bugün hakkın doldu':'Ne öğrenmek istiyorsun?'}
+                disabled={chatLoad||blocked} rows={1}
+                style={{ flex: 1, background:'transparent', border:'none', color:'var(--text)', padding:'12px 6px', minHeight: 44, maxHeight: 120, outline:'none', resize:'none', zIndex: 1, fontFamily:'Inter, sans-serif', fontSize: 15 }}
+              />
+              <button onClick={()=>sendMessage()} disabled={!chatInput.trim()||chatLoad||blocked} style={{ minWidth: 56, height: 44, borderRadius: 22, background: chatInput.trim()&&!chatLoad&&!blocked?'var(--accent)':'var(--surface2)', color: chatInput.trim()&&!chatLoad&&!blocked?'#0a0a0a':'var(--text-muted)', border:'none', zIndex: 1, display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0, gap: 4, transition:'all .2s' }}>
+                {chatLoad?<span className="spinner" style={{width:16,height:16,borderTopColor:'var(--text-muted)'}}/>:<><span style={{ fontFamily:'Space Mono, monospace', fontSize: 11, fontWeight:'bold' }}>{remaining}</span><span>↑</span></>}
               </button>
             </div>
           </div>
-          <CoachNote onClick={()=>setActiveTab('coach')}/>
-          {messages.length>1&&<div style={{textAlign:'right',marginTop:4}}><button onClick={()=>setMessages([{role:'assistant',text:'👋 Merhaba! Beslenme ve diyet konusunda yardımcı olmak için buradayım.'}])} style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'var(--text-muted)',fontFamily:'Space Mono,monospace',textDecoration:'underline'}}>Sohbeti Temizle</button></div>}
         </>
       )}
 
+      {/* ── DİĞER FORMLAR (PLAN, DİYET, KALORİ) ── */}
+      {view !== 'chat' && (
+        <div className="animate-fade" style={{ flex: 1, paddingBottom: 100 }}>
+          <button onClick={()=>setView('chat')} style={{ padding:'8px 12px', fontSize: 12, marginBottom: 16, background:'var(--surface2)', border:'1px solid var(--border)', borderRadius: 12, color:'var(--text)', cursor:'pointer' }}>
+            ← Sohbete Dön
+          </button>
+          
       {/* ═══ ANTRENMAN PLANI ═══ */}
-      {tab==='plan' && (
+      {view==='plan' && (
         <>
           <div className="section-title">📋 AI ANTRENMAN PLANLAYICI</div>
           {!profile ? (
@@ -411,7 +434,7 @@ Eksiksiz yaz.`
       )}
 
       {/* ═══ DİYET ANALİZİ ═══ */}
-      {tab==='diet' && (
+      {view==='diet' && (
         <>
           <div className="section-title">🥗 GÜNLÜK DİYET ANALİZİ</div>
           {!foods?.length ? (
@@ -448,7 +471,7 @@ Eksiksiz yaz.`
       )}
 
       {/* ═══ KALORİ HESAP ═══ */}
-      {tab==='calorie' && (
+      {view==='calorie' && (
         <>
           <div className="section-title">🔥 AKTİVİTE KALORİ HESAPLAYICI</div>
           <div className="card" style={{padding:20,marginBottom:20}}>
@@ -506,6 +529,9 @@ Eksiksiz yaz.`
           )}
         </>
       )}
+
+        </div>
+      )} {/* DİĞER FORMLAR BİTİŞ */}
 
       <style>{`@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
     </div>

@@ -193,143 +193,76 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page" style={{ paddingBottom: 100 }}>
 
-      {/* Streak Badge */}
-      {isToday && streak > 0 && (
-        <div style={{ display:'flex', alignItems:'center', gap:10, background:'linear-gradient(135deg,rgba(255,140,71,.1),rgba(255,71,71,.05))', border:'1px solid rgba(255,140,71,.3)', borderRadius:10, padding:'10px 16px', marginBottom:16 }}>
-          <span style={{ fontSize:24 }}>{streak >= 30 ? '🏆' : streak >= 14 ? '🔥' : streak >= 7 ? '⚡' : '🌱'}</span>
-          <div>
-            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:18, letterSpacing:2, color:'#ff8c47' }}>{streak} GÜNLÜK SERİ</div>
-            <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>
-              {streak >= 30 ? 'Efsane seviye! Durdurulamaz!' : streak >= 14 ? 'Harika gidiyorsun, devam et!' : streak >= 7 ? 'Bir haftayı geçtin!' : 'İyi başlangıç, devam et!'}
-            </div>
-          </div>
+      {/* ── HEADER & STREAK ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 24, fontWeight: 700, margin: 0, color: 'var(--accent)' }}>
+            {isToday ? 'Bugünkü Antrenman' : viewingDate.split('-').reverse().join('.')}
+          </h1>
+          {!isToday && (
+            <button className="btn btn-ghost" style={{ height: 26, fontSize: 10, padding: '0 8px', marginTop: 6 }} onClick={() => setViewingDate(todayKey())}>
+              Bugüne Dön
+            </button>
+          )}
         </div>
-      )}
-
-      {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:20 }}>
-        {[
-          { label:'Egzersiz', val: viewExs.length, unit:'adet' },
-          { label:'Toplam Set', val: totalSets(), unit:'set' },
-          { label:'Max Agirlik', val: maxWeight(), unit:'kg' },
-        ].map(({ label, val, unit }) => (
-          <div key={label} className="card" style={{ padding:18, position:'relative', overflow:'hidden' }}>
-            <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background: val>0?'var(--accent)':'transparent', transform:val>0?'scaleX(1)':'scaleX(0)', transition:'transform .4s ease', transformOrigin:'left' }} />
-            <div style={{ fontSize:10, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:7, fontFamily:'Space Mono,monospace' }}>{label}</div>
-            <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:38, lineHeight:1 }}>
-              {val} <span style={{ fontSize:14, color:'var(--text-muted)' }}>{unit}</span>
-            </div>
+        {isToday && streak > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,140,71,.1)', border: '1px solid rgba(255,140,71,.2)', borderRadius: 20, padding: '4px 12px' }}>
+            <span style={{ fontSize: 14 }}>{streak >= 30 ? '🏆' : streak >= 14 ? '🔥' : streak >= 7 ? '⚡' : '🌱'}</span>
+            <span style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 14, color: '#ff8c47', letterSpacing: 1 }}>{streak} GÜN</span>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Past banner */}
-      {!isToday && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, background:'rgba(71,200,255,.06)', border:'1px solid rgba(71,200,255,.2)', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:12, color:'var(--blue)', fontFamily:'Space Mono,monospace' }}>
-          <span>📅 {new Date(viewingDate+'T00:00:00').toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'})} goruntuleniyor</span>
-          <button className="btn btn-ghost" style={{ height:28, fontSize:11, padding:'0 10px' }} onClick={() => setViewingDate(todayKey())}>Bugune Don</button>
-        </div>
-      )}
+      {/* ── İSTATİSTİKLER (GİZLENEBİLİR) ── */}
+      <div style={{ marginBottom: 20 }}>
+        <button 
+          onClick={() => setOpenCards(p => ({...p, stats: !p.stats}))}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', color: 'var(--text)' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Space Mono,monospace', fontSize: 11, fontWeight: 600 }}>
+            <span>📊</span> Günün Özeti
+          </div>
+          <span style={{ transform: openCards.stats ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', fontSize: 12 }}>▼</span>
+        </button>
+        {openCards.stats && (
+          <div className="animate-fade" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
+            {[
+              { label:'Egzersiz', val: viewExs.length },
+              { label:'Set', val: totalSets() },
+              { label:'Max Kg', val: maxWeight() },
+            ].map(({ label, val }) => (
+              <div key={label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 9, letterSpacing: 1, color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'Space Mono,monospace', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 22, lineHeight: 1, color: 'var(--accent)' }}>{val}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Dinlenme Sayacı */}
       {restTimer && isToday && (
-        <RestTimer
-          key={restTimer.exId + restTimer.seconds}
-          seconds={restTimer.seconds}
-          onDone={() => setRestTimer(null)}
-        />
+         <RestTimer key={restTimer.exId + restTimer.seconds} seconds={restTimer.seconds} onDone={() => setRestTimer(null)} />
       )}
 
-      {/* Action buttons */}
+      {/* ── HIZLI AKSİYONLAR (MINIMAL) ── */}
       {isToday && (
-        <>
-          {/* 3'lü ana buton grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
-
-            {/* Egzersiz Ekle */}
-            <button
-              onClick={() => setShowForm(v=>!v)}
-              style={{
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                gap:5, padding:'12px 8px', borderRadius:12, cursor:'pointer',
-                background: showForm ? 'rgba(232,255,71,.08)' : 'var(--surface)',
-                border: `1px solid ${showForm ? 'rgba(232,255,71,.3)' : 'var(--border)'}`,
-                color: showForm ? 'var(--accent)' : 'var(--text-muted)',
-                transition:'all .2s',
-              }}
-              onMouseEnter={e=>{ if(!showForm){ e.currentTarget.style.borderColor='rgba(232,255,71,.3)'; e.currentTarget.style.color='var(--accent)' }}}
-              onMouseLeave={e=>{ if(!showForm){ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}}
-            >
-              <span style={{ fontSize:20 }}>➕</span>
-              <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5 }}>Egzersiz</span>
-            </button>
-
-            {/* Şablon Uygula */}
-            <button
-              onClick={() => setShowTemplates(true)}
-              style={{
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                gap:5, padding:'12px 8px', borderRadius:12, cursor:'pointer',
-                background:'var(--surface)', border:'1px solid var(--border)',
-                color:'var(--text-muted)', transition:'all .2s',
-              }}
-              onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(71,200,255,.4)'; e.currentTarget.style.color='var(--blue)' }}
-              onMouseLeave={e=>{ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}
-            >
-              <span style={{ fontSize:20 }}>📋</span>
-              <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5 }}>Şablon</span>
-            </button>
-
-            {/* Not Ekle */}
-            <button
-              onClick={() => setShowNote(v=>!v)}
-              style={{
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                gap:5, padding:'12px 8px', borderRadius:12, cursor:'pointer',
-                background: note ? 'rgba(232,255,71,.06)' : 'var(--surface)',
-                border: `1px solid ${note ? 'rgba(232,255,71,.2)' : 'var(--border)'}`,
-                color: note ? 'var(--accent)' : 'var(--text-muted)',
-                transition:'all .2s',
-              }}
-            >
-              <span style={{ fontSize:20 }}>📝</span>
-              <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:11, letterSpacing:1.5 }}>{note ? 'Notu Gör' : 'Not Ekle'}</span>
-            </button>
-          </div>
-
-          {/* Egzersiz Tanıma — daha ince, tam genişlik */}
-          <button
-            onClick={() => setShowRecognize(v=>!v)}
-            style={{
-              width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              padding:'9px 16px', borderRadius:10, cursor:'pointer',
-              background: showRecognize ? 'rgba(71,200,255,.06)' : 'var(--surface)',
-              border: `1px solid ${showRecognize ? 'rgba(71,200,255,.3)' : 'var(--border)'}`,
-              color: showRecognize ? 'var(--blue)' : 'var(--text-muted)',
-              fontFamily:'Space Mono,monospace', fontSize:11, letterSpacing:1,
-              transition:'all .2s', marginBottom:12,
-            }}
-            onMouseEnter={e=>{ if(!showRecognize){ e.currentTarget.style.borderColor='rgba(71,200,255,.3)'; e.currentTarget.style.color='var(--blue)' }}}
-            onMouseLeave={e=>{ if(!showRecognize){ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--text-muted)' }}}
-          >
-            <span style={{ fontSize:15 }}>📸</span>
-            Egzersiz Tanı — Fotoğraf yükle, AI tanısın
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }} className="week-strip-row">
+          <button className="btn btn-primary" onClick={() => setShowForm(v=>!v)} style={{ flexShrink: 0, padding: '10px 16px', borderRadius: 20, fontSize: 13 }}>
+            <span style={{ fontSize: 14 }}>➕</span> Yeni Egzersiz
           </button>
-
-          {/* Dinlenme süresi ayarı */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, padding:'8px 12px', background:'var(--surface2)', borderRadius:10, border:'1px solid var(--border)' }}>
-            <span style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)', flexShrink:0 }}>⏱ Dinlenme:</span>
-            <div style={{ display:'flex', gap:4, flex:1 }}>
-              {[60, 90, 120, 180].map(s => (
-                <button key={s} onClick={() => setRestSeconds(s)} style={{ flex:1, padding:'5px 0', borderRadius:7, border:`1px solid ${restSeconds===s?'rgba(232,255,71,.4)':'var(--border)'}`, background:restSeconds===s?'rgba(232,255,71,.08)':'transparent', color:restSeconds===s?'var(--accent)':'var(--text-muted)', fontFamily:'Bebas Neue,sans-serif', fontSize:12, cursor:'pointer', letterSpacing:1, transition:'all .15s' }}>
-                  {s}s
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
+          <button className="btn btn-ghost" onClick={() => setShowTemplates(true)} style={{ flexShrink: 0, padding: '10px 16px', borderRadius: 20, fontSize: 13, background: 'var(--surface2)' }}>
+            📋 Şablon
+          </button>
+          <button className="btn btn-ghost" onClick={() => setShowRecognize(v=>!v)} style={{ flexShrink: 0, padding: '10px 16px', borderRadius: 20, fontSize: 13, background: 'var(--surface2)' }}>
+            📸 AI Tanıma
+          </button>
+          <button className="btn btn-ghost" onClick={() => setShowNote(v=>!v)} style={{ flexShrink: 0, padding: '10px 16px', borderRadius: 20, fontSize: 13, background: 'var(--surface2)' }}>
+            📝 Not
+          </button>
+        </div>
       )}
 
       {/* Antrenman Notu */}
