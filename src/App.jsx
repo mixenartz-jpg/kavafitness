@@ -24,12 +24,13 @@ import BottomNav from './components/BottomNav'
 import AchievementsPage from './components/pages/Achievements'
 import ExercisesPage from './components/pages/Exercises'
 import TourGuide from './components/TourGuide'
+import { kavaHataBildir } from './lib/notifications'
 
 export default function App() {
   const { user, loading, activeTab, profile, profileLoaded, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [showTour,       setShowTour]       = useState(false)
-  const [tourReady,      setTourReady]       = useState(false) // onboarding bitmeden tur açılmasın
+  const [showTour, setShowTour] = useState(false)
+  const [tourReady, setTourReady] = useState(false) // onboarding bitmeden tur açılmasın
 
   // Tema uygula
   useEffect(() => {
@@ -59,24 +60,43 @@ export default function App() {
     }
   }, [tourReady, uid, showOnboarding])
 
-  const handleOnboardingComplete = () => {
-    // Onboarding bitişini profile'a kaydet → Firestore'a da gidiyor
+  const handleOnboardingComplete = async () => {
+    // 1. Mevcut İşlem: Onboarding bitişini sisteme kaydet
     if (profile !== null) {
       saveProfile({ ...(profile || {}), onboardingDone: true })
     }
     setShowOnboarding(false)
     setTourReady(true)
+
+    // 2. YENİ İŞLEM: Kava Veritabanı (Google Sheets) Bağlantısı
+    const sheetsWebhookURL = "http://localhost:5678/webhook/e6f375b4-ce05-4994-8d3c-32b272cca6b8";
+
+    try {
+      await fetch(sheetsWebhookURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Profildeki tüm bilgileri (boy, kilo vb.) ve email'i gönderiyoruz
+        body: JSON.stringify({
+          ...profile,
+          email: user?.email,
+          kayitTarihi: new Date().toLocaleString('tr-TR')
+        })
+      });
+      console.log("Kullanıcı verileri başarıyla tabloya işlendi!");
+    } catch (err) {
+      kavaHataBildir("Onboarding - Veritabanı Kaydı", err.message);
+    }
   }
 
   if (loading) {
     return (
-      <div style={{ position:'fixed', inset:0, background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <div style={{ textAlign:'center' }}>
-          <img src="/logo.png" alt="KavaFit" style={{ height:90, width:'auto', marginBottom:20, animation:'pulse 1.5s ease-in-out infinite' }} />
-          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:32, letterSpacing:4, color:'var(--accent)', marginBottom:16 }}>
-            KAVA<span style={{ color:'var(--text-muted)' }}>FIT</span>
+      <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <img src="/logo.png" alt="KavaFit" style={{ height: 90, width: 'auto', marginBottom: 20, animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 32, letterSpacing: 4, color: 'var(--accent)', marginBottom: 16 }}>
+            KAVA<span style={{ color: 'var(--text-muted)' }}>FIT</span>
           </div>
-          <div className="spinner" style={{ margin:'0 auto' }} />
+          <div className="spinner" style={{ margin: '0 auto' }} />
           <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(.96)}}`}</style>
         </div>
       </div>
@@ -87,7 +107,7 @@ export default function App() {
 
   // Geçmiş gün kontrolü
   const isViewingPast = viewingDate !== todayKey()
-  const summaryTabs   = ['today', 'calorie']
+  const summaryTabs = ['today', 'calorie']
   if (isViewingPast && summaryTabs.includes(activeTab)) {
     return (
       <>
@@ -103,24 +123,24 @@ export default function App() {
   }
 
   const pages = {
-    home:     <HomePage />,
-    today:    <TodayPage />,
-    templates:<TemplatesPage />,
-    aicoach:  <AiCoachPage />,
-    coach:    <PersonalCoachPage />,
-    share:    <ShareCard />,
-    weekly:   <ProgressPage />,   // eski link desteği
-    history:  <HistoryPage />,
-    calorie:  <CaloriePage />,
-    goals:    <GoalsPage />,
+    home: <HomePage />,
+    today: <TodayPage />,
+    templates: <TemplatesPage />,
+    aicoach: <AiCoachPage />,
+    coach: <PersonalCoachPage />,
+    share: <ShareCard />,
+    weekly: <ProgressPage />,   // eski link desteği
+    history: <HistoryPage />,
+    calorie: <CaloriePage />,
+    goals: <GoalsPage />,
     progress: <ProgressPage />,
-    body:     <BodyPage />,
+    body: <BodyPage />,
     settings: <SettingsPage />,
-    account:  <AccountPage />,
-    recognize:<RecognizePage />,
-    foodrecognize:<FoodRecognizePage />,
-    achievements:<AchievementsPage />,
-    exercises:<ExercisesPage />,
+    account: <AccountPage />,
+    recognize: <RecognizePage />,
+    foodrecognize: <FoodRecognizePage />,
+    achievements: <AchievementsPage />,
+    exercises: <ExercisesPage />,
     download: <DownloadPage />
   }
 
@@ -146,7 +166,7 @@ export default function App() {
       {/* XP Popup */}
       {xpPopup && (
         <div className="xp-popup">
-          <span style={{ fontSize:18 }}>⚡</span>
+          <span style={{ fontSize: 18 }}>⚡</span>
           <div>
             <div className="xp-popup-amount">+{xpPopup.amount} XP</div>
             {xpPopup.reason && <div className="xp-popup-label">{xpPopup.reason}</div>}
@@ -157,10 +177,10 @@ export default function App() {
       {/* Rozet Popup */}
       {badgePopup && (
         <div className="badge-popup">
-          <div style={{ fontSize:44, marginBottom:8 }}>{badgePopup.icon}</div>
-          <div style={{ fontFamily:'Space Mono,monospace', fontSize:9, color:'var(--accent)', letterSpacing:3, marginBottom:4 }}>YENİ ROZET</div>
-          <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:20, letterSpacing:2, marginBottom:4 }}>{badgePopup.name}</div>
-          <div style={{ fontFamily:'Space Mono,monospace', fontSize:10, color:'var(--text-muted)' }}>{badgePopup.desc}</div>
+          <div style={{ fontSize: 44, marginBottom: 8 }}>{badgePopup.icon}</div>
+          <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 9, color: 'var(--accent)', letterSpacing: 3, marginBottom: 4 }}>YENİ ROZET</div>
+          <div style={{ fontFamily: 'Bebas Neue,sans-serif', fontSize: 20, letterSpacing: 2, marginBottom: 4 }}>{badgePopup.name}</div>
+          <div style={{ fontFamily: 'Space Mono,monospace', fontSize: 10, color: 'var(--text-muted)' }}>{badgePopup.desc}</div>
         </div>
       )}
     </>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
+import { kavaHataBildir } from '../../lib/notifications'
 
 
 // ── Kişisel Koç Dipnotu ──
@@ -149,7 +150,10 @@ export default function AiCoachPage() {
       const reply = await geminiCall([{ parts: [{ text: prompt }] }], { maxOutputTokens: 400 })
       if (reply) { checkAndUseAiCredit('kalori'); setCalcTips(reply) }
       else setCalcTips('Yanıt alınamadı, tekrar dene.')
-    } catch { setCalcTips('Bağlantı hatası, tekrar dene.') }
+    } catch (err) {
+      kavaHataBildir("AiCoach - Kalori Hesap", err.message);
+      setCalcTips('Bağlantı hatası, tekrar dene.');
+    }
     setCalcLoad(false)
   }
 
@@ -184,7 +188,10 @@ export default function AiCoachPage() {
       const reply = await geminiCall(contents, { maxOutputTokens: 1200 })
       if (reply) { checkAndUseAiCredit('chat'); setMessages(prev => [...prev, { role: 'assistant', text: reply }]) }
       else setMessages(prev => [...prev, { role: 'assistant', text: 'Yanıt alınamadı, tekrar dene.' }])
-    } catch { setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Bağlantı hatası, tekrar dene.' }]) }
+    } catch (err) {
+      kavaHataBildir("AiCoach - Sohbet", err.message);
+      setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Bağlantı hatası, tekrar dene.' }]);
+    }
     setChatLoad(false)
   }
 
@@ -211,7 +218,10 @@ Sadece JSON:
       } else {
         setPlanResult({ error: 'Plan oluşturulamadı, tekrar dene.' })
       }
-    } catch { setPlanResult({ error: '⚠️ Bağlantı hatası, tekrar dene.' }) }
+    } catch (err) {
+      kavaHataBildir("AiCoach - Plan Oluşturucu", err.message);
+      setPlanResult({ error: '⚠️ Bağlantı hatası, tekrar dene.' });
+    }
     setPlanLoad(false)
   }
 
@@ -242,7 +252,10 @@ Eksiksiz ama çok kısa yaz.`
       const reply = await geminiCall([{ parts: [{ text: prompt }] }], { maxOutputTokens: 1000 })
       if (reply) { checkAndUseAiCredit('diyet'); setDietResult(reply) }
       else setDietResult('Analiz alınamadı, tekrar dene.')
-    } catch { setDietResult('⚠️ Bağlantı hatası, tekrar dene.') }
+    } catch (err) {
+      kavaHataBildir("AiCoach - Diyet Analiz", err.message);
+      setDietResult('⚠️ Bağlantı hatası, tekrar dene.');
+    }
     setDietLoad(false)
   }
 
