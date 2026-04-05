@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 
-const GKEY   = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const MODELS = [
   'gemini-3.1-flash-lite-preview',
   'gemini-2.5-flash',
@@ -85,7 +84,7 @@ Rules: exercise_name in English lowercase, no markdown, no explanation.`
       setChips(c=>c.map(ch=>ch.model===model?{...ch,state:'trying'}:ch))
       setStatus({type:'analyzing',title:'Analiz Ediliyor',sub:`Model: ${model}`})
       try {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,{
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,{
           method:'POST', headers:{'Content-Type':'application/json'},
           body:JSON.stringify({
             contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}],

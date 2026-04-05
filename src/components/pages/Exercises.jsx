@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Icon from '../Icons'
 
-const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 
 // ── CSS ──
 const INLINE_STYLES = `
@@ -246,7 +245,7 @@ function DetailModal({ exercise, group, onClose }) {
     (async () => {
       try {
         const q = encodeURIComponent(`${exercise} exercise form tutorial Türkçe`)
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&maxResults=3&key=${GKEY}`)
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&maxResults=3&key=${import.meta.env.VITE_GEMINI_KEY}`)
         if (res.ok) { const d = await res.json(); setVideos(d.items || []) }
       } catch { setVideos([]) }
     })()

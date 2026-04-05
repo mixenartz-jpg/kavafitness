@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../context/AppContext'
 
-const GEMINI_KEY  = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const FOOD_MODELS = [
   'gemini-3.1-flash-lite-preview',
   'gemini-2.5-flash',
@@ -194,7 +193,7 @@ Rules: food_name in Turkish, integers, estimate for visible portion, no markdown
       setModelChips(c => c.map(ch => ch.model===model?{...ch,state:'trying'}:ch))
       setStatus({ type:'analyzing', title:'Analiz Ediliyor', sub:`Model: ${model}` })
       try {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
             body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}], generationConfig:{temperature:.1,maxOutputTokens:256} }) })
         if (res.ok) { usedModel=model; setModelChips(c=>c.map(ch=>ch.model===model?{...ch,state:'ok'}:ch)); break }
@@ -259,7 +258,7 @@ Kurallar: Türkçe isim, tamsayılar, 100g için değerler tercih et (farklıysa
     for (const model of LABEL_MODELS) {
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
             body:JSON.stringify({ contents:[{parts:[{text:prompt},{inline_data:{mime_type:labelMime,data:labelImg}}]}], generationConfig:{temperature:.1,maxOutputTokens:512} }) }
         )

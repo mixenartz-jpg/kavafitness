@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 
-const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const MODELS = [
   'gemini-3.1-flash-lite-preview',
   'gemini-2.5-flash',
@@ -474,7 +473,7 @@ Rules: exercise_name English lowercase, no markdown.`
     for (const model of MODELS) {
       setStatus({type:'analyzing',title:'Analiz Ediliyor',sub:`Model: ${model}`})
       try {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,{
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,{
           method:'POST', headers:{'Content-Type':'application/json'},
           body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:imgMime,data:imgB64}}]}],generationConfig:{temperature:.1,maxOutputTokens:256}})
         })
@@ -612,7 +611,7 @@ JSON formatında yanıt ver (başka hiçbir şey yazma):
     let parsed = null
     for (const model of AI_MODELS) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,{
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,{
           method:'POST', headers:{'Content-Type':'application/json'},
           body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.6,maxOutputTokens:800}})
         })

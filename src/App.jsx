@@ -24,7 +24,6 @@ import BottomNav from './components/BottomNav'
 import AchievementsPage from './components/pages/Achievements'
 import ExercisesPage from './components/pages/Exercises'
 import TourGuide from './components/TourGuide'
-import { kavaHataBildir } from './lib/notifications'
 
 export default function App() {
   const { user, loading, activeTab, profile, profileLoaded, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
@@ -68,24 +67,6 @@ export default function App() {
     setShowOnboarding(false)
     setTourReady(true)
 
-    // 2. YENİ İŞLEM: Kava Veritabanı (Google Sheets) Bağlantısı
-    const sheetsWebhookURL = "http://localhost:5678/webhook/e6f375b4-ce05-4994-8d3c-32b272cca6b8";
-
-    try {
-      await fetch(sheetsWebhookURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Profildeki tüm bilgileri (boy, kilo vb.) ve email'i gönderiyoruz
-        body: JSON.stringify({
-          ...profile,
-          email: user?.email,
-          kayitTarihi: new Date().toLocaleString('tr-TR')
-        })
-      });
-      console.log("Kullanıcı verileri başarıyla tabloya işlendi!");
-    } catch (err) {
-      kavaHataBildir("Onboarding - Veritabanı Kaydı", err.message);
-    }
   }
 
   if (loading) {

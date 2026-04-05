@@ -3,7 +3,6 @@ import { useApp } from '../../context/AppContext'
 import { Chart, registerables } from 'chart.js'
 Chart.register(...registerables)
 
-const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 
 // ── Hedef ilerleme tahmin motoru ──
 function calcGoalProgress(profile, body, exercises, exArchive, goals, foods, calArch) {
@@ -291,7 +290,7 @@ Eksiksiz yaz.`
     let insight = null
     for (const model of GPB_MODELS) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
             body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.8,maxOutputTokens:2048}}) })
         if (!res.ok) continue

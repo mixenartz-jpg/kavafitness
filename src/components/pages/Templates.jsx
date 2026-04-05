@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 
-const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 const AI_MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash', 'gemini-2.0-flash']
 
 export default function TemplatesPage() {
@@ -38,7 +37,7 @@ Sadece JSON döndür:
     for (const model of AI_MODELS) {
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.6, maxOutputTokens:2000} }) }
         )

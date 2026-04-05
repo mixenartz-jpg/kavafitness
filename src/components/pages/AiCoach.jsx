@@ -26,30 +26,23 @@ const MODELS = [
   'gemini-1.5-flash',
 ]
 async function geminiCall(contents, cfg = {}) {
-  // Senin n8n Production URL'in
-  const n8nWebhookURL = "http://localhost:5678/webhook/49ec1704-e010-4943-b039-18b141a7120f";
-
-  try {
-    // contents dizisindeki tüm mesajları tek bir metne birleştirip n8n'e gönderiyoruz
-    // (Çünkü n8n şu an bizden tek bir "soru" bekliyor)
-    const birlesikSoru = contents.map(c => c.parts[0].text).join('\n');
-
-    const res = await fetch(n8nWebhookURL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ soru: birlesikSoru })
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-
-    // n8n'den gelen cevabı uygulamaya döndür
-    return data.cevap;
-
-  } catch (error) {
-    console.error("Zeka merkezine ulaşılamadı:", error);
-    return null;
+  const key = import.meta.env.VITE_GEMINI_KEY
+  for (const model of MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents, generationConfig: cfg })
+        }
+      )
+      if (!res.ok) continue
+      const data = await res.json()
+      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? null
+    } catch { continue }
   }
+  return null
 }
 
 

@@ -311,33 +311,35 @@ ${lines.join('\n')}
       ...newMsgs.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
     ]
 
-    // --- KAVA ZEKA MERKEZİ (n8n) BAĞLANTISI ---
-    const n8nWebhookURL = "http://localhost:5678/webhook/49ec1704-e010-4943-b039-18b141a7120f";
-    const birlesikSoru = contents.map(c => c.parts[0].text).join('\n\n');
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    const key = import.meta.env.VITE_GEMINI_KEY
+    let reply = null
 
-    try {
-      const res = await fetch(n8nWebhookURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ soru: birlesikSoru })
-      });
+    for (const model of MODELS) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents })
+          }
+        )
+        if (!res.ok) continue
+        const data = await res.json()
+        reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null
+        if (reply) break
+      } catch { continue }
+    }
 
-      if (!res.ok) throw new Error("Sunucu yanıt vermedi");
-
-      const data = await res.json();
-
+    if (reply) {
+      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
+    } else {
+      kavaHataBildir("PersonalCoach", "Gemini API yanıt vermedi")
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: data.cevap || '⚠️ Geçerli bir yanıt alınamadı.'
-      }]);
-
-    } catch (err) {
-      // --- TELEGRAM HATA BİLDİRİMİ BURADA ÇALIŞIR ---
-      kavaHataBildir("PersonalCoach - Zeka Merkezi", err.message);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: '⚠️ Zeka merkezine ulaşılamadı, bağlantını kontrol et.'
-      }]);
+        text: '⚠️ Yapay zekaya ulaşılamadı, lütfen tekrar dene.'
+      }])
     }
 
     setLoading(false)

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 
-const GKEY = 'AIzaSyAODsXtQwZfZRHAxLE46uu8XRbOwkd4t6U'
 
 function getWeekRange(weeksAgo = 0) {
   const now = new Date()
@@ -102,7 +101,7 @@ Eksiksiz yaz.`
     for (const model of W_MODELS) {
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GKEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,
           { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.8,maxOutputTokens:2048} }) }
         )
