@@ -24,12 +24,14 @@ import BottomNav from './components/BottomNav'
 import AchievementsPage from './components/pages/Achievements'
 import ExercisesPage from './components/pages/Exercises'
 import TourGuide from './components/TourGuide'
+import Landing from './components/pages/Landing'
 
 export default function App() {
   const { user, loading, activeTab, profile, profileLoaded, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [tourReady, setTourReady] = useState(false) // onboarding bitmeden tur açılmasın
+  const [showLanding, setShowLanding] = useState(true)
 
   // Tema uygula
   useEffect(() => {
@@ -84,7 +86,12 @@ export default function App() {
     )
   }
 
-  if (!user) return <AuthScreen />
+  if (!user) {
+    if (showLanding) {
+      return <Landing onLoginClick={() => setShowLanding(false)} />
+    }
+    return <AuthScreen onBack={() => setShowLanding(true)} />
+  }
 
   // Geçmiş gün kontrolü
   const isViewingPast = viewingDate !== todayKey()
