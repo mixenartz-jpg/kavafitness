@@ -25,6 +25,8 @@ import AchievementsPage from './components/pages/Achievements'
 import ExercisesPage from './components/pages/Exercises'
 import TourGuide from './components/TourGuide'
 import Landing from './components/pages/Landing'
+import FloatingChatbot from './components/FloatingChatbot'
+import PersonalTrainerPage from './components/pages/PersonalTrainer'
 
 export default function App() {
   const { user, loading, activeTab, profile, profileLoaded, uid, viewingDate, todayKey, theme, xpPopup, badgePopup, saveProfile } = useApp()
@@ -104,6 +106,7 @@ export default function App() {
         <div style={{ paddingBottom: 72 }}>
           <DaySummaryPage />
         </div>
+        <FloatingChatbot />
         <BottomNav />
         <Toast />
       </>
@@ -129,7 +132,8 @@ export default function App() {
     foodrecognize: <FoodRecognizePage />,
     achievements: <AchievementsPage />,
     exercises: <ExercisesPage />,
-    download: <DownloadPage />
+    download: <DownloadPage />,
+    trainer: <PersonalTrainerPage />,
   }
 
   return (
@@ -148,6 +152,7 @@ export default function App() {
           {pages[activeTab] ?? <TodayPage />}
         </div>
       </div>
+      <FloatingChatbot />
       <BottomNav />
       <Toast />
 

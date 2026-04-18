@@ -14,9 +14,10 @@ const MORE_SECTIONS = [
   {
     label: 'SPOR',
     items: [
-      { id:'templates', icon:'clipboard', label:'Şablonlar'      },
-      { id:'history',   icon:'calendar',  label:'Geçmiş'         },
-      { id:'progress',  icon:'chart',     label:'İlerleme'       },
+      { id:'trainer',   icon:'dumbbell',  label:'Personal Trainer' },
+      { id:'templates', icon:'clipboard', label:'Şablonlar'        },
+      { id:'history',   icon:'calendar',  label:'Geçmiş'           },
+      { id:'progress',  icon:'chart',     label:'İlerleme'         },
     ],
   },
   {

@@ -69,9 +69,24 @@ const QUICK_PROMPTS = [
   'Kahvaltıda ne yemeliyim kilo vermek için?',
 ]
 const PERSONAS = [
-  { id: 'friendly', name: 'Destekleyici', icon: '😊', prompt: 'Arkadaş canlısı, destekleyici ve motive edici fitness asistanısın. Emojilerle motive et. Kullanıcıya DENGELİ ve yardımcı olacak kadar açıklayıcı (3-4 kısa paragraf) bilgi ver. Detaylı, karmaşık bir program veya uzun vadeli beslenme planı sorulursa cümlenin sonuna "Bana sorduğun bu detaylı konu için menüdeki Kişisel Koç\'u denemeni çok isterim, sana özel destansı planlar yapabilir!" şeklinde sevimli bir yönlendirme ekle.' },
-  { id: 'sergeant', name: 'Askeri Koç', icon: '🎖️', prompt: 'Acımasız, disiplinli askeri koçsun. "Asker" diye hitap et. Tokat gibi, net ve vurucu tavsiyeler ver (Maks 3-4 paragraf). Gevşekliğe tahammülün yok. Eğer detaylı/uzun bir program isterlerse zayıflıklarını yüzlerine vurup "Detaylı plan arıyorsan burada mızmızlanma, git yeteneğini Kişisel Koç\'la şekillendir, o sana göre!" diyerek fırçala ve yönlendir.' },
-  { id: 'philosophical', name: 'Filozof', icon: '🧘', prompt: 'Bilge, sakin ve felsefik bir koçsun. Vücut ve zihin bütünlüğünden, stoacı felsefeden bahset. Yeterince doyurucu ve edebi ama okunabilir (3-4 kısa paragraf) tavsiyeler ver. Kapsamlı yol haritası arıyorlarsa son cümlede "Eğer zihnindeki büyük resmi daha derin planlarla çizmek istiyorsan, içsel yolculuğuna Kişisel Koç ile devam etmeni öneririm." diyerek bilgece yönlendir.' }
+  {
+    id: 'friendly', name: 'Destekleyici', icon: '😊',
+    prompt: `Sen KavaFit fitness ve beslenme asistanısın. SADECE fitness, antrenman, beslenme, kalori, makro, vücut ölçüleri, uyku ve toparlanma konularında yardım et. Bu konular dışında "Bu konuda yardımcı olamam, ama fitness hedefinle ilgili bir şey sormak ister misin?" de.
+
+Cevapların maksimum 3-4 kısa paragraf. Emojilerle motive et. Eğer kullanıcı kalori veya beslenmeyle ilgili bir soru sorarsa cevabının sonuna tam olarak [NAV:calorie] ekle. Eğer antrenman günlüğü veya bugünkü antrenmanla ilgili bir şey sorarsa [NAV:today] ekle. Eğer detaylı kişisel program veya uzun vadeli plan isterlerse cevabın sonuna [NAV:coach] ekle ve "Bunun için Kişisel Koçunu kullanmanı öneririm!" de. Eğer makro hedefler veya TDEE'den bahsediyorsa [NAV:goals] ekle. Eğer ilerleme veya grafiklerden bahsediyorsa [NAV:progress] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle, her mesajda ekleme.`
+  },
+  {
+    id: 'sergeant', name: 'Askeri Koç', icon: '🎖️',
+    prompt: `Sen KavaFit askeri fitness koçusun. SADECE antrenman, beslenme, disiplin, fiziksel performans konularında cevap ver. Başka konularda "Bu alanda yetkim yok asker, fitness sorularına odaklan!" de.
+
+"Asker" diye hitap et. Maks 3-4 kısa, sert, direkt paragraf. Bahane yok. Eğer kalori/beslenme konusundaysa cevabın sonuna [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Detaylı program isterse [NAV:coach] ekle ve "Detaylı plan için Kişisel Koça git, orada şekillenirsin!" de. Sadece gerçekten ilgili olduğunda NAV etiketi ekle.`
+  },
+  {
+    id: 'philosophical', name: 'Filozof', icon: '🧘',
+    prompt: `Sen KavaFit stoacı fitness filozofusun. SADECE beden, zihin, disiplin, beslenme ve fiziksel toparlanma konularında felsefi ama pratik tavsiyeler ver. Başka konularda "Bu yol benim yolum değil, ama bedenine dair bir soru varsa yürüyelim birlikte." de.
+
+Maks 3-4 paragraf, edebi ama anlaşılır. Eğer kalori/beslenme konusundaysa cevabın sonuna [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Kapsamlı plan isterse [NAV:coach] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle.`
+  },
 ]
 
 function ToolButton({ icon, label, onClick }) {
@@ -179,8 +194,13 @@ export default function AiCoachPage() {
     ]
     try {
       const reply = await geminiCall(contents, { maxOutputTokens: 1200 })
-      if (reply) { checkAndUseAiCredit('chat'); setMessages(prev => [...prev, { role: 'assistant', text: reply }]) }
-      else setMessages(prev => [...prev, { role: 'assistant', text: 'Yanıt alınamadı, tekrar dene.' }])
+      if (reply) {
+        checkAndUseAiCredit('chat')
+        const navMatch = reply.match(/\[NAV:(\w+)\]/)
+        const navAction = navMatch ? navMatch[1] : null
+        const cleanReply = reply.replace(/\[NAV:\w+\]/g, '').trim()
+        setMessages(prev => [...prev, { role: 'assistant', text: cleanReply, navAction }])
+      } else setMessages(prev => [...prev, { role: 'assistant', text: 'Yanıt alınamadı, tekrar dene.' }])
     } catch (err) {
       kavaHataBildir("AiCoach - Sohbet", err.message);
       setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Bağlantı hatası, tekrar dene.' }]);
@@ -316,6 +336,18 @@ Eksiksiz ama çok kısa yaz.`
                 </div>
                 <div style={{ maxWidth: '80%', background: msg.role === 'user' ? 'var(--accent)' : 'var(--surface2)', border: msg.role === 'user' ? '1px solid var(--accent)' : '1px solid var(--border)', borderRadius: msg.role === 'user' ? '18px 4px 18px 18px' : '4px 18px 18px 18px', padding: '12px 16px', boxShadow: msg.role === 'user' ? '0 4px 12px rgba(232,255,71,0.15)' : 'none' }}>
                   <div style={{ fontSize: 14, lineHeight: 1.6, color: msg.role === 'user' ? '#0a0a0a' : 'var(--text)', fontFamily: 'Inter,sans-serif', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.text}</div>
+                  {msg.navAction && (
+                    <button
+                      onClick={() => setActiveTab(msg.navAction)}
+                      style={{ marginTop: 8, padding: '6px 14px', borderRadius: 20, border: 'none', background: 'var(--accent)', color: '#0a0a0a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'block', fontFamily: 'Space Mono,monospace' }}
+                    >
+                      {msg.navAction === 'calorie' ? '🍎 Kalori Sayfasına Git →' :
+                       msg.navAction === 'today' ? '🏋️ Antrenman Sayfasına Git →' :
+                       msg.navAction === 'coach' ? '🤖 Kişisel Koça Git →' :
+                       msg.navAction === 'goals' ? '🎯 Hedefler Sayfasına Git →' :
+                       msg.navAction === 'progress' ? '📊 İlerleme Sayfasına Git →' : '→ Git'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

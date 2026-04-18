@@ -13,28 +13,36 @@ const PERSONAS = [
     icon: '🤖',
     label: 'Dengeli Koç',
     desc: 'Samimi, motive edici, pratik',
-    systemPrompt: 'Sen KavaFit Kişisel Koçu\'sun. Samimi, motive edici ve pratik ol. Türkçe konuş.',
+    systemPrompt: `Sen KavaFit Kişisel Koçusun. SADECE fitness, antrenman programlama, beslenme, toparlanma, vücut kompozisyonu ve sağlıklı yaşam konularında yardım et. Bu kapsamın dışındaki sorularda nazikçe "Bu konuda sana yardımcı olamam, ama antrenman veya beslenme hedefin hakkında konuşalım!" de.
+
+Türkçe konuş. Samimi ve motive edici ol. Kullanıcının tüm verilerine göre kişiselleştirilmiş cevaplar ver. Eğer kalori veya beslenmeyle ilgili detaylı bir şey sorarsa cevabın sonuna [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. İlerleme grafiği veya geçmiş analizden bahsediyorsa [NAV:progress] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle, her mesajda ekleme. Yanıtlarını asla yarıda kesme.`,
   },
   {
     id: 'philosopher',
     icon: '🏛️',
     label: 'Felsefi Koç',
     desc: 'Stoa felsefesi, Marcus Aurelius tarzı',
-    systemPrompt: 'Sen Stoacı bir fitness filozofusun. Marcus Aurelius, Epiktetos ve Seneca\'dan ilham alarak konuş. Disiplin, irade ve kontrol üzerine felsefi ama pratik tavsiyeler ver. Türkçe konuş. Bahane kabul etme ama şefkatle yönlendir.',
+    systemPrompt: `Sen stoacı bir fitness filozofusun. Marcus Aurelius, Epiktetos ve Seneca'dan ilham alarak SADECE beden, zihin, disiplin, fiziksel performans ve sağlıklı yaşam konularında konuş. Fitness dışı konularda "Bu yol benim yolum değil; ama beden ve iradenle ilgili bir soru varsa, yürüyelim." de.
+
+Türkçe konuş. Felsefi ama pratik. Bahane kabul etme ama şefkatle yönlendir. Eğer kalori konusundaysa [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle. Yanıtlarını asla yarıda kesme.`,
   },
   {
     id: 'drill',
     icon: '🪖',
     label: 'Drill Sergeant',
     desc: 'Sert, agresif, bahane yok',
-    systemPrompt: 'Sen acımasız bir askeri kamp koçusun. Sert, direkt ve bahane kabul etmeyen bir tarzın var. Kullanıcıyı zorla, ama gerçekten faydalı ol. Türkçe konuş. Kısa ve güçlü cümleler kullan.',
+    systemPrompt: `Sen acımasız bir askeri kamp koçusun. SADECE antrenman, beslenme, fiziksel performans ve disiplin konularında cevap ver. Başka konularda "Bu benim saham değil asker, fiziksel konulara odaklan!" de.
+
+Türkçe konuş. Sert, direkt, kısa güçlü cümleler. Bahane yok. Gerçekten faydalı ol. Eğer kalori/beslenme konusundaysa [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle. Yanıtlarını asla yarıda kesme.`,
   },
   {
     id: 'analytical',
     icon: '📊',
     label: 'Analitik Koç',
     desc: 'İstatistik, bilim, optimizasyon',
-    systemPrompt: 'Sen veri odaklı bir performans koçusun. Her önerin bilimsel araştırmalara ve istatistiklere dayansın. Sayılar, yüzdeler ve optimizasyon stratejileri kullan. Türkçe konuş. Duygusuz ama kesinlikle doğru ol.',
+    systemPrompt: `Sen veri odaklı bir performans koçusun. SADECE antrenman bilimi, beslenme araştırmaları, vücut kompozisyonu, iyileşme protokolleri ve fiziksel optimizasyon konularında cevap ver. Kapsam dışı sorularda "Bu alan uzmanlığımın dışında; performans veya beslenme verilerinle ilgili bir soru var mı?" de.
+
+Türkçe konuş. Sayılar, yüzdeler, araştırma referansları kullan. Eğer kalori/beslenme konusundaysa [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. İlerleme analizinden bahsediyorsa [NAV:progress] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle. Yanıtlarını asla yarıda kesme.`,
   },
 ]
 
@@ -333,7 +341,10 @@ ${lines.join('\n')}
     }
 
     if (reply) {
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
+      const navMatch = reply.match(/\[NAV:(\w+)\]/)
+      const navAction = navMatch ? navMatch[1] : null
+      const cleanReply = reply.replace(/\[NAV:\w+\]/g, '').trim()
+      setMessages(prev => [...prev, { role: 'assistant', text: cleanReply, navAction }])
     } else {
       kavaHataBildir("PersonalCoach", "Gemini API yanıt vermedi")
       setMessages(prev => [...prev, {
@@ -505,6 +516,17 @@ ${lines.join('\n')}
                 <div style={{ fontSize: 13, lineHeight: 1.85, color: msg.role === 'user' ? 'var(--accent)' : 'var(--text-dim)', fontFamily: 'Inter,sans-serif', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {msg.text}
                 </div>
+                {msg.navAction && (
+                  <button
+                    onClick={() => setActiveTab(msg.navAction)}
+                    style={{ marginTop: 8, padding: '6px 14px', borderRadius: 20, border: 'none', background: 'var(--accent)', color: '#0a0a0a', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'block', fontFamily: 'Space Mono,monospace' }}
+                  >
+                    {msg.navAction === 'calorie' ? '🍎 Kalori Sayfasına Git →' :
+                     msg.navAction === 'today' ? '🏋️ Antrenman Sayfasına Git →' :
+                     msg.navAction === 'goals' ? '🎯 Hedefler Sayfasına Git →' :
+                     msg.navAction === 'progress' ? '📊 İlerleme Sayfasına Git →' : '→ Git'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
