@@ -12,8 +12,8 @@
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.0",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@remotion/player": "^4.0.448",
     "@remotion/transitions": "^4.0.448",
     "chart.js": "^4.4.1",
@@ -29,7 +29,7 @@
     "react-router-dom": "^7.13.1",
     "remotion": "^4.0.448",
     "tailwind-merge": "^3.5.0",
-    "three": "^0.184.0"
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
