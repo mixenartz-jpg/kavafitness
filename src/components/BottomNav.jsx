@@ -14,29 +14,29 @@ const MORE_SECTIONS = [
   {
     label: 'SPOR',
     items: [
-      { id:'trainer',   icon:'dumbbell',  label:'Personal Trainer' },
-      { id:'templates', icon:'clipboard', label:'Şablonlar'        },
-      { id:'history',   icon:'calendar',  label:'Geçmiş'           },
-      { id:'progress',  icon:'chart',     label:'İlerleme'         },
+      { id:'trainer',   icon:'dumbbell',  label:'Personal Trainer', desc:'3D animasyonlu AI antrenör' },
+      { id:'templates', icon:'clipboard', label:'Şablonlar',        desc:'Hazır antrenman programları' },
+      { id:'history',   icon:'calendar',  label:'Geçmiş',           desc:'Tüm antrenman kayıtların'   },
+      { id:'progress',  icon:'chart',     label:'İlerleme',         desc:'Grafik & kilo takibi'       },
     ],
   },
   {
     label: 'DİYET & AI',
     items: [
-      { id:'goals',         icon:'target', label:'Makro Hedefler' },
-      { id:'aicoach',       icon:'robot',  label:'AI Koçu'        },
-      { id:'coach',         icon:'star',   label:'Kişisel Koç'    },
-      { id:'foodrecognize', icon:'food',   label:'Yemek Tanıma'   },
+      { id:'goals',         icon:'target', label:'Makro Hedefler', desc:'Kalori & makro hedef ayarla'  },
+      { id:'aicoach',       icon:'robot',  label:'AI Koçu',        desc:'Gemini destekli fitness AI'   },
+      { id:'coach',         icon:'star',   label:'Kişisel Koç',    desc:'İnteraktif AI kişisel antrenör' },
+      { id:'foodrecognize', icon:'food',   label:'Yemek Tanıma',   desc:'Fotoğrafla kalori tespiti'    },
     ],
   },
   {
     label: 'DİĞER',
     items: [
-      { id:'achievements', icon:'award',    label:'Başarılar'       },
-      { id:'settings',     icon:'settings', label:'Ayarlar'         },
-      { id:'share',        icon:'share',    label:'Paylaş'          },
-      { id:'recognize',    icon:'camera',   label:'Egzersiz Tanıma' },
-      { id:'download',     icon:'download', label:'İndir'           },
+      { id:'achievements', icon:'award',    label:'Başarılar',       desc:'Rozetler & XP seviyelerin'   },
+      { id:'settings',     icon:'settings', label:'Ayarlar',         desc:'Profil & uygulama ayarları'  },
+      { id:'share',        icon:'share',    label:'Paylaş',          desc:'Arkadaşlarınla paylaş'       },
+      { id:'recognize',    icon:'camera',   label:'Egzersiz Tanıma', desc:'Kamerayla hareket analizi'   },
+      { id:'download',     icon:'download', label:'İndir',           desc:'Veriyi dışa aktar'           },
     ],
   },
 ]
@@ -77,7 +77,7 @@ export default function BottomNav() {
       {/* ── Sağ Panel ── */}
       <div ref={panelRef} style={{
         position:'fixed', top:0, right:0, bottom:58,
-        width:252, zIndex:199,
+        width:280, zIndex:199,
         background:'var(--surface)',
         borderLeft:'1px solid var(--border)',
         display:'flex', flexDirection:'column',
@@ -137,14 +137,19 @@ export default function BottomNav() {
                   onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--surface2)' }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                   >
-                    <Icon name={item.icon} size={16} color={active ? 'var(--text)' : 'var(--text-muted)'} strokeWidth={active ? 2 : 1.6}/>
-                    <span style={{
-                      fontFamily:"'Space Grotesk',sans-serif",
-                      fontWeight: active ? 600 : 400,
-                      fontSize:13, color: active ? 'var(--text)' : 'var(--text-dim)', flex:1,
-                    }}>
-                      {item.label}
-                    </span>
+                    <div style={{ width:32, height:32, borderRadius:8, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: active ? 'var(--accent)22' : 'var(--surface2)', border:`1px solid ${active ? 'var(--accent)44' : 'var(--border)'}` }}>
+                      <Icon name={item.icon} size={15} color={active ? 'var(--accent)' : 'var(--text-muted)'} strokeWidth={active ? 2 : 1.6}/>
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight: active ? 600 : 500, fontSize:13, color: active ? 'var(--text)' : 'var(--text-dim)' }}>
+                        {item.label}
+                      </div>
+                      {item.desc && (
+                        <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:10, color:'var(--text-muted)', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                          {item.desc}
+                        </div>
+                      )}
+                    </div>
                     {active && <div style={{ width:5, height:5, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>}
                   </div>
                 )

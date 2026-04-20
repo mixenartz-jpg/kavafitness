@@ -2,20 +2,57 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useApp, PERSONA_UNLOCKS } from '../../context/AppContext'
 import { kavaHataBildir } from '../../lib/notifications'
 
+// ── ACTION tag parser ──
+function parseActions(text) {
+  const actions = []
+  // [ACTION:add_food:{...}], [ACTION:add_exercise:{...}], [ACTION:set_goal:{...}], [ACTION:nav:tab]
+  const clean = text.replace(/\[ACTION:([^\]]+)\]/g, (match, inner) => {
+    try {
+      const colonIdx = inner.indexOf(':')
+      if (colonIdx === -1) return ''
+      const type = inner.slice(0, colonIdx)
+      const rest = inner.slice(colonIdx + 1)
+      if (type === 'nav') {
+        actions.push({ type: 'nav', sub: rest, data: null })
+      } else {
+        const data = JSON.parse(rest)
+        actions.push({ type, data })
+      }
+    } catch { /* malformed tag — ignore */ }
+    return ''
+  })
+  // eski [NAV:x] formatını da destekle
+  const navClean = clean.replace(/\[NAV:(\w+)\]/g, (_, tab) => {
+    actions.push({ type: 'nav', sub: tab, data: null })
+    return ''
+  })
+  return { cleanText: navClean.trim(), actions }
+}
+
 const COACH_PASS = 'kerembaba12358'
 const PASS_KEY = 'coach_unlocked'
 const PERSONA_KEY = 'coach_persona'
 
 // ── AI Kişilik Modları ──
+const ACTION_INSTRUCTIONS = `
+YETKİLERİN (sadece kullanıcı açıkça "ekle", "kaydet", "güncelle" dediğinde kullan):
+- Sayfaya yönlendirme: [ACTION:nav:calorie], [ACTION:nav:today], [ACTION:nav:progress], [ACTION:nav:goals], [ACTION:nav:exercises], [ACTION:nav:trainer]
+- Yemek ekleme: [ACTION:add_food:{"name":"Tavuk Göğsü","kcal":165,"protein":31,"fat":4,"carb":0,"gram":150}]
+- Egzersiz ekleme: [ACTION:add_exercise:{"name":"Bench Press","sets":4,"reps":"8-10","weight":80}]
+- Hedef güncelleme: [ACTION:set_goal:{"kcal":2200,"protein":160,"fat":70,"carb":200}]
+
+KURALLAR: Aksiyonları sadece kullanıcı açıkça isterse kullan. Her mesajda max 2 aksiyon. Yanıtlarını asla yarıda kesme.`
+
 const PERSONAS = [
   {
     id: 'balanced',
     icon: '🤖',
     label: 'Dengeli Koç',
     desc: 'Samimi, motive edici, pratik',
-    systemPrompt: `Sen KavaFit Kişisel Koçusun. SADECE fitness, antrenman programlama, beslenme, toparlanma, vücut kompozisyonu ve sağlıklı yaşam konularında yardım et. Bu kapsamın dışındaki sorularda nazikçe "Bu konuda sana yardımcı olamam, ama antrenman veya beslenme hedefin hakkında konuşalım!" de.
+    systemPrompt: `Sen FitTrack Kişisel Koçusun — kullanıcının tüm fitness verilerine erişimin var. SADECE fitness, antrenman programlama, beslenme, toparlanma, vücut kompozisyonu ve sağlıklı yaşam konularında yardım et. Bu kapsamın dışındaki sorularda nazikçe "Bu konuda sana yardımcı olamam, ama antrenman veya beslenme hedefin hakkında konuşalım!" de.
 
-Türkçe konuş. Samimi ve motive edici ol. Kullanıcının tüm verilerine göre kişiselleştirilmiş cevaplar ver. Eğer kalori veya beslenmeyle ilgili detaylı bir şey sorarsa cevabın sonuna [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. İlerleme grafiği veya geçmiş analizden bahsediyorsa [NAV:progress] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle, her mesajda ekleme. Yanıtlarını asla yarıda kesme.`,
+Türkçe konuş. Samimi ve motive edici ol. Kullanıcının tüm verilerine göre kişiselleştirilmiş, derinlikli cevaplar ver. Genel kalıplar yerine kullanıcının spesifik verilerini (kilosu, hedefi, geçmiş antrenmanları) kullan.
+${ACTION_INSTRUCTIONS}`,
   },
   {
     id: 'philosopher',
@@ -24,7 +61,8 @@ Türkçe konuş. Samimi ve motive edici ol. Kullanıcının tüm verilerine gör
     desc: 'Stoa felsefesi, Marcus Aurelius tarzı',
     systemPrompt: `Sen stoacı bir fitness filozofusun. Marcus Aurelius, Epiktetos ve Seneca'dan ilham alarak SADECE beden, zihin, disiplin, fiziksel performans ve sağlıklı yaşam konularında konuş. Fitness dışı konularda "Bu yol benim yolum değil; ama beden ve iradenle ilgili bir soru varsa, yürüyelim." de.
 
-Türkçe konuş. Felsefi ama pratik. Bahane kabul etme ama şefkatle yönlendir. Eğer kalori konusundaysa [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle. Yanıtlarını asla yarıda kesme.`,
+Türkçe konuş. Felsefi ama pratik. Bahane kabul etme ama şefkatle yönlendir. Kullanıcının verilerini felsefi perspektifle yorumla — rakamları anlam ve bağlamla sun.
+${ACTION_INSTRUCTIONS}`,
   },
   {
     id: 'drill',
@@ -33,7 +71,8 @@ Türkçe konuş. Felsefi ama pratik. Bahane kabul etme ama şefkatle yönlendir.
     desc: 'Sert, agresif, bahane yok',
     systemPrompt: `Sen acımasız bir askeri kamp koçusun. SADECE antrenman, beslenme, fiziksel performans ve disiplin konularında cevap ver. Başka konularda "Bu benim saham değil asker, fiziksel konulara odaklan!" de.
 
-Türkçe konuş. Sert, direkt, kısa güçlü cümleler. Bahane yok. Gerçekten faydalı ol. Eğer kalori/beslenme konusundaysa [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle. Yanıtlarını asla yarıda kesme.`,
+Türkçe konuş. Sert, direkt, kısa güçlü cümleler. Bahane yok. Kullanıcının verilerini kullanarak kişiye özel emirler ver. Genel tavsiye değil, o kişiye özel direktif.
+${ACTION_INSTRUCTIONS}`,
   },
   {
     id: 'analytical',
@@ -42,7 +81,8 @@ Türkçe konuş. Sert, direkt, kısa güçlü cümleler. Bahane yok. Gerçekten 
     desc: 'İstatistik, bilim, optimizasyon',
     systemPrompt: `Sen veri odaklı bir performans koçusun. SADECE antrenman bilimi, beslenme araştırmaları, vücut kompozisyonu, iyileşme protokolleri ve fiziksel optimizasyon konularında cevap ver. Kapsam dışı sorularda "Bu alan uzmanlığımın dışında; performans veya beslenme verilerinle ilgili bir soru var mı?" de.
 
-Türkçe konuş. Sayılar, yüzdeler, araştırma referansları kullan. Eğer kalori/beslenme konusundaysa [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. İlerleme analizinden bahsediyorsa [NAV:progress] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle. Yanıtlarını asla yarıda kesme.`,
+Türkçe konuş. Sayılar, yüzdeler, araştırma referansları kullan. Kullanıcının somut verilerini (ağırlıklar, kalo, makrolar, streak) analiz ederek kanıta dayalı öneriler ver.
+${ACTION_INSTRUCTIONS}`,
   },
 ]
 
@@ -171,7 +211,7 @@ function LockScreen({ onUnlock }) {
 
 // ── Ana Koç Sayfası ──
 export default function PersonalCoachPage() {
-  const { profile, goals, foods, exercises, exArchive, body, streak, calArch, todayKey, totalXP, setActiveTab } = useApp()
+  const { profile, goals, foods, exercises, exArchive, body, streak, calArch, todayKey, totalXP, setActiveTab, saveFoods, saveExercises, saveGoals, showToast, genId } = useApp()
 
   const [unlocked, setUnlocked] = useState(() => !!localStorage.getItem(PASS_KEY))
   const [persona, setPersona] = useState(() => localStorage.getItem(PERSONA_KEY) || 'balanced')
@@ -319,7 +359,7 @@ ${lines.join('\n')}
       ...newMsgs.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
     ]
 
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
     const key = import.meta.env.VITE_GEMINI_KEY
     let reply = null
 
@@ -333,7 +373,12 @@ ${lines.join('\n')}
             body: JSON.stringify({ contents })
           }
         )
-        if (!res.ok) continue
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          if (res.status === 429 || res.status === 503) continue
+          if (res.status === 400) break
+          continue
+        }
         const data = await res.json()
         reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null
         if (reply) break
@@ -341,15 +386,48 @@ ${lines.join('\n')}
     }
 
     if (reply) {
-      const navMatch = reply.match(/\[NAV:(\w+)\]/)
-      const navAction = navMatch ? navMatch[1] : null
-      const cleanReply = reply.replace(/\[NAV:\w+\]/g, '').trim()
-      setMessages(prev => [...prev, { role: 'assistant', text: cleanReply, navAction }])
+      const { cleanText, actions } = parseActions(reply)
+
+      // Aksiyonları uygula
+      for (const action of actions) {
+        if (action.type === 'nav' && action.sub) {
+          setActiveTab(action.sub)
+        } else if (action.type === 'add_food' && action.data) {
+          const gram = action.data.gram || 100
+          const scale = gram / 100
+          const newFood = {
+            id: genId(),
+            name: action.data.name,
+            kcal: Math.round((action.data.kcal || 0) * scale),
+            protein: Math.round((action.data.protein || 0) * scale),
+            fat: Math.round((action.data.fat || 0) * scale),
+            carb: Math.round((action.data.carb || 0) * scale),
+            gram,
+          }
+          saveFoods([...foods, newFood])
+          showToast(`✅ ${newFood.name} (${gram}g) bugüne eklendi`)
+        } else if (action.type === 'add_exercise' && action.data) {
+          const newEx = {
+            id: genId(),
+            name: action.data.name,
+            sets: Array.from({ length: action.data.sets || 3 }, () => ({
+              id: genId(), reps: action.data.reps || '8', weight: action.data.weight || 0, done: false,
+            })),
+          }
+          saveExercises([...exercises, newEx])
+          showToast(`💪 ${newEx.name} antrenmanına eklendi`)
+        } else if (action.type === 'set_goal' && action.data) {
+          saveGoals({ ...goals, ...action.data })
+          showToast('🎯 Makro hedefler güncellendi')
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', text: cleanText, actions }])
     } else {
-      kavaHataBildir("PersonalCoach", "Gemini API yanıt vermedi")
+      try { kavaHataBildir("PersonalCoach", "Gemini API yanıt vermedi") } catch {}
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: '⚠️ Yapay zekaya ulaşılamadı, lütfen tekrar dene.'
+        text: '⚠️ Koça şu an ulaşılamıyor. İnternet bağlantını kontrol et ve tekrar dene.'
       }])
     }
 
@@ -516,7 +594,22 @@ ${lines.join('\n')}
                 <div style={{ fontSize: 13, lineHeight: 1.85, color: msg.role === 'user' ? 'var(--accent)' : 'var(--text-dim)', fontFamily: 'Inter,sans-serif', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {msg.text}
                 </div>
-                {msg.navAction && (
+                {/* Nav aksiyonları */}
+                {msg.actions && msg.actions.filter(a => a.type === 'nav').map((action, i) => (
+                  <button key={i}
+                    onClick={() => setActiveTab(action.sub)}
+                    style={{ marginTop: 8, padding: '6px 14px', borderRadius: 20, border: 'none', background: 'var(--accent)', color: '#0a0a0a', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'block', fontFamily: 'Space Mono,monospace' }}
+                  >
+                    {action.sub === 'calorie' ? '🍎 Kalori Sayfasına Git →' :
+                     action.sub === 'today' ? '🏋️ Antrenman Sayfasına Git →' :
+                     action.sub === 'goals' ? '🎯 Hedefler Sayfasına Git →' :
+                     action.sub === 'progress' ? '📊 İlerleme Sayfasına Git →' :
+                     action.sub === 'exercises' ? '💪 Hareketler Sayfasına Git →' :
+                     action.sub === 'trainer' ? '🤖 Personal Trainer\'a Git →' : `→ ${action.sub}`}
+                  </button>
+                ))}
+                {/* Eski navAction formatı desteği */}
+                {msg.navAction && !msg.actions && (
                   <button
                     onClick={() => setActiveTab(msg.navAction)}
                     style={{ marginTop: 8, padding: '6px 14px', borderRadius: 20, border: 'none', background: 'var(--accent)', color: '#0a0a0a', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'block', fontFamily: 'Space Mono,monospace' }}
@@ -527,6 +620,20 @@ ${lines.join('\n')}
                      msg.navAction === 'progress' ? '📊 İlerleme Sayfasına Git →' : '→ Git'}
                   </button>
                 )}
+                {/* Uygulanan aksiyonlar */}
+                {msg.actions && msg.actions.filter(a => a.type !== 'nav').map((action, i) => (
+                  <div key={i} style={{
+                    marginTop: 6, padding: '5px 10px',
+                    background: 'rgba(71,200,255,0.1)',
+                    border: '1px solid rgba(71,200,255,0.2)',
+                    borderRadius: 8, fontSize: 11,
+                    color: '#47c8ff', fontFamily: 'Space Mono,monospace',
+                  }}>
+                    {action.type === 'add_food' && `✅ ${action.data?.name} eklendi`}
+                    {action.type === 'add_exercise' && `💪 ${action.data?.name} eklendi`}
+                    {action.type === 'set_goal' && '🎯 Hedefler güncellendi'}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
