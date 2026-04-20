@@ -68,24 +68,31 @@ const QUICK_PROMPTS = [
   'Vejetaryen protein kaynakları neler?',
   'Kahvaltıda ne yemeliyim kilo vermek için?',
 ]
+const ACTION_INSTRUCTIONS = `
+
+YETKİLERİN (kullanıcı açıkça istediğinde kullan):
+- Sayfaya yönlendirme: [ACTION:nav:calorie], [ACTION:nav:today], [ACTION:nav:goals], [ACTION:nav:coach], [ACTION:nav:progress]
+- Makro hedef güncelleme: [ACTION:set_goal:{"kcal":2000,"protein":150,"fat":70,"carb":200}]
+Kullanıcı "makrolarımı ayarla", "hedeflerimi güncelle", "kalori hedefimi değiştir" gibi bir şey derse mevcut profil verilerine göre uygun makroları hesapla ve [ACTION:set_goal:{...}] ile uygula, ardından [ACTION:nav:goals] da ekle. Her mesajda max 2 aksiyon.`
+
 const PERSONAS = [
   {
     id: 'friendly', name: 'Destekleyici', icon: '😊',
     prompt: `Sen KavaFit fitness ve beslenme asistanısın. SADECE fitness, antrenman, beslenme, kalori, makro, vücut ölçüleri, uyku ve toparlanma konularında yardım et. Bu konular dışında "Bu konuda yardımcı olamam, ama fitness hedefinle ilgili bir şey sormak ister misin?" de.
 
-Cevapların maksimum 3-4 kısa paragraf. Emojilerle motive et. Eğer kullanıcı kalori veya beslenmeyle ilgili bir soru sorarsa cevabının sonuna tam olarak [NAV:calorie] ekle. Eğer antrenman günlüğü veya bugünkü antrenmanla ilgili bir şey sorarsa [NAV:today] ekle. Eğer detaylı kişisel program veya uzun vadeli plan isterlerse cevabın sonuna [NAV:coach] ekle ve "Bunun için Kişisel Koçunu kullanmanı öneririm!" de. Eğer makro hedefler veya TDEE'den bahsediyorsa [NAV:goals] ekle. Eğer ilerleme veya grafiklerden bahsediyorsa [NAV:progress] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle, her mesajda ekleme.`
+Cevapların maksimum 3-4 kısa paragraf. Emojilerle motive et. Kalori/beslenme sorusunda [ACTION:nav:calorie], antrenman için [ACTION:nav:today], detaylı plan için [ACTION:nav:coach], makro/hedef için [ACTION:nav:goals] ekle. Sadece gerçekten ilgili olduğunda ekle.${ACTION_INSTRUCTIONS}`
   },
   {
     id: 'sergeant', name: 'Askeri Koç', icon: '🎖️',
     prompt: `Sen KavaFit askeri fitness koçusun. SADECE antrenman, beslenme, disiplin, fiziksel performans konularında cevap ver. Başka konularda "Bu alanda yetkim yok asker, fitness sorularına odaklan!" de.
 
-"Asker" diye hitap et. Maks 3-4 kısa, sert, direkt paragraf. Bahane yok. Eğer kalori/beslenme konusundaysa cevabın sonuna [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Detaylı program isterse [NAV:coach] ekle ve "Detaylı plan için Kişisel Koça git, orada şekillenirsin!" de. Sadece gerçekten ilgili olduğunda NAV etiketi ekle.`
+"Asker" diye hitap et. Maks 3-4 kısa, sert, direkt paragraf. Kalori/beslenme için [ACTION:nav:calorie], antrenman için [ACTION:nav:today], detaylı plan için [ACTION:nav:coach] ekle. Sadece ilgili olduğunda ekle.${ACTION_INSTRUCTIONS}`
   },
   {
     id: 'philosophical', name: 'Filozof', icon: '🧘',
     prompt: `Sen KavaFit stoacı fitness filozofusun. SADECE beden, zihin, disiplin, beslenme ve fiziksel toparlanma konularında felsefi ama pratik tavsiyeler ver. Başka konularda "Bu yol benim yolum değil, ama bedenine dair bir soru varsa yürüyelim birlikte." de.
 
-Maks 3-4 paragraf, edebi ama anlaşılır. Eğer kalori/beslenme konusundaysa cevabın sonuna [NAV:calorie] ekle. Bugünkü antrenmanla ilgiliyse [NAV:today] ekle. Kapsamlı plan isterse [NAV:coach] ekle. Sadece gerçekten ilgili olduğunda NAV etiketi ekle.`
+Maks 3-4 paragraf, edebi ama anlaşılır. Kalori/beslenme için [ACTION:nav:calorie], antrenman için [ACTION:nav:today], kapsamlı plan için [ACTION:nav:coach] ekle. Sadece ilgili olduğunda ekle.${ACTION_INSTRUCTIONS}`
   },
 ]
 
@@ -98,9 +105,77 @@ function ToolButton({ icon, label, onClick }) {
   )
 }
 
+function parseActions(text) {
+  const actions = []
+  const clean = text.replace(/\[ACTION:([^\]]+)\]/g, (_, inner) => {
+    try {
+      const colonIdx = inner.indexOf(':')
+      if (colonIdx === -1) return ''
+      const type = inner.slice(0, colonIdx)
+      const rest = inner.slice(colonIdx + 1)
+      if (type === 'nav') actions.push({ type: 'nav', sub: rest, data: null })
+      else actions.push({ type, data: JSON.parse(rest) })
+    } catch { /* ignore malformed */ }
+    return ''
+  })
+  const navClean = clean.replace(/\[NAV:(\w+)\]/g, (_, tab) => {
+    actions.push({ type: 'nav', sub: tab, data: null })
+    return ''
+  })
+  return { cleanText: navClean.trim(), actions }
+}
+
+const NAV_LABELS = {
+  calorie: '🍎 Kalori Sayfası →',
+  today: '🏋️ Antrenman →',
+  coach: '🤖 Kişisel Koç →',
+  goals: '🎯 Hedefler →',
+  progress: '📊 İlerleme →',
+  trainer: '🏋️ Personal Trainer →',
+}
+
+function ActionButtons({ actions, onNav }) {
+  const navActions = actions?.filter(a => a.type === 'nav') || []
+  const goalAction = actions?.find(a => a.type === 'set_goal')
+  if (!navActions.length && !goalAction) return null
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+      {goalAction && (
+        <button
+          onClick={() => onNav('goals')}
+          style={{
+            padding: '6px 14px', borderRadius: 20,
+            border: '1px solid rgba(232,255,71,.4)',
+            background: 'rgba(232,255,71,.1)',
+            color: 'var(--accent)', fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Space Mono, monospace',
+          }}
+        >
+          🎯 Hedefler Sayfasına Git →
+        </button>
+      )}
+      {navActions.map((a, i) => (
+        <button
+          key={i}
+          onClick={() => onNav(a.sub)}
+          style={{
+            padding: '6px 14px', borderRadius: 20,
+            border: '1px solid rgba(232,255,71,.25)',
+            background: 'rgba(232,255,71,.06)',
+            color: 'var(--accent)', fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Space Mono, monospace',
+          }}
+        >
+          {NAV_LABELS[a.sub] || `${a.sub} →`}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function AiCoachPage() {
   const { profile, goals, foods, templates, saveTemplates, genId,
-    checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, setActiveTab, showToast } = useApp()
+    checkAndUseAiCredit, aiRemaining, isAiBanned, AI_DAILY_LIMIT, setActiveTab, showToast, saveGoals } = useApp()
 
   const [view, setView] = useState('chat')
   const [showTools, setShowTools] = useState(false)
@@ -196,10 +271,14 @@ export default function AiCoachPage() {
       const reply = await geminiCall(contents, { maxOutputTokens: 1200 })
       if (reply) {
         checkAndUseAiCredit('chat')
-        const navMatch = reply.match(/\[NAV:(\w+)\]/)
-        const navAction = navMatch ? navMatch[1] : null
-        const cleanReply = reply.replace(/\[NAV:\w+\]/g, '').trim()
-        setMessages(prev => [...prev, { role: 'assistant', text: cleanReply, navAction }])
+        const { cleanText, actions } = parseActions(reply)
+        for (const action of actions) {
+          if (action.type === 'set_goal' && action.data) {
+            saveGoals({ ...goals, ...action.data })
+            showToast('🎯 Makro hedefler güncellendi!')
+          }
+        }
+        setMessages(prev => [...prev, { role: 'assistant', text: cleanText, actions }])
       } else setMessages(prev => [...prev, { role: 'assistant', text: 'Yanıt alınamadı, tekrar dene.' }])
     } catch (err) {
       kavaHataBildir("AiCoach - Sohbet", err.message);
@@ -336,17 +415,8 @@ Eksiksiz ama çok kısa yaz.`
                 </div>
                 <div style={{ maxWidth: '80%', background: msg.role === 'user' ? 'var(--accent)' : 'var(--surface2)', border: msg.role === 'user' ? '1px solid var(--accent)' : '1px solid var(--border)', borderRadius: msg.role === 'user' ? '18px 4px 18px 18px' : '4px 18px 18px 18px', padding: '12px 16px', boxShadow: msg.role === 'user' ? '0 4px 12px rgba(232,255,71,0.15)' : 'none' }}>
                   <div style={{ fontSize: 14, lineHeight: 1.6, color: msg.role === 'user' ? '#0a0a0a' : 'var(--text)', fontFamily: 'Inter,sans-serif', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.text}</div>
-                  {msg.navAction && (
-                    <button
-                      onClick={() => setActiveTab(msg.navAction)}
-                      style={{ marginTop: 8, padding: '6px 14px', borderRadius: 20, border: 'none', background: 'var(--accent)', color: '#0a0a0a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'block', fontFamily: 'Space Mono,monospace' }}
-                    >
-                      {msg.navAction === 'calorie' ? '🍎 Kalori Sayfasına Git →' :
-                       msg.navAction === 'today' ? '🏋️ Antrenman Sayfasına Git →' :
-                       msg.navAction === 'coach' ? '🤖 Kişisel Koça Git →' :
-                       msg.navAction === 'goals' ? '🎯 Hedefler Sayfasına Git →' :
-                       msg.navAction === 'progress' ? '📊 İlerleme Sayfasına Git →' : '→ Git'}
-                    </button>
+                  {msg.role === 'assistant' && msg.actions?.length > 0 && (
+                    <ActionButtons actions={msg.actions} onNav={(tab) => setActiveTab(tab)} />
                   )}
                 </div>
               </div>

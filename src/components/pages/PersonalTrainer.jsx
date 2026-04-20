@@ -311,7 +311,7 @@ function PendingPlan({ plan, onApply, onDismiss }) {
 
 // ── Main Page ──
 export default function PersonalTrainer() {
-  const { profile, goals, foods, exercises, saveExercises, exArchive, body, showToast, setActiveTab } = useApp()
+  const { profile, goals, foods, exercises, saveExercises, exArchive, body, showToast, setActiveTab, saveGoals, genId: ctxGenId } = useApp()
 
   const [unlocked, setUnlocked] = useState(() => localStorage.getItem(PT_KEY) === '1')
   const [messages, setMessages] = useState([
@@ -368,6 +368,11 @@ export default function PersonalTrainer() {
     return `Sen KavaFit Personal Trainer AI'sın. SADECE antrenman programlama, egzersiz tekniği, kuvvet antrenmanı, kas geliştirme, toparlanma ve sporcu beslenmesi konularında yardım et. Başka konularda "Bu alan uzmanlığımın dışında, antrenman konusunda yardımcı olabilirim!" de.
 
 Türkçe konuş. Kullanıcının geçmiş verilerine göre kişiselleştirilmiş ve gerçekçi programlar oluştur.
+
+YETKİLERİN (kullanıcı açıkça istediğinde kullan):
+- Sayfaya yönlendirme: [ACTION:nav:today], [ACTION:nav:goals], [ACTION:nav:progress], [ACTION:nav:calorie]
+- Makro hedef güncelleme: [ACTION:set_goal:{"kcal":2500,"protein":180,"fat":80,"carb":250}]
+Kullanıcı "makrolarımı ayarla", "protein hedefimi güncelle" gibi bir şey derse profil verilerine göre uygun değerleri hesapla ve [ACTION:set_goal:{...}] ile uygula, ardından [ACTION:nav:goals] ekle. Her mesajda max 2 aksiyon.
 
 ÖNEMLI KURAL: Kullanıcı bir antrenman programı veya egzersiz planı istiyorsa (örn: "bench günü", "bacak antrenmanı", "push day", "program yaz", "squat günü"), cevabını şu JSON formatıyla bitir:
 
@@ -432,6 +437,7 @@ ${lines.join('\n')}
 
     const reply = await callGemini(contents)
     if (reply) {
+      // workout_plan JSON'ı önce çek
       const jsonMatch = reply.match(/```json\s*([\s\S]*?)\s*```/)
       if (jsonMatch) {
         try {
@@ -446,7 +452,31 @@ ${lines.join('\n')}
           }
         } catch { /* fall through */ }
       }
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
+
+      // ACTION etiketlerini işle
+      const actions = []
+      const cleanReply = reply
+        .replace(/\[ACTION:([^\]]+)\]/g, (_, inner) => {
+          try {
+            const colonIdx = inner.indexOf(':')
+            if (colonIdx === -1) return ''
+            const type = inner.slice(0, colonIdx)
+            const rest = inner.slice(colonIdx + 1)
+            if (type === 'nav') actions.push({ type: 'nav', sub: rest })
+            else actions.push({ type, data: JSON.parse(rest) })
+          } catch { /* ignore */ }
+          return ''
+        })
+        .trim()
+
+      for (const action of actions) {
+        if (action.type === 'set_goal' && action.data) {
+          saveGoals({ ...goals, ...action.data })
+          showToast('🎯 Makro hedefler güncellendi!')
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', text: cleanReply || reply, actions }])
       const detected = getMuscles([{ name: msg }])
       if (detected.length > 0) setActiveGroups(detected)
     } else {
@@ -600,6 +630,27 @@ ${lines.join('\n')}
                 <div style={{ fontSize: 13, lineHeight: 1.8, color: m.role === 'user' ? 'var(--accent)' : 'var(--text-dim)', fontFamily: 'Inter,sans-serif', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {m.text}
                 </div>
+                {m.role === 'assistant' && m.actions?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {m.actions.filter(a => a.type === 'set_goal').length > 0 && (
+                      <button
+                        onClick={() => setActiveTab('goals')}
+                        style={{ padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(232,255,71,.4)', background: 'rgba(232,255,71,.1)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Space Mono,monospace' }}
+                      >
+                        🎯 Hedefler Sayfasına Git →
+                      </button>
+                    )}
+                    {m.actions.filter(a => a.type === 'nav').map((a, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveTab(a.sub)}
+                        style={{ padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(232,255,71,.25)', background: 'rgba(232,255,71,.06)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Space Mono,monospace' }}
+                      >
+                        {a.sub === 'today' ? '🏋️ Antrenman →' : a.sub === 'goals' ? '🎯 Hedefler →' : a.sub === 'calorie' ? '🍎 Kalori →' : a.sub === 'progress' ? '📊 İlerleme →' : `${a.sub} →`}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -23,15 +23,35 @@ async function callGemini(contents) {
   return null
 }
 
+function parseActions(text) {
+  const actions = []
+  const clean = text.replace(/\[ACTION:([^\]]+)\]/g, (_, inner) => {
+    try {
+      const colonIdx = inner.indexOf(':')
+      if (colonIdx === -1) return ''
+      const type = inner.slice(0, colonIdx)
+      const rest = inner.slice(colonIdx + 1)
+      if (type === 'nav') actions.push({ type: 'nav', sub: rest, data: null })
+      else actions.push({ type, data: JSON.parse(rest) })
+    } catch { /* ignore malformed */ }
+    return ''
+  })
+  const navClean = clean.replace(/\[NAV:(\w+)\]/g, (_, tab) => {
+    actions.push({ type: 'nav', sub: tab, data: null })
+    return ''
+  })
+  return { cleanText: navClean.trim(), actions }
+}
+
 const NAV_LABELS = {
   calorie: '🍎 Kalori Sayfası →',
   today: '🏋️ Antrenman →',
   coach: '🤖 Kişisel Koç →',
   goals: '🎯 Hedefler →',
   progress: '📊 İlerleme →',
+  trainer: '🏋️ Personal Trainer →',
 }
 
-// Animated AI icon SVG
 function AIIcon({ size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,8 +63,47 @@ function AIIcon({ size = 24 }) {
   )
 }
 
+function ActionButtons({ actions, onNav }) {
+  const navActions = actions?.filter(a => a.type === 'nav') || []
+  const goalAction = actions?.find(a => a.type === 'set_goal')
+  if (!navActions.length && !goalAction) return null
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+      {goalAction && (
+        <button
+          onClick={() => onNav('goals')}
+          style={{
+            padding: '5px 12px', borderRadius: 20,
+            border: '1px solid rgba(232,255,71,.4)',
+            background: 'rgba(232,255,71,.12)',
+            color: '#e8ff47', fontSize: 11, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Space Mono, monospace',
+          }}
+        >
+          🎯 Hedefler Sayfasına Git →
+        </button>
+      )}
+      {navActions.map((a, i) => (
+        <button
+          key={i}
+          onClick={() => onNav(a.sub)}
+          style={{
+            padding: '5px 12px', borderRadius: 20,
+            border: '1px solid rgba(232,255,71,.3)',
+            background: 'rgba(232,255,71,.08)',
+            color: '#e8ff47', fontSize: 11, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Space Mono, monospace',
+          }}
+        >
+          {NAV_LABELS[a.sub] || `${a.sub} →`}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function FloatingChatbot() {
-  const { profile, goals, foods, exercises, setActiveTab } = useApp()
+  const { profile, goals, foods, exercises, setActiveTab, saveGoals, showToast } = useApp()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([
     { role: 'assistant', text: 'Merhaba! 👋 Fitness veya beslenme hakkında bir şey sormak ister misin?' }
@@ -65,7 +124,7 @@ export default function FloatingChatbot() {
       if (profile.goal) lines.push(`Hedef: ${goalMap[profile.goal] || profile.goal}`)
       if (profile.tdee) lines.push(`TDEE: ~${profile.tdee}kcal`)
     }
-    if (goals) lines.push(`Makro hedef: ${goals.kcal}kcal, ${goals.protein}g protein`)
+    if (goals) lines.push(`Makro hedef: ${goals.kcal}kcal, ${goals.protein}g protein, ${goals.fat}g yağ, ${goals.carb}g karb`)
     if (foods?.length > 0) {
       const kcal = Math.round(foods.reduce((s, f) => s + (+f.kcal || 0), 0))
       lines.push(`Bugün yenen: ${kcal}kcal`)
@@ -78,14 +137,22 @@ export default function FloatingChatbot() {
 
 Kısa ve öz cevaplar ver (maks 2-3 paragraf). Türkçe konuş.
 
-Eğer kalori veya beslenme konusundaysa cevabın sonuna [NAV:calorie] ekle.
-Eğer bugünkü antrenmanla ilgiliyse [NAV:today] ekle.
-Eğer detaylı AI koç desteği gerekiyorsa [NAV:coach] ekle.
-Sadece gerçekten ilgili olduğunda NAV etiketi ekle.
+YETKİLERİN (kullanıcı açıkça istediğinde kullan):
+- Sayfaya yönlendirme: [ACTION:nav:calorie], [ACTION:nav:today], [ACTION:nav:goals], [ACTION:nav:coach], [ACTION:nav:progress]
+- Makro hedef güncelleme: [ACTION:set_goal:{"kcal":2000,"protein":150,"fat":70,"carb":200}]
+
+Kullanıcı "makrolarımı ayarla", "hedeflerimi güncelle", "kalori hedefimi değiştir" gibi bir şey derse mevcut profil verilerine göre uygun makroları hesapla ve [ACTION:set_goal:{...}] ile uygula, ardından [ACTION:nav:goals] ekle.
+Kalori/beslenme konusunda [ACTION:nav:calorie], antrenman için [ACTION:nav:today], detaylı koç için [ACTION:nav:coach] ekle.
+Sadece gerçekten ilgili olduğunda aksiyon ekle.
 
 Kullanıcı verileri:
 ${lines.join('\n')}
 `
+  }
+
+  const handleNav = (tab) => {
+    setActiveTab(tab)
+    setOpen(false)
   }
 
   const send = async () => {
@@ -108,10 +175,16 @@ ${lines.join('\n')}
 
     const reply = await callGemini(contents)
     if (reply) {
-      const navMatch = reply.match(/\[NAV:(\w+)\]/)
-      const navAction = navMatch ? navMatch[1] : null
-      const cleanReply = reply.replace(/\[NAV:\w+\]/g, '').trim()
-      setMessages(prev => [...prev, { role: 'assistant', text: cleanReply, navAction }])
+      const { cleanText, actions } = parseActions(reply)
+
+      for (const action of actions) {
+        if (action.type === 'set_goal' && action.data) {
+          saveGoals({ ...goals, ...action.data })
+          showToast('🎯 Makro hedefler güncellendi!')
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', text: cleanText, actions }])
     } else {
       setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Yanıt alınamadı, tekrar dene.' }])
     }
@@ -207,11 +280,7 @@ ${lines.join('\n')}
               <AIIcon size={16} />
             </div>
             <div>
-              <div style={{
-                fontFamily: 'Bebas Neue, sans-serif',
-                fontSize: 15, letterSpacing: 2,
-                color: '#e8ff47',
-              }}>
+              <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 15, letterSpacing: 2, color: '#e8ff47' }}>
                 KAVAFIT AI
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
@@ -272,28 +341,8 @@ ${lines.join('\n')}
                 }}>
                   {m.text}
                 </div>
-                {m.navAction && (
-                  <button
-                    onClick={() => { setActiveTab(m.navAction); setOpen(false) }}
-                    style={{
-                      marginTop: '6px',
-                      padding: '5px 14px',
-                      borderRadius: '20px',
-                      border: '1px solid rgba(232,255,71,.3)',
-                      background: 'rgba(232,255,71,.08)',
-                      color: '#e8ff47',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'Space Mono, monospace',
-                      letterSpacing: 0.5,
-                      transition: 'all .15s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,255,71,.15)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,255,71,.08)' }}
-                  >
-                    {NAV_LABELS[m.navAction] || `${m.navAction} →`}
-                  </button>
+                {m.role === 'assistant' && m.actions?.length > 0 && (
+                  <ActionButtons actions={m.actions} onNav={handleNav} />
                 )}
               </div>
             ))}
