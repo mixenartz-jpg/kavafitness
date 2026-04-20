@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext'
 const PT_PASSWORD = 'kerembaba12358'
 const PT_KEY = 'pt_unlocked'
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+const GEMINI_MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.0-flash', 'gemini-1.5-flash']
 
 async function callGemini(contents) {
   const key = import.meta.env.VITE_GEMINI_KEY

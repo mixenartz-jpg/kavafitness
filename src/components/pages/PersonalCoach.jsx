@@ -359,7 +359,7 @@ ${lines.join('\n')}
       ...newMsgs.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
     ]
 
-    const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
+    const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.0-flash', 'gemini-1.5-flash']
     const key = import.meta.env.VITE_GEMINI_KEY
     let reply = null
 
